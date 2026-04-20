@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>İK Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f1f5f9;color:#0f172a;font-size:13px;height:100%;overflow-x:hidden}
+
+/* ── LOGIN ── */
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.login-box{background:#fff;border-radius:16px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 25px 60px rgba(0,0,0,.3)}
+.login-logo{text-align:center;margin-bottom:24px}
+.login-logo .brand{font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.5px}
+.login-logo .sub{font-size:11px;color:#94a3b8;margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+.login-logo .icon{width:52px;height:52px;background:#0f172a;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:22px}
+.login-err{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none}
+.login-err.show{display:block}
+
+/* ── SHELL ── */
+.shell{display:flex;min-height:100vh;min-height:100dvh}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;background:#0f172a;color:#fff;flex-shrink:0;display:flex;flex-direction:column;transition:transform .25s ease;z-index:50}
+.sidebar-logo{padding:18px 18px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+.sidebar-logo .brand{font-size:15px;font-weight:800;letter-spacing:-0.3px;color:#f8fafc}
+.sidebar-logo .sub{font-size:9px;color:#64748b;margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+.sidebar-close{display:none;background:none;border:none;color:#64748b;font-size:20px;cursor:pointer;padding:2px 6px;line-height:1}
+.nav-section{padding:10px 18px 4px;font-size:9px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:12px;color:#94a3b8;cursor:pointer;border-left:2px solid transparent;transition:all .12s;user-select:none}
+.nav-item:hover{background:#1e293b;color:#e2e8f0}
+.nav-item.active{background:#1e293b;color:#f8fafc;border-left-color:#3b82f6;font-weight:600}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{margin-top:auto;padding:14px 18px;border-top:1px solid #1e293b}
+.user-info{font-size:11px;color:#64748b;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-email{color:#94a3b8;font-weight:600;font-size:10px}
+
+/* ── OVERLAY (mobile) ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:40}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;background:#fff;flex-shrink:0}
+.topbar-menu{display:none;background:none;border:none;cursor:pointer;padding:4px;color:#374151;flex-shrink:0}
+.topbar-menu svg{display:block}
+.topbar-left{flex:1;min-width:0}
+.topbar-left .title{font-size:15px;font-weight:800;letter-spacing:-0.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-left .sub{font-size:11px;color:#94a3b8;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.db-status{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid;white-space:nowrap}
+.db-ok{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}
+.db-err{background:#fef2f2;color:#dc2626;border-color:#fecaca}
+.db-loading{background:#f8fafc;color:#94a3b8;border-color:#e2e8f0}
+.content{padding:16px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.page{display:none}.page.active{display:block}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:14px}
+.card-head{padding:11px 14px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;background:#fafafa}
+.card-title{font-size:12px;font-weight:700;color:#374151}
+.card-body{padding:14px}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.stat{background:#fff;border-radius:10px;padding:13px 14px;border:1px solid #e2e8f0}
+.stat-label{font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.stat-val{font-size:20px;font-weight:800;letter-spacing:-0.5px;line-height:1}
+.stat-sub{font-size:10px;color:#cbd5e1;margin-top:2px}
+
+/* ── TABLE wrapper ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:500px}
+th{padding:7px 12px;text-align:left;font-weight:700;font-size:10px;color:#94a3b8;border-bottom:1px solid #f1f5f9;background:#fafafa;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #f8fafc;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-amber{background:#fef9c3;color:#a16207}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-red{background:#fee2e2;color:#b91c1c}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:8px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;cursor:pointer;color:#374151;font-family:inherit;transition:all .1s;font-weight:600;line-height:1;-webkit-appearance:none;touch-action:manipulation}
+.btn:hover{background:#f8fafc}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:#2563eb;color:#fff;border-color:#2563eb}
+.btn-primary:hover{background:#1d4ed8}
+.btn-green{background:#16a34a;color:#fff;border-color:#16a34a}
+.btn-green:hover{background:#15803d}
+.btn-danger{background:#fff;color:#dc2626;border-color:#fecaca}
+.btn-danger:hover{background:#fef2f2}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-block{width:100%;padding:12px}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+
+/* ── FORMS ── */
+.form-grid{display:grid;gap:10px;margin-bottom:12px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:10px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.form-input{padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:#0f172a;transition:border .1s;-webkit-appearance:none;appearance:none;width:100%}
+.form-input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+select.form-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+textarea.form-input{resize:vertical;min-height:60px}
+
+/* ── TOGGLE ── */
+.toggle-group{display:flex;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+.toggle-btn{flex:1;padding:9px 10px;border:none;background:#fff;font-size:12px;cursor:pointer;font-family:inherit;font-weight:600;color:#64748b;transition:all .1s;touch-action:manipulation}
+.toggle-btn.active{background:#2563eb;color:#fff}
+
+/* ── RESULT BOX ── */
+.result-box{background:#f0f9ff;border-radius:8px;padding:12px 14px;margin-top:10px;border:1px solid #bae6fd;border-left:3px solid #0ea5e9}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px;border-bottom:1px solid #e0f2fe}
+.result-row:last-child{border-bottom:none;font-weight:800;font-size:13px;padding-top:8px}
+
+/* ── AVATAR ── */
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.av0{background:#dbeafe;color:#1d4ed8}.av1{background:#dcfce7;color:#15803d}
+.av2{background:#ede9fe;color:#6d28d9}.av3{background:#fef9c3;color:#a16207}
+.av4{background:#ffedd5;color:#c2410c}.av5{background:#fce7f3;color:#be185d}
+.person-cell{display:flex;align-items:center;gap:8px}
+
+/* ── MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.2);padding-bottom:env(safe-area-inset-bottom)}
+.modal-handle{width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:10px auto 0}
+.modal-head{padding:14px 18px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid #f1f5f9}
+.modal-title{font-size:15px;font-weight:800}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;line-height:1}
+.modal-body{padding:16px 18px}
+.modal-footer{padding:12px 18px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;justify-content:flex-end}
+
+/* ── TABS ── */
+.tab-bar{display:flex;border-bottom:1px solid #e2e8f0;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:9px 16px;font-size:12px;cursor:pointer;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:600;white-space:nowrap;transition:all .1s}
+.tab.active{color:#2563eb;border-bottom-color:#2563eb}
+
+/* ── ALERT ── */
+.alert{padding:9px 12px;border-radius:8px;font-size:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:7px}
+.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+
+/* ── WEEKEND CARDS ── */
+.weekend-opt{display:flex;gap:10px;margin-top:8px}
+.weekend-card{flex:1;border:2px solid #e2e8f0;border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .1s;touch-action:manipulation}
+.weekend-card.selected{border-color:#2563eb;background:#eff6ff}
+.weekend-card .wc-icon{font-size:20px;margin-bottom:4px}
+.weekend-card .wc-title{font-size:12px;font-weight:700;color:#374151}
+.weekend-card .wc-sub{font-size:10px;color:#94a3b8;margin-top:2px}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:28px 16px;color:#94a3b8}
+.empty-icon{font-size:28px;margin-bottom:6px}
+.empty-text{font-size:13px;font-weight:600;color:#64748b}
+
+/* ── MISC ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;animation:toastIn .2s ease;white-space:nowrap;max-width:90vw;text-align:center}
+.toast-ok{background:#16a34a;color:#fff}
+.toast-err{background:#dc2626;color:#fff}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.loading-row td{text-align:center;padding:24px;color:#94a3b8}
+
+/* ── MOBILE BOTTOM NAV ── */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e2e8f0;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.bottom-nav-inner{display:flex;align-items:stretch}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;cursor:pointer;color:#94a3b8;font-size:9px;font-weight:600;gap:3px;transition:color .1s;border:none;background:none;font-family:inherit;touch-action:manipulation}
+.bn-item svg{width:20px;height:20px}
+.bn-item.active{color:#2563eb}
+.bn-item span{text-transform:uppercase;letter-spacing:.04em}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .sidebar{position:fixed;top:0;bottom:0;left:0;transform:translateX(-100%);z-index:60}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.show{display:block}
+  .sidebar-close{display:block}
+  .topbar-menu{display:block}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .g2{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+  .bottom-nav{display:block}
+  .content{padding:12px 12px calc(70px + env(safe-area-inset-bottom))}
+  .modal-backdrop{align-items:flex-end}
+  .topbar-right .db-status span:last-child{display:none}
+  table{min-width:600px}
+}
+@media(max-width:400px){
+  .g3{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:1fr 1fr}
+}
+@media(min-width:769px){
+  .stat-grid{grid-template-columns:repeat(4,1fr)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .modal-backdrop{align-items:center;padding:16px}
+  .modal{border-radius:16px;max-height:90vh}
+  .modal-handle{display:none}
+  .bottom-nav{display:none !important}
+  .content{padding:20px 22px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div class="login-screen" id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">👔</div>
+      <div class="brand">İK Panel</div>
+      <div class="sub">Personel Yönetim Sistemi</div>
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">E-posta</label>
+      <input class="form-input" id="login-email" type="email" placeholder="ornek@email.com" autocomplete="email">
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label class="form-label">Şifre</label>
+      <input class="form-input" id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary btn-block" id="login-btn" onclick="doLogin()">Giriş Yap</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="shell" id="app" style="display:none">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div>
+        <div class="brand">İK Panel</div>
+        <div class="sub">Personel Yönetimi</div>
+      </div>
+      <button class="sidebar-close" onclick="closeSidebar()">×</button>
+    </div>
+    <div class="nav-section">Genel</div>
+    <div class="nav-item active" onclick="goPage('dashboard',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-section">Yönetim</div>
+    <div class="nav-item" onclick="goPage('personeller',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Personeller
+    </div>
+    <div class="nav-item" onclick="goPage('kurumlar',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="7" width="12" height="8" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5"/></svg>
+      Kurumlar
+    </div>
+    <div class="nav-item" onclick="goPage('calismalar',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Çalışmalar
+    </div>
+    <div class="nav-item" onclick="goPage('odemeler',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10.5" r="1" fill="currentColor"/></svg>
+      Ödeme Takibi
+    </div>
+    <div class="nav-section">Analiz</div>
+    <div class="nav-item" onclick="goPage('raporlar',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 12V7M6 12V4M9 12V6M12 12V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Raporlar
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-info">Giriş yapıldı:</div>
+      <div class="user-email" id="sidebar-email">—</div>
+      <button class="btn btn-sm btn-danger" style="margin-top:10px;width:100%" onclick="doLogout()">Çıkış Yap</button>
+    </div>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="topbar-menu" onclick="openSidebar()">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <div class="topbar-left">
+        <div class="title" id="page-title">Dashboard</div>
+        <div class="sub" id="page-sub">Genel bakış</div>
+      </div>
+      <div class="topbar-right">
+        <div class="db-status db-loading" id="db-status">
+          <div class="spinner"></div><span>Bağlanıyor</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="doLogout()" style="padding:5px 10px;font-size:11px">Çıkış</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stat-grid">
+          <div class="stat"><div class="stat-label">Personel</div><div class="stat-val" id="s-personel">—</div><div class="stat-sub">Kayıtlı</div></div>
+          <div class="stat"><div class="stat-label">Kurum</div><div class="stat-val" id="s-kurum">—</div><div class="stat-sub">Anlaşmalı</div></div>
+          <div class="stat"><div class="stat-label">Bu Ay Öd.</div><div class="stat-val" id="s-odeme">₺0</div><div class="stat-sub">Gider</div></div>
+          <div class="stat"><div class="stat-label">Bu Ay Kar</div><div class="stat-val" id="s-kar" style="color:#16a34a">₺0</div><div class="stat-sub">Net</div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Son Çalışma Kayıtları</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Personel</th><th>Kurum</th><th>Gün</th><th>Pers.Öd.</th><th>Kar</th></tr></thead>
+          <tbody id="dash-records"><tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Bekleyen Ödemeler</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Personel</th><th>Kurum</th><th>Net Öd.</th><th>Durum</th></tr></thead>
+          <tbody id="dash-payments"><tr class="loading-row"><td colspan="4"><div class="spinner"></div></td></tr></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- PERSONELLER -->
+      <div class="page" id="page-personeller">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openPersonelModal()">+ Ekle</button>
+          <input class="form-input" style="flex:1;min-width:140px" placeholder="İsim ara..." oninput="filterTable('personel-tbody',this.value)">
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Personel Listesi</span><span id="p-count" style="font-size:10px;color:#94a3b8"></span></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Ad Soyad</th><th>Pozisyon</th><th>Aylık</th><th>Telefon</th><th>IBAN</th><th>Top.Gün</th><th></th></tr></thead>
+            <tbody id="personel-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- KURUMLAR -->
+      <div class="page" id="page-kurumlar">
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openKurumModal()">+ Ekle</button>
+          <input class="form-input" style="flex:1;min-width:140px" placeholder="Kurum ara..." oninput="filterTable('kurum-tbody',this.value)">
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-title">Kurum Listesi</span><span id="k-count" style="font-size:10px;color:#94a3b8"></span></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Kurum Adı</th><th>Yetkili</th><th>Telefon</th><th>Adres</th><th>Ciro</th><th>Top.Gün</th><th></th></tr></thead>
+            <tbody id="kurum-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ÇALIŞMALAR -->
+      <div class="page" id="page-calismalar">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <button class="btn btn-primary" onclick="openCalismaModal()">+ Yeni Kayıt</button>
+          <button class="btn" onclick="toggleFilter()" id="filter-toggle-btn">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 3h12M3 7h8M5 11h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            Filtrele
+          </button>
+          <button class="btn" id="arsiv-toggle-btn" onclick="toggleArsivMode()" style="margin-left:auto">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M1 7h14M5 1l-2 3M11 1l2 3M6 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Arşiv
+          </button>
+          <!-- Filtre inline -->
+          <div id="filter-inline" style="display:none;width:100%;margin-top:8px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px">
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Personel</label>
+                <select class="form-input" id="f-per" onchange="filterRecords()"><option value="">Tümü</option></select></div>
+              <div class="form-group"><label class="form-label">Kurum</label>
+                <select class="form-input" id="f-com" onchange="filterRecords()"><option value="">Tümü</option></select></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Başlangıç</label><input class="form-input" id="f-bas" type="date" onchange="filterRecords()"></div>
+              <div class="form-group"><label class="form-label">Bitiş</label><input class="form-input" id="f-bit" type="date" onchange="filterRecords()"></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Pers.Öd.Durumu</label>
+                <select class="form-input" id="f-per-st" onchange="filterRecords()"><option value="">Tümü</option><option value="bekliyor">Bekliyor</option><option value="odendi">Ödendi</option></select></div>
+              <div class="form-group"><label class="form-label">Kur.Öd.Durumu</label>
+                <select class="form-input" id="f-com-st" onchange="filterRecords()"><option value="">Tümü</option><option value="bekliyor">Bekliyor</option><option value="odendi">Ödendi</option></select></div>
+            </div>
+            <button class="btn btn-sm" onclick="clearFilters()">Filtreyi Temizle</button>
+          </div>
+        </div>
+
+        <!-- Arşiv banner -->
+        <div id="arsiv-banner" style="display:none;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:9px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;gap:10px">
+          <span style="font-size:12px;font-weight:600;color:#92400e">📦 Arşiv görünümü — Bu kayıtlar raporlara dahildir, sadece listeden gizlenmiştir.</span>
+          <button class="btn btn-sm" onclick="toggleArsivMode()" style="white-space:nowrap">← Aktif Kayıtlara Dön</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title" id="rec-list-title">Aktif Kayıtlar</span>
+            <span id="rec-count" style="font-size:10px;color:#94a3b8"></span>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Personel</th><th>Kurum</th><th>Giriş</th><th>Çıkış</th><th>Gün</th><th>Pers.Öd.</th><th>Avans</th><th>Net Pers.</th><th>Kur.Fat.</th><th>Masraf</th><th>Kar</th><th>P.Öd.D.</th><th>K.Öd.D.</th><th>Not</th><th></th></tr></thead>
+            <tbody id="calisma-tbody"><tr class="loading-row"><td colspan="15"><div class="spinner"></div></td></tr></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ÖDEMELER -->
+      <div class="page" id="page-odemeler">
+        <div class="tab-bar">
+          <div class="tab active" onclick="switchOTab('per',this)">Personel Ödemeleri</div>
+          <div class="tab" onclick="switchOTab('com',this)">Kurum Ödemeleri</div>
+        </div>
+        <div id="otab-per">
+          <div class="toolbar">
+            <select class="form-input" style="flex:1" id="op-p" onchange="renderPerOd()"><option value="">Tüm Personel</option></select>
+            <select class="form-input" style="width:120px" id="op-s" onchange="renderPerOd()"><option value="">Tümü</option><option value="bekliyor">Bekliyor</option><option value="odendi">Ödendi</option></select>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Personel Ödemeleri</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Personel</th><th>IBAN</th><th>Kurum</th><th>Dönem</th><th>Gün</th><th>Brüt</th><th>Avans</th><th>Net</th><th>Durum</th><th></th></tr></thead>
+            <tbody id="per-od-tbody"></tbody></table></div>
+          </div>
+        </div>
+        <div id="otab-com" style="display:none">
+          <div class="toolbar">
+            <select class="form-input" style="flex:1" id="oc-k" onchange="renderComOd()"><option value="">Tüm Kurum</option></select>
+            <select class="form-input" style="width:120px" id="oc-s" onchange="renderComOd()"><option value="">Tümü</option><option value="bekliyor">Bekliyor</option><option value="odendi">Ödendi</option></select>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Kurum Ödemeleri</span></div>
+            <div class="table-wrap"><table><thead><tr><th>Kurum</th><th>Personel</th><th>Dönem</th><th>Gün</th><th>Fatura</th><th>Durum</th><th></th></tr></thead>
+            <tbody id="com-od-tbody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAPORLAR -->
+      <div class="page" id="page-raporlar">
+        <div class="tab-bar">
+          <div class="tab active" onclick="switchRTab('r-ay',this)">Aylık</div>
+          <div class="tab" onclick="switchRTab('r-per',this)">Personel</div>
+          <div class="tab" onclick="switchRTab('r-kur',this)">Kurum</div>
+        </div>
+        <div id="r-ay">
+          <div class="toolbar" style="flex-wrap:wrap">
+            <select class="form-input" style="flex:1;min-width:120px" id="rap-ay">
+              <option value="0">Ocak</option><option value="1">Şubat</option><option value="2">Mart</option>
+              <option value="3">Nisan</option><option value="4">Mayıs</option><option value="5">Haziran</option>
+              <option value="6">Temmuz</option><option value="7">Ağustos</option><option value="8">Eylül</option>
+              <option value="9">Ekim</option><option value="10">Kasım</option><option value="11">Aralık</option>
+            </select>
+            <select class="form-input" style="width:90px" id="rap-yil"></select>
+            <button class="btn btn-primary" onclick="genMonthly()">Oluştur</button>
+            <button class="btn btn-green" onclick="exportExcel('aylik')">⬇ Excel</button>
+          </div>
+          <div id="r-ay-res"></div>
+        </div>
+        <div id="r-per" style="display:none">
+          <div class="toolbar" style="flex-wrap:wrap">
+            <select class="form-input" style="flex:1;min-width:160px" id="rap-p-sec"><option value="">— Tüm Personel —</option></select>
+            <input class="form-input" type="date" id="rap-p-bas" style="flex:1">
+            <input class="form-input" type="date" id="rap-p-bit" style="flex:1">
+            <button class="btn btn-primary" onclick="genPer()">Oluştur</button>
+            <button class="btn btn-green" onclick="exportExcel('personel')">⬇ Excel</button>
+          </div>
+          <div id="r-per-res"></div>
+        </div>
+        <div id="r-kur" style="display:none">
+          <div class="toolbar" style="flex-wrap:wrap">
+            <select class="form-input" style="flex:1;min-width:160px" id="rap-k-sec"><option value="">— Tüm Kurumlar —</option></select>
+            <input class="form-input" type="date" id="rap-k-bas" style="flex:1">
+            <input class="form-input" type="date" id="rap-k-bit" style="flex:1">
+            <button class="btn btn-primary" onclick="genKur()">Oluştur</button>
+            <button class="btn btn-green" onclick="exportExcel('kurum')">⬇ Excel</button>
+          </div>
+          <div id="r-kur-res"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- BOTTOM NAV (mobile) -->
+<div class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bn-item active" id="bn-dashboard" onclick="goPageMobile('dashboard',this)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span>Ana</span>
+    </button>
+    <button class="bn-item" id="bn-calismalar" onclick="goPageMobile('calismalar',this)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="11" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Çalışma</span>
+    </button>
+    <button class="bn-item" id="bn-odemeler" onclick="goPageMobile('odemeler',this)">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M1 7h14" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10.5" r="1" fill="currentColor"/></svg>
+      <span>Ödeme</span>
+    </button>
+    <button class="bn-item" id="bn-personeller" onclick="goPageMobile('personeller',this)">
+      <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Personel</span>
+    </button>
+    <button class="bn-item" id="bn-raporlar" onclick="goPageMobile('raporlar',this)">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 12V7M6 12V4M9 12V6M12 12V2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Rapor</span>
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: Personel -->
+<div class="modal-backdrop" id="modal-per" style="display:none" onclick="closeMBD(event,'modal-per')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="modal-per-title">Personel Ekle</span>
+      <button class="modal-close" onclick="closeM('modal-per')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Ad *</label><input class="form-input" id="p-first" placeholder="Ad" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">Soyad *</label><input class="form-input" id="p-last" placeholder="Soyad" autocomplete="off"></div>
+      </div>
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Pozisyon</label><input class="form-input" id="p-pos" placeholder="Güvenlik, Temizlik..."></div>
+        <div class="form-group"><label class="form-label">Aylık Ücret (₺)</label><input class="form-input" id="p-wage" type="text" inputmode="decimal" placeholder="0"></div>
+      </div>
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="p-phone" type="tel" placeholder="05XX XXX XXXX"></div>
+        <div class="form-group"><label class="form-label">IBAN</label><input class="form-input" id="p-iban" placeholder="TR00 0000..."></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeM('modal-per')">İptal</button>
+      <button class="btn btn-primary" id="btn-save-per" onclick="savePer()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Çalışma Kaydı -->
+<div class="modal-backdrop" id="modal-calisma" style="display:none" onclick="closeMBD(event,'modal-calisma')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="modal-calisma-title">Yeni Çalışma Kaydı</span>
+      <button class="modal-close" onclick="closeM('modal-calisma');resetCForm()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid g2">
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            Personel
+            <button type="button" class="btn btn-sm" style="font-size:10px;padding:2px 7px;line-height:1.4" onclick="toggleQuickAdd('per')">+ Yeni</button>
+          </label>
+          <select class="form-input" id="c-personel" onchange="onCPersonelChange()"><option value="">Seçin...</option></select>
+          <div id="quick-per" style="display:none;margin-top:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px">
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Ad</label><input class="form-input" id="qp-first" placeholder="Ad"></div>
+              <div class="form-group"><label class="form-label">Soyad</label><input class="form-input" id="qp-last" placeholder="Soyad"></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Pozisyon</label><input class="form-input" id="qp-pos" placeholder="Güvenlik..."></div>
+              <div class="form-group"><label class="form-label">Aylık Ücret (₺)</label><input class="form-input" id="qp-wage" type="text" inputmode="decimal" placeholder="0"></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:0">
+              <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="qp-phone" placeholder="05XX..."></div>
+              <div class="form-group"><label class="form-label">IBAN</label><input class="form-input" id="qp-iban" placeholder="TR00..."></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button type="button" class="btn btn-primary btn-sm" onclick="quickSavePer()">Kaydet ve Seç</button>
+              <button type="button" class="btn btn-sm" onclick="toggleQuickAdd('per')">İptal</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            Kurum
+            <button type="button" class="btn btn-sm" style="font-size:10px;padding:2px 7px;line-height:1.4" onclick="toggleQuickAdd('kur')">+ Yeni</button>
+          </label>
+          <select class="form-input" id="c-kurum"><option value="">Seçin...</option></select>
+          <div id="quick-kur" style="display:none;margin-top:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px">
+            <div class="form-grid g2" style="margin-bottom:8px">
+              <div class="form-group"><label class="form-label">Kurum Adı</label><input class="form-input" id="qk-name" placeholder="Kurum adı"></div>
+              <div class="form-group"><label class="form-label">Yetkili</label><input class="form-input" id="qk-contact" placeholder="Ad Soyad"></div>
+            </div>
+            <div class="form-grid g2" style="margin-bottom:0">
+              <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="qk-phone" placeholder="0212..."></div>
+              <div class="form-group"><label class="form-label">Adres</label><input class="form-input" id="qk-addr" placeholder="Adres"></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <button type="button" class="btn btn-primary btn-sm" onclick="quickSaveKur()">Kaydet ve Seç</button>
+              <button type="button" class="btn btn-sm" onclick="toggleQuickAdd('kur')">İptal</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid g3">
+        <div class="form-group"><label class="form-label">Giriş Tarihi</label>
+          <input class="form-input" id="c-start" type="date" onchange="onDateChange()"></div>
+        <div class="form-group"><label class="form-label">Çıkış Tarihi</label>
+          <input class="form-input" id="c-end" type="date" onchange="onDateChange()"></div>
+        <div class="form-group">
+          <label class="form-label">Gün <span id="gun-auto-badge" style="font-size:9px;color:#2563eb;font-weight:600"></span></label>
+          <input class="form-input" id="c-days" type="text" inputmode="numeric" placeholder="0" oninput="onlyNum(this);calcPreview()">
+        </div>
+      </div>
+      <div class="form-grid g3">
+        <div class="form-group"><label class="form-label">Aylık Ücret (₺)</label>
+          <input class="form-input" id="c-per-wage" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this);calcPreview()"></div>
+        <div class="form-group"><label class="form-label">Kurumdan Alınacak (₺)</label>
+          <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this);calcPreview()"></div>
+        <div class="form-group"><label class="form-label">Avans (₺)</label>
+          <input class="form-input" id="c-avans" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this);calcPreview()"></div>
+      </div>
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Masraflar (₺)</label>
+          <input class="form-input" id="c-masraf" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this);calcPreview()"></div>
+        <div class="form-group"><label class="form-label">Not</label>
+          <input class="form-input" id="c-not" placeholder="İsteğe bağlı"></div>
+      </div>
+      <!-- Hesap özeti -->
+      <div id="c-preview" style="display:none;margin-top:10px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px">
+          <div class="result-row"><span>Çalışma Günü</span><span id="r-gun" style="font-weight:700"></span></div>
+          <div class="result-row"><span>(Aylık/30) × Gün</span><span id="r-calc-detail" style="color:#64748b;font-size:11px"></span></div>
+          <div class="result-row"><span>Brüt Ödeme</span><span id="r-per-od" style="font-weight:600"></span></div>
+          <div class="result-row"><span>Avans</span><span id="r-avans" style="color:#dc2626"></span></div>
+          <div class="result-row"><span>Net Personel</span><span id="r-net-per" style="color:#16a34a;font-weight:700"></span></div>
+          <div class="result-row"><span>Kurumdan</span><span id="r-com-fat"></span></div>
+          <div class="result-row"><span>Masraf</span><span id="r-masraf" style="color:#dc2626"></span></div>
+          <div class="result-row" style="border-bottom:none;padding-top:6px"><span style="font-weight:800">Net Kar</span><span id="r-kar" style="font-weight:800;font-size:14px"></span></div>
+        </div>
+        <div style="margin-top:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 13px">
+          <div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px">⚠️ Hesapları kontrol edin</div>
+          <div id="confirm-summary" style="font-size:11px;color:#78350f;line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;justify-content:flex-end" id="calc-btns">
+        <button class="btn" onclick="closeM('modal-calisma');resetCForm()">İptal</button>
+        <button class="btn btn-primary" onclick="calcPreview()">Hesapla</button>
+      </div>
+      <div style="display:none;gap:8px;flex-wrap:wrap;width:100%;justify-content:flex-end" id="confirm-btns">
+        <button class="btn" onclick="closeM('modal-calisma');resetCForm()">İptal</button>
+        <button class="btn btn-green" id="btn-save-rec" onclick="saveCalisme()">✓ Onayla ve Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Kurum -->
+<div class="modal-backdrop" id="modal-com" style="display:none" onclick="closeMBD(event,'modal-com')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="modal-com-title">Kurum Ekle</span>
+      <button class="modal-close" onclick="closeM('modal-com')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Kurum Adı *</label><input class="form-input" id="k-name" placeholder="Kurum adı"></div>
+        <div class="form-group"><label class="form-label">Yetkili Kişi</label><input class="form-input" id="k-contact" placeholder="Ad Soyad"></div>
+      </div>
+      <div class="form-grid g2">
+        <div class="form-group"><label class="form-label">Telefon</label><input class="form-input" id="k-phone" type="tel" placeholder="0212 XXX XX XX"></div>
+        <div class="form-group"><label class="form-label">Adres</label><input class="form-input" id="k-addr" placeholder="Adres"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeM('modal-com')">İptal</button>
+      <button class="btn btn-primary" id="btn-save-com" onclick="saveCom()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ============================================================
+// CONFIG — Tüm istekler backend üzerinden geçer
+// FIX: index.html artık backend ile aynı sunucudan (3001) açılıyor
+// Bu sayede cookie'ler aynı origin'den gönderilir, CORS sorunu olmaz.
+// Relative path kullanıldığı için production'da da ekstra ayar gerekmez.
+// ============================================================
+const API_BASE = '';
+const AUTO_LOGIN_ENABLED = false;
+
+let authToken = null; // Sadece /me çağrısı için tutulur, her istek cookie ile gider
+
+// ============================================================
+// BACKEND API YARDIMCISI
+// Tüm CRUD istekleri bu fonksiyon üzerinden backend'e gider.
+// Supabase'e frontend'den doğrudan bağlantı yoktur.
+// ============================================================
+async function apiFetch(method, path, body) {
+  const opts = {
+    method,
+    credentials: 'include', // httpOnly cookie otomatik gönderilir
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+
+  if (res.status === 401) {
+    doLogout();
+    throw new Error('Oturum süresi doldu, tekrar giriş yapınız.');
+  }
+  if (res.status === 403) {
+    throw new Error('Bu işlem için yetkiniz yok.');
+  }
+  if (res.status === 204) return [];
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+const api = {
+  get:    (path)        => apiFetch('GET',    path),
+  post:   (path, body)  => apiFetch('POST',   path, body),
+  patch:  (path, body)  => apiFetch('PATCH',  path, body),
+  delete: (path)        => apiFetch('DELETE', path)
+};
+
+// ============================================================
+// AUTH
+// ============================================================
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.getElementById('login-btn');
+  if (!email || !pass) { showLoginErr('E-posta ve şifre giriniz.'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="border-top-color:#fff;margin:0 auto"></div>';
+  errEl.classList.remove('show');
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      // FIX: Hata durumunda şifre silinmiyor, mesaj net gösteriliyor
+      const msg = data.error || 'Giriş başarısız';
+      showLoginErr(msg === 'Invalid login credentials' ? 'E-posta veya şifre hatalı.' : msg);
+      btn.disabled = false;
+      btn.innerHTML = 'Giriş Yap';
+      return;
+    }
+    localStorage.setItem('ik_email', email);
+    // FIX: refresh_token kaydedildi — token yenileme için kullanılacak
+    if (data.refresh_token) localStorage.setItem('ik_rt', data.refresh_token);
+    // FIX: Admin bilgisini kaydet — UI'da uyarı göstermek için
+    if (data.user?.user_metadata?.admin === false || !data.user?.user_metadata?.admin) {
+      localStorage.setItem('ik_is_admin', '0');
+    } else {
+      localStorage.setItem('ik_is_admin', '1');
+    }
+    authToken = '__cookie__';
+    startTokenRefresh();
+    showApp(email, data.user);
+  } catch (e) {
+    // FIX: Ağ hatası ayrı mesajla gösteriliyor
+    showLoginErr('Sunucuya bağlanılamıyor. Backend çalışıyor mu?');
+  }
+  btn.disabled = false;
+  btn.innerHTML = 'Giriş Yap';
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg; el.classList.add('show');
+}
+
+async function doLogout() {
+  stopTokenRefresh();
+  try {
+    await fetch(`${API_BASE}/logout`, { method: 'POST', credentials: 'include' });
+  } catch (e) {}
+  authToken = null;
+  localStorage.removeItem('ik_email');
+  localStorage.removeItem('ik_rt');
+  localStorage.removeItem('ik_is_admin');
+  // FIX: Oturum kapatılırken global state sıfırlanır
+  personnel = []; companies = []; work_records = [];
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').classList.remove('show');
+}
+
+function showApp(email, user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('sidebar-email').textContent = email;
+  // FIX: Admin değilse kullanıcıya uyarı göster
+  const isAdmin = user?.user_metadata?.admin || localStorage.getItem('ik_is_admin') === '1';
+  if (!isAdmin) {
+    toast('⚠️ Admin yetkiniz yok. Sadece görüntüleme yapabilirsiniz.', 'err');
+    // Yazma butonlarını gizle
+    document.querySelectorAll('[onclick*="openPersonelModal()"], [onclick*="openKurumModal()"], [onclick*="openCalismaModal()"]').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+  loadAll();
+}
+
+// FIX: Auto-login — cookie geçerliliğini backend'den doğrula
+async function tryAutoLogin() {
+  const loginScreen = document.getElementById('login-screen');
+  const email = localStorage.getItem('ik_email');
+  try {
+    const res = await fetch(`${API_BASE}/me`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      authToken = '__cookie__';
+      startTokenRefresh();
+      showApp(email || '', data.user);
+    } else {
+      // Token süresi dolmuş — refresh_token ile yenilemeyi dene
+      const rt = localStorage.getItem('ik_rt');
+      if (rt) {
+        const refreshed = await tryRefreshToken(rt);
+        if (refreshed) { startTokenRefresh(); showApp(email || ''); return; }
+      }
+      localStorage.removeItem('ik_email');
+      localStorage.removeItem('ik_rt');
+      loginScreen.style.display = 'flex';
+    }
+  } catch (e) {
+    console.error('Sunucu bağlantı hatası:', e.message);
+    localStorage.removeItem('ik_email');
+    localStorage.removeItem('ik_rt');
+    loginScreen.style.display = 'flex';
+    const errEl = document.getElementById('login-err');
+    if (errEl) {
+      errEl.textContent = 'Sunucuya bağlanılamıyor. Lütfen backend\'in çalıştığından emin olun.';
+      errEl.classList.add('show');
+    }
+  }
+}
+
+// FIX: Token yenileme — Supabase access token ~1 saatte sürüyor
+// Bu fonksiyon her 50 dakikada bir token'ı yeniler
+let _refreshTimer = null;
+function startTokenRefresh() {
+  stopTokenRefresh();
+  _refreshTimer = setInterval(async () => {
+    const rt = localStorage.getItem('ik_rt');
+    if (!rt) { doLogout(); return; }
+    const ok = await tryRefreshToken(rt);
+    if (!ok) {
+      toast('Oturum süresi doldu, tekrar giriş yapın', 'err');
+      doLogout();
+    }
+  }, 50 * 60 * 1000); // 50 dakika
+}
+function stopTokenRefresh() {
+  if (_refreshTimer) { clearInterval(_refreshTimer); _refreshTimer = null; }
+}
+async function tryRefreshToken(rt) {
+  try {
+    const res = await fetch(`${API_BASE}/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: rt })
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (data.refresh_token) localStorage.setItem('ik_rt', data.refresh_token);
+    return true;
+  } catch (e) { return false; }
+}
+
+// ============================================================
+// STATE
+// ============================================================
+let personnel = [], companies = [], work_records = [];
+let editPId = null, editCId = null, editRecId = null;
+let cMode = 'manuel', weekendIncluded = true;
+let lastReport = { type: null, data: null };
+let previewData = null;
+let arsivMode = false;
+
+// ============================================================
+// UTILS
+// ============================================================
+function fmt(n) { return '₺' + (Math.round(n || 0)).toLocaleString('tr-TR'); }
+function fmtDate(d) {
+  if (!d || d === '—') return '—';
+  let parts = d.split('-');
+  if (parts.length !== 3) return d;
+  return parts[2] + '.' + parts[1] + '.' + parts[0];
+}
+function pName(id) { let p = personnel.find(x => x.id === id); return p ? p.first_name + ' ' + p.last_name : '—'; }
+function cName(id) { let c = companies.find(x => x.id === id); return c ? c.company_name : '—'; }
+function pIban(id) { let p = personnel.find(x => x.id === id); return p ? p.iban || '—' : '—'; }
+function getPersonnelMonthlyWage(personnelId) {
+  let p = personnel.find(x => x.id === personnelId);
+  return p ? (parseFloat(p.daily_wage) || 0) : 0;
+}
+function avCol(i) { return 'av' + (i % 6); }
+function initials(n) { return (n || '').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'; }
+function totalDays(s, e) { return Math.max(0, Math.round((new Date(e) - new Date(s)) / (864e5)) + 1); }
+function countWeekends(s, e) { let d = new Date(s), en = new Date(e), c = 0; while (d <= en) { let dw = d.getDay(); if (dw === 0 || dw === 6) c++; d.setDate(d.getDate() + 1); } return c; }
+function countWorkdays(s, e) { let d = new Date(s), en = new Date(e), c = 0; while (d <= en) { let dw = d.getDay(); if (dw !== 0 && dw !== 6) c++; d.setDate(d.getDate() + 1); } return c; }
+
+// ============================================================
+// HIZLI EKLE (Çalışmalar modalı) — artık backend admin endpoint'i kullanır
+// ============================================================
+function toggleQuickAdd(type) {
+  var id = type === 'per' ? 'quick-per' : 'quick-kur';
+  var el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+async function quickSavePer() {
+  var first = document.getElementById('qp-first').value.trim();
+  var last  = document.getElementById('qp-last').value.trim();
+  if (!first) { toast('Ad zorunludur!', 'err'); return; }
+  var d = {
+    first_name: first,
+    last_name: last,
+    position: document.getElementById('qp-pos').value.trim(),
+    daily_wage: parseFloat(document.getElementById('qp-wage').value) || 0,
+    phone: document.getElementById('qp-phone').value.trim(),
+    iban: document.getElementById('qp-iban').value.trim()
+  };
+  try {
+    // FIX: Doğrudan Supabase değil, backend admin endpoint'i
+    var res = await api.post('/admin/personnel', d);
+    var np = (Array.isArray(res) && res[0]) ? res[0] : Object.assign({ id: 'p' + Date.now() }, d);
+    personnel.push(np);
+    var kurSel = document.getElementById('c-kurum').value;
+    initCSelects();
+    document.getElementById('c-kurum').value = kurSel;
+    document.getElementById('c-personel').value = np.id;
+    if (np.daily_wage) document.getElementById('c-per-wage').value = np.daily_wage;
+    onCPersonelChange();
+    ['qp-first','qp-last','qp-pos','qp-wage','qp-phone','qp-iban'].forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('quick-per').style.display = 'none';
+    renderPersonnel();
+    toast('Personel eklendi ve seçildi ✓');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+
+async function quickSaveKur() {
+  var name = document.getElementById('qk-name').value.trim();
+  if (!name) { toast('Kurum adı zorunludur!', 'err'); return; }
+  var d = {
+    company_name: name,
+    contact_person: document.getElementById('qk-contact').value.trim(),
+    phone: document.getElementById('qk-phone').value.trim(),
+    address: document.getElementById('qk-addr').value.trim()
+  };
+  try {
+    // FIX: Doğrudan Supabase değil, backend admin endpoint'i
+    var res = await api.post('/admin/companies', d);
+    var nc = (Array.isArray(res) && res[0]) ? res[0] : Object.assign({ id: 'c' + Date.now() }, d);
+    companies.push(nc);
+    var perSel = document.getElementById('c-personel').value;
+    var perWage = document.getElementById('c-per-wage').value;
+    initCSelects();
+    document.getElementById('c-personel').value = perSel;
+    document.getElementById('c-per-wage').value = perWage;
+    document.getElementById('c-kurum').value = nc.id;
+    calcPreview();
+    ['qk-name','qk-contact','qk-phone','qk-addr'].forEach(function(id) { document.getElementById(id).value = ''; });
+    document.getElementById('quick-kur').style.display = 'none';
+    renderCompanies();
+    toast('Kurum eklendi ve seçildi ✓');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+
+function onlyNum(el) { let v = el.value.replace(',', '.').replace(/[^0-9.]/g, ''); let p = v.split('.'); if (p.length > 2) v = p[0] + '.' + p.slice(1).join(''); el.value = v; }
+function toast(msg, type = 'ok') { let el = document.createElement('div'); el.className = 'toast toast-' + (type === 'ok' ? 'ok' : 'err'); el.textContent = msg; document.body.appendChild(el); setTimeout(() => el.remove(), 3000); }
+function setDbStatus(s) { const el = document.getElementById('db-status'); if (s === 'ok') { el.className = 'db-status db-ok'; el.innerHTML = '● <span>Bağlı</span>'; } else if (s === 'err') { el.className = 'db-status db-err'; el.innerHTML = '● <span>Hata</span>'; } else { el.className = 'db-status db-loading'; el.innerHTML = '<div class="spinner"></div><span>...</span>'; } }
+function setBtnLoading(id, loading) { const btn = document.getElementById(id); if (!btn) return; btn.disabled = loading; btn.innerHTML = loading ? '<div class="spinner"></div>' : btn.dataset.orig || btn.textContent; }
+
+// ============================================================
+// SIDEBAR (MOBILE)
+// ============================================================
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const PAGE_TITLES = { dashboard: ['Dashboard', 'Genel bakış'], personeller: ['Personeller', 'Personel yönetimi'], kurumlar: ['Kurumlar', 'Kurum yönetimi'], calismalar: ['Çalışmalar', 'Kayıt ekle & listele'], odemeler: ['Ödeme Takibi', 'Ödeme durumları'], raporlar: ['Raporlar', 'Excel export'] };
+
+function goPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[id][0];
+  document.getElementById('page-sub').textContent = PAGE_TITLES[id][1];
+  closeSidebar();
+  if (id === 'calismalar') initCSelects();
+  if (id === 'odemeler') { initOSelects(); renderPerOd(); renderComOd(); }
+  if (id === 'raporlar') initRSelects();
+}
+function goPageMobile(id, bnEl) {
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  if (bnEl) bnEl.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  goPage(id, null);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function loadAll() {
+  try {
+    setDbStatus('loading');
+    let p, c, w;
+    try {
+      [p, c, w] = await Promise.all([
+        api.get('/personnel'),
+        api.get('/companies'),
+        api.get('/work_records')
+      ]);
+    } catch (apiErr) {
+      if (apiErr.message.includes('401') || apiErr.message.includes('JWT') || apiErr.message.includes('süresi doldu')) {
+        toast('Oturum süresi doldu, tekrar giriş yapın', 'err');
+        return; // doLogout zaten apiFetch içinde çağrıldı
+      }
+      throw apiErr;
+    }
+    personnel = p; companies = c; work_records = w;
+    setDbStatus('ok');
+    let d = new Date(), ys = document.getElementById('rap-yil');
+    ys.innerHTML = '';
+    for (let y = d.getFullYear(); y >= 2022; y--) { let o = document.createElement('option'); o.value = y; o.text = y; ys.appendChild(o); }
+    document.getElementById('rap-ay').value = d.getMonth();
+    let today = d.toISOString().split('T')[0];
+    ['c-start', 'c-end', 'c-start2', 'c-end2'].forEach(id => { let el = document.getElementById(id); if (el) el.value = today; });
+    ['btn-save-per', 'btn-save-com', 'btn-save-rec'].forEach(id => { let el = document.getElementById(id); if (el) el.dataset.orig = el.textContent; });
+    document.getElementById('cur-date') && (document.getElementById('cur-date').textContent = d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' }));
+    renderDashboard();
+    renderPersonnel();
+    renderCompanies();
+    renderRecords();
+  } catch (e) {
+    setDbStatus('err');
+    toast('Bağlantı hatası: ' + e.message, 'err');
+    console.error(e);
+  }
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function openM(id) { document.getElementById(id).style.display = 'flex'; }
+function closeM(id) { document.getElementById(id).style.display = 'none'; }
+function closeMBD(e, id) { if (e.target === document.getElementById(id)) closeM(id); }
+
+// ============================================================
+// PERSONEL CRUD — backend /admin/personnel endpoint'leri kullanır
+// ============================================================
+function openPersonelModal(id) {
+  editPId = id || null;
+  let p = id ? personnel.find(x => x.id === id) : null;
+  document.getElementById('modal-per-title').textContent = p ? 'Personel Düzenle' : 'Personel Ekle';
+  document.getElementById('p-first').value = p ? p.first_name : '';
+  document.getElementById('p-last').value = p ? p.last_name : '';
+  document.getElementById('p-pos').value = p ? p.position : '';
+  document.getElementById('p-wage').value = p ? p.daily_wage : '';
+  document.getElementById('p-phone').value = p ? p.phone : '';
+  document.getElementById('p-iban').value = p ? p.iban : '';
+  openM('modal-per');
+}
+async function savePer() {
+  let fn = document.getElementById('p-first').value.trim();
+  let ln = document.getElementById('p-last').value.trim();
+  if (!fn || !ln) { toast('Ad ve Soyad zorunludur!', 'err'); return; }
+  let d = { first_name: fn, last_name: ln, position: document.getElementById('p-pos').value.trim(), daily_wage: parseFloat(document.getElementById('p-wage').value) || 0, phone: document.getElementById('p-phone').value.trim(), iban: document.getElementById('p-iban').value.trim() };
+  const btn = document.getElementById('btn-save-per');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  try {
+    if (editPId) {
+      const res = await api.patch(`/admin/personnel/${editPId}`, d);
+      let i = personnel.findIndex(x => x.id === editPId);
+      personnel[i] = { ...personnel[i], ...(Array.isArray(res) && res[0] ? res[0] : d) };
+      toast('Personel güncellendi ✓');
+    } else {
+      const res = await api.post('/admin/personnel', d);
+      personnel.push(Array.isArray(res) && res[0] ? res[0] : { ...d, id: 'tmp' + Date.now() });
+      toast('Personel eklendi ✓');
+    }
+    closeM('modal-per');
+    renderPersonnel(); renderDashboard();
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+  // FIX: Buton her zaman sıfırlanıyor — disabled kalmıyor
+  btn.disabled = false; btn.textContent = 'Kaydet';
+}
+async function delPer(id) {
+  let relCount = work_records.filter(r => r.personnel_id === id).length;
+  let msg = relCount > 0 ? `Bu personelin ${relCount} çalışma kaydı var. Tümü silinecek. Emin misiniz?` : 'Personeli silmek istiyor musunuz?';
+  if (!confirm(msg)) return;
+  try {
+    await api.delete(`/admin/personnel/${id}`);
+    personnel = personnel.filter(x => x.id !== id);
+    work_records = work_records.filter(r => r.personnel_id !== id);
+    renderPersonnel(); renderDashboard(); renderRecords();
+    toast(relCount > 0 ? `Personel ve ${relCount} kayıt silindi` : 'Personel silindi');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); console.error(e); }
+}
+function renderPersonnel() {
+  let tbody = document.getElementById('personel-tbody');
+  document.getElementById('p-count').textContent = personnel.length + ' kayıt';
+  if (!personnel.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Henüz personel eklenmedi</div></div></td></tr>'; return; }
+  tbody.innerHTML = personnel.map((p, i) => {
+    let tg = work_records.filter(r => r.personnel_id === p.id).reduce((s, r) => s + (r.work_days || 0), 0);
+    return `<tr>
+      <td><div class="person-cell"><div class="avatar ${avCol(i)}">${initials(p.first_name + ' ' + p.last_name)}</div><div style="font-weight:700">${p.first_name} ${p.last_name}</div></div></td>
+      <td>${p.position ? `<span class="badge badge-blue">${p.position}</span>` : '—'}</td>
+      <td style="font-weight:700;white-space:nowrap">${fmt(p.daily_wage)}<span style="font-size:10px;color:#94a3b8">/ay</span></td>
+      <td style="color:#64748b">${p.phone || '—'}</td>
+      <td style="font-size:10px;color:#64748b;font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.iban || '—'}</td>
+      <td style="font-weight:700">${tg}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openPersonelModal('${p.id}')">Düzenle</button>
+        <button class="btn btn-sm btn-danger" onclick="delPer('${p.id}')" style="margin-left:3px">Sil</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// KURUM CRUD — backend /admin/companies endpoint'leri kullanır
+// ============================================================
+function openKurumModal(id) {
+  editCId = id || null;
+  let c = id ? companies.find(x => x.id === id) : null;
+  document.getElementById('modal-com-title').textContent = c ? 'Kurum Düzenle' : 'Kurum Ekle';
+  document.getElementById('k-name').value = c ? c.company_name : '';
+  document.getElementById('k-contact').value = c ? c.contact_person : '';
+  document.getElementById('k-phone').value = c ? c.phone : '';
+  document.getElementById('k-addr').value = c ? c.address : '';
+  openM('modal-com');
+}
+async function saveCom() {
+  let name = document.getElementById('k-name').value.trim();
+  if (!name) { toast('Kurum adı zorunludur!', 'err'); return; }
+  let d = { company_name: name, contact_person: document.getElementById('k-contact').value.trim(), phone: document.getElementById('k-phone').value.trim(), address: document.getElementById('k-addr').value.trim() };
+  const btn = document.getElementById('btn-save-com');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  try {
+    if (editCId) {
+      const res = await api.patch(`/admin/companies/${editCId}`, d);
+      let i = companies.findIndex(x => x.id === editCId);
+      companies[i] = { ...companies[i], ...(Array.isArray(res) && res[0] ? res[0] : d) };
+      toast('Kurum güncellendi ✓');
+    } else {
+      const res = await api.post('/admin/companies', d);
+      companies.push(Array.isArray(res) && res[0] ? res[0] : { ...d, id: 'tmp' + Date.now() });
+      toast('Kurum eklendi ✓');
+    }
+    closeM('modal-com');
+    renderCompanies(); renderDashboard();
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+  // FIX: Buton her zaman sıfırlanıyor — disabled kalmıyor
+  btn.disabled = false; btn.textContent = 'Kaydet';
+}
+async function delCom(id) {
+  let relCount = work_records.filter(r => r.company_id === id).length;
+  let msg = relCount > 0 ? `Bu kurumun ${relCount} çalışma kaydı var. Tümü silinecek. Emin misiniz?` : 'Kurumu silmek istiyor musunuz?';
+  if (!confirm(msg)) return;
+  try {
+    await api.delete(`/admin/companies/${id}`);
+    companies = companies.filter(x => x.id !== id);
+    work_records = work_records.filter(r => r.company_id !== id);
+    renderCompanies(); renderDashboard(); renderRecords();
+    toast(relCount > 0 ? `Kurum ve ${relCount} kayıt silindi` : 'Kurum silindi');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); console.error(e); }
+}
+function renderCompanies() {
+  let tbody = document.getElementById('kurum-tbody');
+  document.getElementById('k-count').textContent = companies.length + ' kayıt';
+  if (!companies.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Henüz kurum eklenmedi</div></div></td></tr>'; return; }
+  tbody.innerHTML = companies.map(c => {
+    let recs = work_records.filter(r => r.company_id === c.id);
+    let ciro = recs.reduce((s, r) => s + (r.total_company_payment || 0), 0);
+    let tg = recs.reduce((s, r) => s + (r.work_days || 0), 0);
+    return `<tr>
+      <td style="font-weight:700">${c.company_name}</td>
+      <td>${c.contact_person || '—'}</td>
+      <td style="color:#64748b">${c.phone || '—'}</td>
+      <td style="color:#64748b;font-size:11px">${c.address || '—'}</td>
+      <td style="font-weight:700;color:#16a34a">${fmt(ciro)}</td>
+      <td style="font-weight:700">${tg}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="openKurumModal('${c.id}')">Düzenle</button>
+        <button class="btn btn-sm btn-danger" onclick="delCom('${c.id}')" style="margin-left:3px">Sil</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function filterTable(tbodyId, q) { q = q.toLowerCase(); document.querySelectorAll('#' + tbodyId + ' tr').forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; }); }
+
+// ============================================================
+// ÇALIŞMALAR — backend /admin/work_records kullanır
+// ============================================================
+function initCSelects() {
+  ['c-personel', 'f-per'].forEach(id => { let s = document.getElementById(id); let f = s.options[0]; s.innerHTML = ''; s.appendChild(f); personnel.forEach(p => { let o = document.createElement('option'); o.value = p.id; o.text = p.first_name + ' ' + p.last_name; s.appendChild(o); }); });
+  ['c-kurum', 'f-com'].forEach(id => { let s = document.getElementById(id); let f = s.options[0]; s.innerHTML = ''; s.appendChild(f); companies.forEach(c => { let o = document.createElement('option'); o.value = c.id; o.text = c.company_name; s.appendChild(o); }); });
+}
+function openCalismaModal() {
+  editRecId = null;
+  document.getElementById('modal-calisma-title').textContent = 'Yeni Çalışma Kaydı';
+  resetCForm();
+  let today = new Date().toISOString().split('T')[0];
+  document.getElementById('c-start').value = today;
+  document.getElementById('c-end').value = today;
+  document.getElementById('c-days').value = '1';
+  document.getElementById('gun-auto-badge').textContent = '';
+  openM('modal-calisma');
+}
+
+// FIX: Çalışma kaydı düzenleme
+function openEditRecModal(id) {
+  let r = work_records.find(x => x.id === id);
+  if (!r) return;
+  editRecId = id;
+  document.getElementById('modal-calisma-title').textContent = 'Kaydı Düzenle';
+  resetCForm();
+  initCSelects();
+  document.getElementById('c-personel').value = r.personnel_id || '';
+  document.getElementById('c-kurum').value = r.company_id || '';
+  document.getElementById('c-start').value = r.start_day || '';
+  document.getElementById('c-end').value = r.end_date || '';
+  document.getElementById('c-days').value = r.work_days || '';
+  document.getElementById('c-per-wage').value = r.personnel_daily_wage ? (r.personnel_daily_wage * 30) : '';
+  document.getElementById('c-com-total').value = r.total_company_payment || '';
+  document.getElementById('c-avans').value = r.advance_amount || 0;
+  document.getElementById('c-masraf').value = r.expenses || 0;
+  document.getElementById('c-not').value = r.note || '';
+  document.getElementById('gun-auto-badge').textContent = '';
+  calcPreview();
+  openM('modal-calisma');
+}
+function toggleArsivMode() {
+  arsivMode = !arsivMode;
+  let btn = document.getElementById('arsiv-toggle-btn');
+  let banner = document.getElementById('arsiv-banner');
+  let title = document.getElementById('rec-list-title');
+  if (arsivMode) {
+    btn.style.background = '#fef9c3'; btn.style.borderColor = '#fde68a'; btn.style.color = '#92400e';
+    banner.style.display = 'flex';
+    title.textContent = 'Arşivlenmiş Kayıtlar';
+  } else {
+    btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
+    banner.style.display = 'none';
+    title.textContent = 'Aktif Kayıtlar';
+  }
+  renderRecords();
+}
+function toggleFilter() {
+  let el = document.getElementById('filter-inline');
+  let btn = document.getElementById('filter-toggle-btn');
+  let isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  btn.style.background = isOpen ? '' : '#eff6ff';
+  btn.style.borderColor = isOpen ? '' : '#bfdbfe';
+  btn.style.color = isOpen ? '' : '#1d4ed8';
+}
+function onCPersonelChange() {
+  const selectedPersonnelId = document.getElementById('c-personel').value;
+  const monthlyWage = getPersonnelMonthlyWage(selectedPersonnelId);
+  if (monthlyWage > 0) document.getElementById('c-per-wage').value = monthlyWage;
+  calcPreview();
+}
+function setMode(m) { /* artık kullanılmıyor */ }
+function onDateChange() {
+  let s = document.getElementById('c-start').value, e = document.getElementById('c-end').value;
+  if (!s || !e || new Date(s) > new Date(e)) return;
+  let total = totalDays(s, e);
+  document.getElementById('c-days').value = total;
+  document.getElementById('gun-auto-badge').textContent = '(otomatik)';
+  calcPreview();
+}
+function setWeekend(val) {
+  weekendIncluded = val;
+  document.getElementById('wc-evet').classList.toggle('selected', val);
+  document.getElementById('wc-hayir').classList.toggle('selected', !val);
+  let s = document.getElementById('c-start').value, e = document.getElementById('c-end').value;
+  if (s && e) {
+    document.getElementById('c-days').value = val ? totalDays(s, e) : countWorkdays(s, e);
+    document.getElementById('gun-auto-badge').textContent = '(otomatik hesaplandı)';
+  }
+  calcPreview();
+}
+function getWorkDays() { return parseInt(document.getElementById('c-days').value) || 0; }
+function getStartDate() { return document.getElementById('c-start').value; }
+function getEndDate() { return document.getElementById('c-end').value; }
+function calcPreview() {
+  let gun = getWorkDays();
+  let monthlyWage = parseFloat(document.getElementById('c-per-wage').value) || 0;
+  let perWage = monthlyWage > 0 ? (monthlyWage / 30) : 0;
+  let totalCom = parseFloat(document.getElementById('c-com-total').value) || 0;
+  let avans = parseFloat(document.getElementById('c-avans').value) || 0;
+  let masraf = parseFloat(document.getElementById('c-masraf').value) || 0;
+  let totalPer = gun * perWage;
+  if (gun <= 0 && monthlyWage <= 0 && totalCom <= 0) {
+    var _p = document.getElementById('c-preview'); if (_p) _p.style.display = 'none';
+    var _cb = document.getElementById('calc-btns'); if (_cb) _cb.style.display = 'flex';
+    var _cfb = document.getElementById('confirm-btns'); if (_cfb) _cfb.style.display = 'none';
+    previewData = null; return;
+  }
+  let netPer = totalPer - avans, kar = totalCom - totalPer - masraf;
+  document.getElementById('r-gun').textContent = gun > 0 ? gun + ' gün' : '—';
+  document.getElementById('r-calc-detail').textContent = gun > 0 && monthlyWage > 0 ? fmt(monthlyWage) + ' / 30 × ' + gun + ' gün = ' + fmt(totalPer) : '—';
+  document.getElementById('r-per-od').textContent = fmt(totalPer);
+  document.getElementById('r-avans').textContent = avans > 0 ? '- ' + fmt(avans) : '—';
+  document.getElementById('r-net-per').textContent = fmt(netPer);
+  document.getElementById('r-com-fat').textContent = fmt(totalCom);
+  document.getElementById('r-masraf').textContent = masraf > 0 ? '- ' + fmt(masraf) : '—';
+  document.getElementById('r-kar').textContent = fmt(kar);
+  document.getElementById('r-kar').style.color = kar >= 0 ? '#16a34a' : '#dc2626';
+  var _pv = document.getElementById('c-preview'); if (_pv) _pv.style.display = 'block';
+  previewData = { gun, monthlyWage, perWage, totalPer, totalCom, avans, masraf, netPer, kar };
+  let p = personnel.find(x => x.id === document.getElementById('c-personel').value);
+  let c = companies.find(x => x.id === document.getElementById('c-kurum').value);
+  let pn = p ? p.first_name + ' ' + p.last_name : '?';
+  let cn = c ? c.company_name : '?';
+  document.getElementById('confirm-summary').innerHTML =
+    '<b>Personel:</b> ' + pn + '<br>' +
+    '<b>Kurum:</b> ' + cn + '<br>' +
+    '<b>Dönem:</b> ' + (document.getElementById('c-start').value || '—') + ' → ' + (document.getElementById('c-end').value || '—') + '<br>' +
+    '<b>' + fmt(monthlyWage) + ' / 30</b> = ' + fmt(perWage) + ' günlük ücret<br>' +
+    '<b>' + gun + ' gün</b> × ' + fmt(perWage) + ' = <b>' + fmt(totalPer) + '</b> brüt personel ödemesi' + (avans > 0 ? ' (avans: -' + fmt(avans) + ' → net: <b>' + fmt(netPer) + '</b>)' : '') + '<br>' +
+    '<b>Kurumdan:</b> ' + fmt(totalCom) + (masraf > 0 ? ' | Masraf: -' + fmt(masraf) : '') + ' | <b style="color:' + (kar >= 0 ? '#16a34a' : '#dc2626') + '">Kar: ' + fmt(kar) + '</b>';
+  var _cb2 = document.getElementById('calc-btns'); if (_cb2) _cb2.style.display = 'none';
+  var _cfb2 = document.getElementById('confirm-btns'); if (_cfb2) _cfb2.style.display = 'flex';
+}
+async function saveCalisme() {
+  if (!previewData) { toast('Önce Hesapla butonuna tıklayın!', 'err'); return; }
+  let pId = document.getElementById('c-personel').value;
+  let cId = document.getElementById('c-kurum').value;
+  if (!pId || !cId) { toast('Personel ve kurum seçin!', 'err'); return; }
+  let rec = {
+    personnel_id: pId,
+    company_id: cId,
+    start_day: getStartDate() || null,
+    end_date: getEndDate() || null,
+    work_days: previewData.gun,
+    personnel_monthly_wage: previewData.monthlyWage,
+    personnel_daily_wage: previewData.perWage,
+    total_personnel_payment: previewData.totalPer,
+    total_company_payment: previewData.totalCom,
+    advance_amount: previewData.avans,
+    expenses: previewData.masraf,
+    company_payment_status: 'bekliyor',
+    personnel_payment_status: 'bekliyor',
+    note: document.getElementById('c-not').value.trim() || null
+  };
+  let saveBtn = document.getElementById('btn-save-rec');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Kaydediliyor...'; }
+  try {
+    // FIX: editRecId varsa güncelle, yoksa yeni kayıt oluştur
+    if (editRecId) {
+      // Düzenlemede ödeme durumlarını koruyalım
+      const existing = work_records.find(x => x.id === editRecId);
+      if (existing) {
+        rec.personnel_payment_status = existing.personnel_payment_status;
+        rec.company_payment_status = existing.company_payment_status;
+        rec.archived = existing.archived;
+      }
+      const res = await api.patch(`/admin/work_records/${editRecId}`, rec);
+      let i = work_records.findIndex(x => x.id === editRecId);
+      work_records[i] = { ...work_records[i], ...(Array.isArray(res) && res[0] ? res[0] : rec) };
+      toast('Kayıt güncellendi ✓');
+    } else {
+      const res = await api.post('/admin/work_records', rec);
+      work_records.unshift(Array.isArray(res) && res[0] ? res[0] : rec);
+      toast('Çalışma kaydı eklendi ✓');
+    }
+    closeM('modal-calisma');
+    resetCForm();
+    renderRecords(); renderDashboard(); renderPersonnel(); renderCompanies();
+  } catch (e) {
+    toast('Hata: ' + e.message, 'err');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Onayla ve Kaydet'; }
+  }
+  // FIX: Buton her zaman sıfırlanıyor
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Onayla ve Kaydet'; }
+}
+function resetCForm() {
+  editRecId = null;
+  ['c-personel', 'c-kurum', 'c-per-wage', 'c-com-total', 'c-days', 'c-not'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var av = document.getElementById('c-avans'); if (av) av.value = '0';
+  var ms = document.getElementById('c-masraf'); if (ms) ms.value = '0';
+  var badge = document.getElementById('gun-auto-badge'); if (badge) badge.textContent = '';
+  var cb = document.getElementById('calc-btns'); if (cb) cb.style.display = 'flex';
+  var cfb = document.getElementById('confirm-btns'); if (cfb) cfb.style.display = 'none';
+  var saveBtn = document.getElementById('btn-save-rec');
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Onayla ve Kaydet'; }
+  var prev = document.getElementById('c-preview'); if (prev) prev.style.display = 'none';
+  previewData = null;
+}
+function renderRecords(data) {
+  let rows;
+  if (data !== undefined) {
+    rows = data;
+  } else {
+    rows = work_records.filter(r => arsivMode ? r.archived === true : !r.archived);
+  }
+  document.getElementById('rec-count').textContent = rows.length + ' kayıt';
+  let tbody = document.getElementById('calisma-tbody');
+  if (!rows.length) {
+    let msg = arsivMode ? 'Arşivlenmiş kayıt yok' : 'Henüz kayıt yok';
+    tbody.innerHTML = `<tr><td colspan="15"><div class="empty"><div class="empty-icon">${arsivMode ? '📦' : '📅'}</div><div class="empty-text">${msg}</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    let netPer = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+    let profit = (r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0);
+    let pB = r.personnel_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+    let cB = r.company_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+    let rowStyle = r.archived ? 'opacity:0.7;background:#fafafa;' : '';
+    let arsivBtn = r.archived
+      ? `<button class="btn btn-sm" onclick="setArchive('${r.id}',false)" title="Geri al" style="color:#16a34a;border-color:#bbf7d0">↩ Geri Al</button>`
+      : `<button class="btn btn-sm" onclick="openEditRecModal('${r.id}')" style="margin-right:3px">Düzenle</button>
+         <button class="btn btn-sm" onclick="setArchive('${r.id}',true)" title="Arşivle" style="color:#94a3b8">📦</button>
+         <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>`;
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:600;white-space:nowrap">${pName(r.personnel_id)}</td>
+      <td style="white-space:nowrap">${cName(r.company_id)}</td>
+      <td style="color:#64748b">${fmtDate(r.start_day)}</td>
+      <td style="color:#64748b">${fmtDate(r.end_date)}</td>
+      <td style="font-weight:700;text-align:center">${r.work_days || 0}</td>
+      <td>${fmt(r.total_personnel_payment)}</td>
+      <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : '—'}</td>
+      <td style="color:#16a34a;font-weight:700">${fmt(netPer)}</td>
+      <td>${fmt(r.total_company_payment)}</td>
+      <td style="color:#dc2626">${(r.expenses || 0) > 0 ? fmt(r.expenses) : '—'}</td>
+      <td style="font-weight:700;color:${profit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(profit)}</td>
+      <td><span class="badge ${pB}">${r.personnel_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+      <td><span class="badge ${cB}">${r.company_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+      <td style="color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.note || '—'}</td>
+      <td style="white-space:nowrap">${arsivBtn}</td>
+    </tr>`;
+  }).join('');
+}
+async function setArchive(id, archived) {
+  try {
+    await api.patch(`/admin/work_records/${id}`, { archived });
+    let r = work_records.find(x => x.id === id);
+    if (r) r.archived = archived;
+    renderRecords();
+    toast(archived ? 'Kayıt arşivlendi 📦' : 'Kayıt geri alındı ✓');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+async function delRec(id) {
+  if (!confirm('Kaydı silmek istiyor musunuz?')) return;
+  try {
+    await api.delete(`/admin/work_records/${id}`);
+    work_records = work_records.filter(x => x.id !== id);
+    renderRecords(); renderDashboard(); renderPersonnel(); renderCompanies();
+    toast('Kayıt silindi');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+function filterRecords() {
+  let fp = document.getElementById('f-per').value, fc = document.getElementById('f-com').value;
+  let fb = document.getElementById('f-bas').value, fe = document.getElementById('f-bit').value;
+  let fps = document.getElementById('f-per-st').value, fcs = document.getElementById('f-com-st').value;
+  renderRecords(work_records.filter(r => {
+    if (arsivMode ? !r.archived : r.archived) return false;
+    if (fp && r.personnel_id !== fp) return false; if (fc && r.company_id !== fc) return false;
+    if (fb && r.start_day && r.start_day < fb) return false; if (fe && r.end_date && r.end_date > fe) return false;
+    if (fps && r.personnel_payment_status !== fps) return false; if (fcs && r.company_payment_status !== fcs) return false;
+    return true;
+  }));
+}
+function clearFilters() { ['f-per', 'f-com', 'f-bas', 'f-bit', 'f-per-st', 'f-com-st'].forEach(id => document.getElementById(id).value = ''); renderRecords(); }
+
+// ============================================================
+// ÖDEMELER — backend /admin/work_records kullanır
+// ============================================================
+function initOSelects() {
+  let sp = document.getElementById('op-p'); let f = sp.options[0]; sp.innerHTML = ''; sp.appendChild(f);
+  personnel.forEach(p => { let o = document.createElement('option'); o.value = p.id; o.text = p.first_name + ' ' + p.last_name; sp.appendChild(o); });
+  let sk = document.getElementById('oc-k'); let fk = sk.options[0]; sk.innerHTML = ''; sk.appendChild(fk);
+  companies.forEach(c => { let o = document.createElement('option'); o.value = c.id; o.text = c.company_name; sk.appendChild(o); });
+}
+function switchOTab(t, el) {
+  document.getElementById('otab-per').style.display = t === 'per' ? 'block' : 'none';
+  document.getElementById('otab-com').style.display = t === 'com' ? 'block' : 'none';
+  document.querySelectorAll('#page-odemeler .tab').forEach(x => x.classList.remove('active')); el.classList.add('active');
+}
+function renderPerOd() {
+  let fp = document.getElementById('op-p').value, fs = document.getElementById('op-s').value;
+  let rows = work_records.filter(r => { if (fp && r.personnel_id !== fp) return false; if (fs && r.personnel_payment_status !== fs) return false; return true; });
+  let tbody = document.getElementById('per-od-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    let net = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+    let badge = r.personnel_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+    return `<tr>
+      <td style="font-weight:700">${pName(r.personnel_id)}</td>
+      <td style="font-size:10px;font-family:monospace;color:#64748b;max-width:100px;overflow:hidden;text-overflow:ellipsis">${pIban(r.personnel_id)}</td>
+      <td>${cName(r.company_id)}</td>
+      <td style="font-size:11px;color:#64748b;white-space:nowrap">${fmtDate(r.start_day)} → ${fmtDate(r.end_date)}</td>
+      <td style="text-align:center">${r.work_days || 0}</td>
+      <td>${fmt(r.total_personnel_payment)}</td>
+      <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : '—'}</td>
+      <td style="font-weight:700;color:#16a34a">${fmt(net)}</td>
+      <td><span class="badge ${badge}">${r.personnel_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+      <td>${r.personnel_payment_status === 'bekliyor' ? `<button class="btn btn-sm btn-green" onclick="markPer('${r.id}')">Ödendi ✓</button>` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+async function markPer(id) {
+  try {
+    await api.patch(`/admin/work_records/${id}`, { personnel_payment_status: 'odendi' });
+    let r = work_records.find(x => x.id === id); if (r) r.personnel_payment_status = 'odendi';
+    renderPerOd(); renderDashboard(); toast('Ödeme işaretlendi ✓');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+function renderComOd() {
+  let fc = document.getElementById('oc-k').value, fs = document.getElementById('oc-s').value;
+  let rows = work_records.filter(r => { if (fc && r.company_id !== fc) return false; if (fs && r.company_payment_status !== fs) return false; return true; });
+  let tbody = document.getElementById('com-od-tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    let badge = r.company_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+    return `<tr>
+      <td style="font-weight:700">${cName(r.company_id)}</td>
+      <td>${pName(r.personnel_id)}</td>
+      <td style="font-size:11px;color:#64748b;white-space:nowrap">${fmtDate(r.start_day)} → ${fmtDate(r.end_date)}</td>
+      <td style="text-align:center">${r.work_days || 0}</td>
+      <td style="font-weight:700">${fmt(r.total_company_payment)}</td>
+      <td><span class="badge ${badge}">${r.company_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+      <td>${r.company_payment_status === 'bekliyor' ? `<button class="btn btn-sm btn-green" onclick="markCom('${r.id}')">Ödendi ✓</button>` : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+async function markCom(id) {
+  try {
+    await api.patch(`/admin/work_records/${id}`, { company_payment_status: 'odendi' });
+    let r = work_records.find(x => x.id === id); if (r) r.company_payment_status = 'odendi';
+    renderComOd(); toast('Ödeme işaretlendi ✓');
+  } catch (e) { toast('Hata: ' + e.message, 'err'); }
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  document.getElementById('s-personel').textContent = personnel.length;
+  document.getElementById('s-kurum').textContent = companies.length;
+  let now = new Date(), ay = now.getMonth(), yil = now.getFullYear();
+  let ayRows = work_records.filter(r => { if (!r.start_day) return false; let d = new Date(r.start_day); return d.getMonth() === ay && d.getFullYear() === yil; });
+  document.getElementById('s-odeme').textContent = fmt(ayRows.reduce((s, r) => s + (r.total_personnel_payment || 0), 0));
+  document.getElementById('s-kar').textContent = fmt(ayRows.reduce((s, r) => s + ((r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0)), 0));
+  let recent = work_records.slice(0, 6);
+  let tbody = document.getElementById('dash-records');
+  tbody.innerHTML = !recent.length ? '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8">Henüz kayıt yok</td></tr>' : recent.map((r, i) => {
+    let profit = (r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0);
+    return `<tr><td><div class="person-cell"><div class="avatar ${avCol(i)}">${initials(pName(r.personnel_id))}</div><span style="font-weight:600">${pName(r.personnel_id)}</span></div></td><td>${cName(r.company_id)}</td><td style="text-align:center;font-weight:700">${r.work_days || 0}</td><td>${fmt(r.total_personnel_payment)}</td><td style="font-weight:700;color:${profit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(profit)}</td></tr>`;
+  }).join('');
+  let pending = work_records.filter(r => r.personnel_payment_status === 'bekliyor');
+  let ptbody = document.getElementById('dash-payments');
+  ptbody.innerHTML = !pending.length ? '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94a3b8">Bekleyen ödeme yok ✓</td></tr>' : pending.slice(0, 6).map(r => {
+    let net = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+    return `<tr><td style="font-weight:600">${pName(r.personnel_id)}</td><td>${cName(r.company_id)}</td><td style="font-weight:700;color:#16a34a">${fmt(net)}</td><td><span class="badge badge-amber">Bekliyor</span></td></tr>`;
+  }).join('');
+}
+
+// ============================================================
+// RAPORLAR
+// ============================================================
+function initRSelects() {
+  let ps = document.getElementById('rap-p-sec');
+  while (ps.options.length > 1) ps.remove(1);
+  personnel.forEach(p => { let o = document.createElement('option'); o.value = p.id; o.text = p.first_name + ' ' + p.last_name; ps.appendChild(o); });
+  let ks = document.getElementById('rap-k-sec');
+  while (ks.options.length > 1) ks.remove(1);
+  companies.forEach(c => { let o = document.createElement('option'); o.value = c.id; o.text = c.company_name; ks.appendChild(o); });
+}
+function switchRTab(id, el) {
+  ['r-ay', 'r-per', 'r-kur'].forEach(t => document.getElementById(t).style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  document.querySelectorAll('#page-raporlar .tab').forEach(t => t.classList.remove('active')); el.classList.add('active');
+}
+function statGrid(items) { return `<div class="stat-grid" style="margin-bottom:14px">${items.map(([l, v, c]) => `<div class="stat"><div class="stat-label">${l}</div><div class="stat-val" style="${c || ''}">${v}</div></div>`).join('')}</div>`; }
+function recTable(rows, cols) { return `<div class="table-wrap"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`; }
+
+function groupedByCompany(rows) {
+  let sorted = [...rows].sort((a, b) => {
+    let cmp = cName(a.company_id).localeCompare(cName(b.company_id), 'tr');
+    if (cmp !== 0) return cmp;
+    return (a.start_day || '').localeCompare(b.start_day || '');
+  });
+  let groups = {}, groupOrder = [];
+  sorted.forEach(r => {
+    if (!groups[r.company_id]) { groups[r.company_id] = []; groupOrder.push(r.company_id); }
+    groups[r.company_id].push(r);
+  });
+  let html = '';
+  groupOrder.forEach(cId => {
+    let grRows = groups[cId];
+    let grTG = grRows.reduce((s, r) => s + (r.work_days || 0), 0);
+    let grTP = grRows.reduce((s, r) => s + (r.total_personnel_payment || 0), 0);
+    let grTC = grRows.reduce((s, r) => s + (r.total_company_payment || 0), 0);
+    let grTE = grRows.reduce((s, r) => s + (r.expenses || 0), 0);
+    let grKar = grTC - grTP - grTE;
+    html += `<tr style="background:#e8f0fe"><td colspan="12" style="font-weight:800;font-size:12px;padding:8px 12px;color:#1e40af">🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | Fatura: ${fmt(grTC)} | Personel Öd: ${fmt(grTP)} | Masraf: ${fmt(grTE)} | Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span></td></tr>`;
+    grRows.forEach(r => {
+      let net = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+      let kar = (r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0);
+      let wage = r.personnel_daily_wage > 0 ? fmt(r.personnel_daily_wage) + '/gün (hes.)' : '—';
+      html += `<tr>
+        <td style="padding-left:20px;font-weight:600">${pName(r.personnel_id)}</td>
+        <td style="color:#64748b;font-size:11px">${wage}</td>
+        <td>${fmtDate(r.start_day)}</td><td>${fmtDate(r.end_date)}</td>
+        <td style="text-align:center;font-weight:700">${r.work_days || 0}</td>
+        <td>${fmt(r.total_personnel_payment)}</td>
+        <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : '—'}</td>
+        <td style="color:#16a34a;font-weight:700">${fmt(net)}</td>
+        <td>${fmt(r.total_company_payment)}</td>
+        <td style="color:#dc2626">${(r.expenses || 0) > 0 ? fmt(r.expenses) : '—'}</td>
+        <td style="font-weight:700;color:${kar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(kar)}</td>
+        <td style="color:#64748b;font-size:11px">${r.note || '—'}</td>
+      </tr>`;
+    });
+  });
+  return html || '<tr><td colspan="12" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>';
+}
+
+function genMonthly() {
+  let ay = parseInt(document.getElementById('rap-ay').value), yil = parseInt(document.getElementById('rap-yil').value);
+  let rows = work_records.filter(r => { if (!r.start_day) return false; let d = new Date(r.start_day); return d.getMonth() === ay && d.getFullYear() === yil; });
+  let tG = rows.reduce((s, r) => s + (r.work_days || 0), 0), tP = rows.reduce((s, r) => s + (r.total_personnel_payment || 0), 0), tC = rows.reduce((s, r) => s + (r.total_company_payment || 0), 0), tA = rows.reduce((s, r) => s + (r.advance_amount || 0), 0), tE = rows.reduce((s, r) => s + (r.expenses || 0), 0), tK = tC - tP - tE;
+  lastReport = { type: 'aylik', data: { ay, yil, rows, tG, tP, tC, tA, tE, tK } };
+  const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  let tbody = groupedByCompany(rows);
+  document.getElementById('r-ay-res').innerHTML =
+    statGrid([['Toplam Gün', tG], ['Pers.Ödemeleri', fmt(tP)], ['Kur.Gelirleri', fmt(tC)], ['Net Kar', fmt(tK), 'color:#16a34a']]) +
+    `<div class="card"><div class="card-head"><span class="card-title">${aylar[ay]} ${yil} — Kuruma Göre</span></div>` +
+    recTable(tbody, ['Personel', 'Hes. Günlük', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.', 'Avans', 'Net Pers.', 'Kur.Fat.', 'Masraf', 'Kar', 'Not']) +
+    '</div>';
+}
+
+function genPer() {
+  let pId = document.getElementById('rap-p-sec').value;
+  let bas = document.getElementById('rap-p-bas').value, bit = document.getElementById('rap-p-bit').value;
+  let rows = work_records.filter(r => {
+    if (pId && r.personnel_id !== pId) return false;
+    if (bas && r.start_day && r.start_day < bas) return false;
+    if (bit && r.end_date && r.end_date > bit) return false;
+    return true;
+  });
+  rows = [...rows].sort((a, b) => cName(a.company_id).localeCompare(cName(b.company_id), 'tr'));
+  let p = personnel.find(x => x.id === pId);
+  let tG = rows.reduce((s, r) => s + (r.work_days || 0), 0), tP = rows.reduce((s, r) => s + (r.total_personnel_payment || 0), 0), tA = rows.reduce((s, r) => s + (r.advance_amount || 0), 0);
+  lastReport = { type: 'personel', data: { p, rows, tG, tP, tA, pId } };
+  let title = pId && p ? p.first_name + ' ' + p.last_name : 'Tüm Personel';
+  let tbody;
+  if (pId) {
+    rows = [...rows].sort((a, b) => { let cmp = cName(a.company_id).localeCompare(cName(b.company_id), 'tr'); if (cmp !== 0) return cmp; return (a.start_day || '').localeCompare(b.start_day || ''); });
+    tbody = !rows.length ? '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>' : rows.map(r => {
+      let net = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+      let kar = (r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0);
+      let wage = r.personnel_daily_wage > 0 ? fmt(r.personnel_daily_wage) + '/gün (hes.)' : '—';
+      return `<tr>
+        <td style="font-weight:600">${cName(r.company_id)}</td>
+        <td style="color:#64748b;font-size:11px">${wage}</td>
+        <td>${fmtDate(r.start_day)}</td><td>${fmtDate(r.end_date)}</td>
+        <td style="text-align:center;font-weight:700">${r.work_days || 0}</td>
+        <td>${fmt(r.total_personnel_payment)}</td>
+        <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : '—'}</td>
+        <td style="font-weight:700;color:#16a34a">${fmt(net)}</td>
+        <td>${fmt(r.total_company_payment)}</td>
+        <td style="color:#dc2626">${(r.expenses || 0) > 0 ? fmt(r.expenses) : '—'}</td>
+        <td style="font-weight:700;color:${kar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(kar)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('r-per-res').innerHTML =
+      statGrid([['Toplam Gün', tG], ['Brüt Ücret', fmt(tP)], ['Toplam Avans', fmt(tA), 'color:#dc2626'], ['Net Ödenecek', fmt(tP - tA), 'color:#16a34a']]) +
+      `<div class="card"><div class="card-head"><span class="card-title">${title}</span></div>` +
+      recTable(tbody, ['Kurum', 'Hes. Günlük', 'Giriş', 'Çıkış', 'Gün', 'Brüt', 'Avans', 'Net', 'Kur.Fat.', 'Masraf', 'Kar']) +
+      '</div>';
+  } else {
+    tbody = groupedByCompany(rows);
+    document.getElementById('r-per-res').innerHTML =
+      statGrid([['Toplam Gün', tG], ['Toplam Pers.Öd.', fmt(tP)], ['Toplam Avans', fmt(tA), 'color:#dc2626'], ['Net Ödenecek', fmt(tP - tA), 'color:#16a34a']]) +
+      `<div class="card"><div class="card-head"><span class="card-title">Tüm Personel — Kuruma Göre</span></div>` +
+      recTable(tbody, ['Personel', 'Hes. Günlük', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.', 'Avans', 'Net Pers.', 'Kur.Fat.', 'Masraf', 'Kar', 'Not']) +
+      '</div>';
+  }
+}
+
+function genKur() {
+  let cId = document.getElementById('rap-k-sec').value;
+  let bas = document.getElementById('rap-k-bas').value, bit = document.getElementById('rap-k-bit').value;
+  let rows = work_records.filter(r => {
+    if (cId && r.company_id !== cId) return false;
+    if (bas && r.start_day && r.start_day < bas) return false;
+    if (bit && r.end_date && r.end_date > bit) return false;
+    return true;
+  });
+  rows = [...rows].sort((a, b) => cName(a.company_id).localeCompare(cName(b.company_id), 'tr'));
+  let c = companies.find(x => x.id === cId);
+  let tG = rows.reduce((s, r) => s + (r.work_days || 0), 0), tC = rows.reduce((s, r) => s + (r.total_company_payment || 0), 0), tP = rows.reduce((s, r) => s + (r.total_personnel_payment || 0), 0), tE = rows.reduce((s, r) => s + (r.expenses || 0), 0), tK = tC - tP - tE;
+  // FIX: tA eklendi — Excel export'ta undefined hatasını önler
+  let tA = rows.reduce((s, r) => s + (r.advance_amount || 0), 0);
+  lastReport = { type: 'kurum', data: { c, rows, tG, tC, tP, tE, tK, tA, cId } };
+  let title = cId && c ? c.company_name : 'Tüm Kurumlar';
+  let tbody;
+  if (cId) {
+    rows = [...rows].sort((a, b) => (a.start_day || '').localeCompare(b.start_day || ''));
+    tbody = !rows.length ? '<tr><td colspan="11" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>' : rows.map(r => {
+      let net = (r.total_personnel_payment || 0) - (r.advance_amount || 0);
+      let kar = (r.total_company_payment || 0) - (r.total_personnel_payment || 0) - (r.expenses || 0);
+      let wage = r.personnel_daily_wage > 0 ? fmt(r.personnel_daily_wage) + '/gün (hes.)' : '—';
+      return `<tr>
+        <td style="font-weight:600">${pName(r.personnel_id)}</td>
+        <td style="color:#64748b;font-size:11px">${wage}</td>
+        <td>${fmtDate(r.start_day)}</td><td>${fmtDate(r.end_date)}</td>
+        <td style="text-align:center;font-weight:700">${r.work_days || 0}</td>
+        <td>${fmt(r.total_personnel_payment)}</td>
+        <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : '—'}</td>
+        <td style="color:#16a34a;font-weight:700">${fmt(net)}</td>
+        <td>${fmt(r.total_company_payment)}</td>
+        <td style="color:#dc2626">${(r.expenses || 0) > 0 ? fmt(r.expenses) : '—'}</td>
+        <td style="font-weight:700;color:${kar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(kar)}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('r-kur-res').innerHTML =
+      statGrid([['Toplam Gün', tG], ['Kur.Geliri', fmt(tC)], ['Pers.Maliyeti', fmt(tP)], ['Net Kar', fmt(tK), 'color:#16a34a']]) +
+      `<div class="card"><div class="card-head"><span class="card-title">${title}</span></div>` +
+      recTable(tbody, ['Personel', 'Hes. Günlük', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.', 'Avans', 'Net Pers.', 'Kur.Fat.', 'Masraf', 'Kar']) +
+      '</div>';
+  } else {
+    tbody = groupedByCompany(rows);
+    document.getElementById('r-kur-res').innerHTML =
+      statGrid([['Toplam Gün', tG], ['Toplam Kur.Geliri', fmt(tC)], ['Toplam Pers.Maliyeti', fmt(tP)], ['Net Kar', fmt(tK), 'color:#16a34a']]) +
+      `<div class="card"><div class="card-head"><span class="card-title">Tüm Kurumlar — Karşılaştırma</span></div>` +
+      recTable(tbody, ['Personel', 'Hes. Günlük', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.', 'Avans', 'Net Pers.', 'Kur.Fat.', 'Masraf', 'Kar', 'Not']) +
+      '</div>';
+  }
+}
+
+// ============================================================
+// EXCEL
+// ============================================================
+function exportExcel(type) {
+  if (!window.XLSX) { toast('Excel yükleniyor, tekrar deneyin', 'err'); return; }
+  if (!lastReport.data) { toast('Önce rapor oluşturun!', 'err'); return; }
+  let wb = XLSX.utils.book_new(), r = lastReport.data;
+  const aylar = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  let sortedRows = [...r.rows].sort((a, b) => {
+    let cmp = cName(a.company_id).localeCompare(cName(b.company_id), 'tr');
+    if (cmp !== 0) return cmp;
+    return (a.start_day || '').localeCompare(b.start_day || '');
+  });
+
+  function buildGroupedSheet(rows, cols, rowFn) {
+    let sd = [cols];
+    let lastCId = null;
+    let grRows = [];
+    function flushGroup() {
+      if (!grRows.length) return;
+      let cn = cName(lastCId);
+      let tG = grRows.reduce((s, rw) => s + (rw.work_days || 0), 0);
+      let tP = grRows.reduce((s, rw) => s + (rw.total_personnel_payment || 0), 0);
+      let tC = grRows.reduce((s, rw) => s + (rw.total_company_payment || 0), 0);
+      let tK = tC - tP;
+      let header = new Array(cols.length).fill('');
+      header[0] = '◆ ' + cn; header[5] = tG + ' gün'; header[6] = 'Pers: ' + fmt(tP); header[9] = 'Kur: ' + fmt(tC); header[11] = 'Kar: ' + fmt(tK);
+      sd.push(header);
+      grRows.forEach(rw => sd.push(rowFn(rw)));
+      let sub = new Array(cols.length).fill('');
+      sub[0] = '  Toplam: ' + cn; sub[5] = tG; sub[6] = tP; sub[9] = tC; sub[11] = tK;
+      sd.push(sub);
+      sd.push([]);
+      grRows = [];
+    }
+    rows.forEach(rw => {
+      if (rw.company_id !== lastCId) { flushGroup(); lastCId = rw.company_id; }
+      grRows.push(rw);
+    });
+    flushGroup();
+    return sd;
+  }
+
+  if (type === 'aylik') {
+    let cols = ['Kurum', 'Personel', 'Hes. Günlük(₺)', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.(₺)', 'Avans(₺)', 'Net Pers.(₺)', 'Kur.Fat.(₺)', 'Masraf(₺)', 'Kar(₺)', 'P.Öd.D.', 'K.Öd.D.', 'Not'];
+    let sd = buildGroupedSheet(sortedRows, cols, row => {
+      let net = (row.total_personnel_payment || 0) - (row.advance_amount || 0);
+      let kar = (row.total_company_payment || 0) - (row.total_personnel_payment || 0) - (row.expenses || 0);
+      return [cName(row.company_id), pName(row.personnel_id), row.personnel_daily_wage || 0, fmtDate(row.start_day), fmtDate(row.end_date), row.work_days || 0, row.total_personnel_payment || 0, row.advance_amount || 0, net, row.total_company_payment || 0, row.expenses || 0, kar, row.personnel_payment_status, row.company_payment_status, row.note || ''];
+    });
+    // FIX: r.tA artık tanımlı (genMonthly'de set ediliyor)
+    sd.push(['GENEL TOPLAM', '', '', '', '', r.tG, r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC, r.tE, r.tK, '', '', '']);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), aylar[r.ay] + ' ' + r.yil);
+    XLSX.writeFile(wb, `Aylik_${aylar[r.ay]}_${r.yil}.xlsx`);
+  } else if (type === 'personel') {
+    let title = r.p ? r.p.first_name + '_' + r.p.last_name : 'Tum_Personel';
+    let cols = ['Kurum', 'Personel', 'Hes. Günlük(₺)', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.(₺)', 'Avans(₺)', 'Net(₺)', 'Kur.Fat.(₺)', 'Masraf(₺)', 'Kar(₺)', 'Not'];
+    let sd = buildGroupedSheet(sortedRows, cols, row => {
+      let net = (row.total_personnel_payment || 0) - (row.advance_amount || 0);
+      let kar = (row.total_company_payment || 0) - (row.total_personnel_payment || 0) - (row.expenses || 0);
+      return [cName(row.company_id), pName(row.personnel_id), row.personnel_daily_wage || 0, fmtDate(row.start_day), fmtDate(row.end_date), row.work_days || 0, row.total_personnel_payment || 0, row.advance_amount || 0, net, row.total_company_payment || 0, row.expenses || 0, kar, row.note || ''];
+    });
+    sd.push(['GENEL TOPLAM', '', '', '', '', r.tG, r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), '', '', '', '']);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), title.substring(0, 31));
+    XLSX.writeFile(wb, `Personel_${title}.xlsx`);
+  } else if (type === 'kurum') {
+    let title = r.c ? r.c.company_name : 'Tum_Kurumlar';
+    let cols = ['Kurum', 'Personel', 'Hes. Günlük(₺)', 'Giriş', 'Çıkış', 'Gün', 'Pers.Öd.(₺)', 'Avans(₺)', 'Net(₺)', 'Kur.Fat.(₺)', 'Masraf(₺)', 'Kar(₺)', 'Kur.Öd.D.'];
+    let sd = buildGroupedSheet(sortedRows, cols, row => {
+      let net = (row.total_personnel_payment || 0) - (row.advance_amount || 0);
+      let kar = (row.total_company_payment || 0) - (row.total_personnel_payment || 0) - (row.expenses || 0);
+      return [cName(row.company_id), pName(row.personnel_id), row.personnel_daily_wage || 0, fmtDate(row.start_day), fmtDate(row.end_date), row.work_days || 0, row.total_personnel_payment || 0, row.advance_amount || 0, net, row.total_company_payment || 0, row.expenses || 0, kar, row.company_payment_status];
+    });
+    // FIX: r.tA artık tanımlı (genKur'da eklendi)
+    sd.push(['GENEL TOPLAM', '', '', '', '', r.tG, r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC, r.tE, r.tK, '']);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), title.substring(0, 31));
+    XLSX.writeFile(wb, `Kurum_${title.replace(/\s/g, '_')}.xlsx`);
+  }
+}
+
+// ============================================================
+// START
+// ============================================================
+if (AUTO_LOGIN_ENABLED) {
+  tryAutoLogin();
+} else {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+</script>
+</body>
+</html>
