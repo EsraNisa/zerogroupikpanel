@@ -2830,9 +2830,11 @@
       // FIX: index.html artık backend ile aynı sunucudan (3001) açılıyor
       // Bu sayede cookie'ler aynı origin'den gönderilir, CORS sorunu olmaz.
       // ============================================================
-      const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? "http://localhost:5000/ik"
-        : `${window.location.protocol}//api.${window.location.hostname.replace('panel.', '')}/ik`;
+      const API_BASE = localStorage.getItem("API_BASE_OVERRIDE") || (
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? "http://localhost:5000/ik"
+          : `${window.location.protocol}//api.${window.location.hostname.replace('panel.', '')}/ik`
+      );
       const AUTO_LOGIN_ENABLED = true;
 
       let authToken = null; // Sadece /me çağrısı için tutulur, her istek cookie ile gider
