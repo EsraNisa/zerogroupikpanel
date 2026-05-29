@@ -2833,7 +2833,7 @@
       const API_BASE = localStorage.getItem("API_BASE_OVERRIDE") || (
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
           ? "http://localhost:5000/ik"
-          : `${window.location.protocol}//api.${window.location.hostname.replace('panel.', '')}/ik`
+          : "https://zero-backend-dlpt.onrender.com/ik"
       );
       const AUTO_LOGIN_ENABLED = true;
 
