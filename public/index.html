@@ -1631,13 +1631,14 @@
                       <th>Aylık</th>
                       <th>Telefon</th>
                       <th>IBAN</th>
+                      <th>İşe Başlama</th>
                       <th>Top.Gün</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody id="personel-tbody">
                     <tr class="loading-row">
-                      <td colspan="7"><div class="spinner"></div></td>
+                      <td colspan="8"><div class="spinner"></div></td>
                     </tr>
                   </tbody>
                 </table>
@@ -2312,6 +2313,16 @@
           <button class="modal-close" onclick="closeM('modal-com-history')">×</button>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <div id="com-history-summary" style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+              <div style="font-size: 10px; color: #94a3b8; font-weight: 600; text-transform: uppercase;">Bu Ayki Toplam Hak Ediş</div>
+              <div id="com-hist-month-total" style="font-size: 16px; font-weight: 800; color: #1e3a5f; margin-top: 2px;">₺0</div>
+            </div>
+            <div style="flex: 1; min-width: 150px; background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: 8px; padding: 10px;">
+              <div style="font-size: 10px; color: #db2777; font-weight: 600; text-transform: uppercase;">Toplam Bekleyen Bakiye</div>
+              <div id="com-hist-pending-total" style="font-size: 16px; font-weight: 800; color: #be185d; margin-top: 2px;">₺0</div>
+            </div>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -2409,6 +2420,17 @@
                 placeholder="TR00 0000..."
               />
             </div>
+          </div>
+          <div class="form-grid g2">
+            <div class="form-group">
+              <label class="form-label">İşe Başlama Tarihi</label>
+              <input
+                class="form-input"
+                id="p-hire-date"
+                type="date"
+              />
+            </div>
+            <div class="form-group"></div>
           </div>
         </div>
         <div class="modal-footer">
@@ -2582,6 +2604,11 @@
                 <span id="gun-auto-badge" style="font-size: 9px; color: #2563eb; font-weight: 600"></span>
               </label>
               <input class="form-input" id="c-days" type="text" inputmode="numeric" placeholder="0" oninput="onlyNum(this); calcPreview();" />
+              <div style="margin-top: 4px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="c-full-work" onchange="onFullWorkChange(); calcPreview();" style="width: 13px; height: 13px;" /> Tam Çalışma (30 Gün)
+                </label>
+              </div>
             </div>
           </div>
 
@@ -2594,7 +2621,15 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Kurumdan Alınacak (₺)</label>
-                <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this); calcPreview();" />
+                <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this); onComTotalInput(); calcPreview();" />
+                <div style="display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="c-com-kdv" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%20 KDV
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="c-com-tef" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%2 Tefkifat
+                  </label>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Avans (₺)</label>
@@ -3289,6 +3324,42 @@
         if (p.length > 2) v = p[0] + "." + p.slice(1).join("");
         el.value = v;
       }
+      function onComTotalInput() {
+        const el = document.getElementById("c-com-total");
+        const kdvCb = document.getElementById("c-com-kdv");
+        const tefCb = document.getElementById("c-com-tef");
+        if (kdvCb) kdvCb.checked = false;
+        if (tefCb) tefCb.checked = false;
+        el.dataset.baseVal = el.value;
+      }
+      function recalcComTotal() {
+        const el = document.getElementById("c-com-total");
+        const kdvCb = document.getElementById("c-com-kdv");
+        const tefCb = document.getElementById("c-com-tef");
+        let baseVal = parseFloat(el.dataset.baseVal) || 0;
+        let factor = 1.0;
+        if (kdvCb && kdvCb.checked) factor += 0.20;
+        if (tefCb && tefCb.checked) factor += 0.02;
+        let finalVal = baseVal * factor;
+        el.value = finalVal > 0 ? Number(finalVal.toFixed(2)).toString() : (el.dataset.baseVal || "");
+      }
+      function onFullWorkChange() {
+        const fullWorkCb = document.getElementById("c-full-work");
+        const daysInput = document.getElementById("c-days");
+        if (fullWorkCb && fullWorkCb.checked) {
+          daysInput.value = "30";
+          daysInput.readOnly = true;
+          daysInput.style.backgroundColor = "#f1f5f9";
+          daysInput.style.cursor = "not-allowed";
+          document.getElementById("gun-auto-badge").textContent = "(kilitli - 30 gün)";
+        } else {
+          daysInput.readOnly = false;
+          daysInput.style.backgroundColor = "";
+          daysInput.style.cursor = "";
+          document.getElementById("gun-auto-badge").textContent = "";
+          if (typeof onDateChange === "function") onDateChange();
+        }
+      }
       function toast(msg, type = "ok") {
         let el = document.createElement("div");
         el.className = "toast toast-" + (type === "ok" ? "ok" : "err");
@@ -3623,6 +3694,15 @@
           const d = new Date(r.start_day);
           return d.getMonth() === selMonth && d.getFullYear() === selYear;
         });
+        recurringList.sort((a, b) => {
+          let cA = cName(a.company_id) || "";
+          let cB = cName(b.company_id) || "";
+          let cmp = cA.localeCompare(cB, 'tr');
+          if (cmp !== 0) return cmp;
+          let pA = pName(a.personnel_id) || "";
+          let pB = pName(b.personnel_id) || "";
+          return pA.localeCompare(pB, 'tr');
+        });
         
         if (recurringList.length === 0) {
           tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div></td></tr>`;
@@ -3699,6 +3779,7 @@
         document.getElementById("p-wage").value = p ? p.daily_wage : "";
         document.getElementById("p-phone").value = p ? p.phone : "";
         document.getElementById("p-iban").value = p ? p.iban : "";
+        document.getElementById("p-hire-date").value = p && p.hire_date ? p.hire_date.substring(0, 10) : "";
         openM("modal-per");
       }
       async function savePer() {
@@ -3715,6 +3796,7 @@
           daily_wage: parseFloat(document.getElementById("p-wage").value) || 0,
           phone: document.getElementById("p-phone").value.trim(),
           iban: document.getElementById("p-iban").value.trim(),
+          hire_date: document.getElementById("p-hire-date").value || null,
         };
         const btn = document.getElementById("btn-save-per");
         btn.disabled = true;
@@ -3777,7 +3859,7 @@
           personnel.length + " kayıt";
         if (!personnel.length) {
           tbody.innerHTML =
-            '<tr><td colspan="7"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Henüz personel eklenmedi</div></div></td></tr>';
+            '<tr><td colspan="8"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Henüz personel eklenmedi</div></div></td></tr>';
           return;
         }
         tbody.innerHTML = personnel
@@ -3796,6 +3878,7 @@
       <td style="font-weight:700;white-space:nowrap">${fmt(p.daily_wage)}<span style="font-size:10px;color:#94a3b8">/ay</span></td>
       <td style="color:#64748b">${p.phone || "—"}</td>
       <td style="font-size:10px;color:#64748b;font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.iban || "—"}</td>
+      <td style="color:#64748b">${fmtDate(p.hire_date)}</td>
       <td style="font-weight:700">${tg}</td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" onclick="openPersonelModal('${p.id}')">Düzenle</button>
@@ -4008,6 +4091,16 @@
         document.getElementById("c-start").value = r.start_day ? r.start_day.split("T")[0] : "";
         document.getElementById("c-end").value = r.end_date ? r.end_date.split("T")[0] : "";
         document.getElementById("c-days").value = r.work_days || "";
+        const fullWorkCb = document.getElementById("c-full-work");
+        if (fullWorkCb) {
+          if (r.work_days == 30) {
+            fullWorkCb.checked = true;
+            onFullWorkChange();
+          } else {
+            fullWorkCb.checked = false;
+            onFullWorkChange();
+          }
+        }
         document.getElementById("c-job-type").value = r.job_type || "";
         document.getElementById("c-overtime-type").value = r.overtime_type || "hourly";
         document.getElementById("c-overtime-hours").value = r.overtime_hours || 0;
@@ -4015,6 +4108,11 @@
 
         document.getElementById("c-per-wage").value = r.personnel_monthly_wage || "";
         document.getElementById("c-com-total").value = r.total_company_payment || "";
+        document.getElementById("c-com-total").dataset.baseVal = r.total_company_payment || "";
+        const kdvCb = document.getElementById("c-com-kdv");
+        if (kdvCb) kdvCb.checked = false;
+        const tefCb = document.getElementById("c-com-tef");
+        if (tefCb) tefCb.checked = false;
         document.getElementById("c-avans").value = r.advance_amount || 0;
         document.getElementById("c-additional-payment").value = r.additional_payment || 0;
         document.getElementById("c-premium").value = r.premium || 0;
@@ -4415,6 +4513,20 @@
         
         var recCh = document.getElementById("c-recurring");
         if (recCh) recCh.checked = false;
+        var fullWorkCb = document.getElementById("c-full-work");
+        if (fullWorkCb) fullWorkCb.checked = false;
+        var daysInput = document.getElementById("c-days");
+        if (daysInput) {
+          daysInput.readOnly = false;
+          daysInput.style.backgroundColor = "";
+          daysInput.style.cursor = "";
+        }
+        var kdvCb = document.getElementById("c-com-kdv");
+        if (kdvCb) kdvCb.checked = false;
+        var tefCb = document.getElementById("c-com-tef");
+        if (tefCb) tefCb.checked = false;
+        var comTotalInput = document.getElementById("c-com-total");
+        if (comTotalInput) delete comTotalInput.dataset.baseVal;
         var badge = document.getElementById("gun-auto-badge");
         if (badge) badge.textContent = "";
         
@@ -4451,6 +4563,15 @@
             arsivMode ? r.archived === true : !r.archived,
           );
         }
+        rows = [...rows].sort((a, b) => {
+          let cA = cName(a.company_id) || "";
+          let cB = cName(b.company_id) || "";
+          let cmp = cA.localeCompare(cB, 'tr');
+          if (cmp !== 0) return cmp;
+          let pA = pName(a.personnel_id) || "";
+          let pB = pName(b.personnel_id) || "";
+          return pA.localeCompare(pB, 'tr');
+        });
         document.getElementById("rec-count").textContent =
           rows.length + " kayıt";
         let tbody = document.getElementById("calisma-tbody");
@@ -4708,6 +4829,15 @@
         
         // Calculate statistics for this month (excluding archived)
         const activeAyRows = ayRows.filter(r => !r.archived);
+        activeAyRows.sort((a, b) => {
+          let cA = cName(a.company_id) || "";
+          let cB = cName(b.company_id) || "";
+          let cmp = cA.localeCompare(cB, 'tr');
+          if (cmp !== 0) return cmp;
+          let pA = pName(a.personnel_id) || "";
+          let pB = pName(b.personnel_id) || "";
+          return pA.localeCompare(pB, 'tr');
+        });
         
         const currentMonthKey = `${yil}-${String(ay + 1).padStart(2, '0')}`;
         const currentExpense = monthlyExpensesMap[currentMonthKey] || 0;
@@ -5458,6 +5588,26 @@
           if (!b.start_day) return -1;
           return new Date(b.start_day) - new Date(a.start_day);
         });
+
+        let now = new Date(), curM = now.getMonth(), curY = now.getFullYear();
+        let curMonthTotal = 0;
+        let pendingTotal = 0;
+        
+        records.forEach(r => {
+          let pay = parseFloat(r.total_company_payment) || 0;
+          if (r.start_day) {
+            let d = new Date(r.start_day);
+            if (d.getMonth() === curM && d.getFullYear() === curY && !r.archived) {
+              curMonthTotal += pay;
+            }
+          }
+          if (r.company_payment_status !== 'odendi' && !r.archived) {
+            pendingTotal += pay;
+          }
+        });
+        
+        document.getElementById("com-hist-month-total").textContent = fmt(curMonthTotal);
+        document.getElementById("com-hist-pending-total").textContent = fmt(pendingTotal);
         
         let tbody = document.getElementById("com-history-tbody");
         if (records.length === 0) {
