@@ -2553,18 +2553,27 @@
                 <input class="form-input" id="c-end" type="date" onchange="onDateChange()" />
               </div>
             </div>
-            <div class="form-grid g3">
+            <div class="form-grid g2">
               <div class="form-group">
                 <label class="form-label">Görev Türü</label>
                 <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik" />
               </div>
               <div class="form-group">
-                <label class="form-label">Mesai Saati</label>
+                <label class="form-label">Mesai Tipi</label>
+                <select class="form-input" id="c-overtime-type" onchange="calcPreview()">
+                  <option value="hourly">Saatlik</option>
+                  <option value="daily">Günlük</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid g2">
+              <div class="form-group">
+                <label class="form-label">Mesai Süresi (Saat/Gün)</label>
                 <input class="form-input" id="c-overtime-hours" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
               </div>
               <div class="form-group">
                 <label class="form-label">Mesai Ücreti (₺)</label>
-                <input class="form-input" id="c-overtime-wage" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
+                <input class="form-input" id="c-overtime-wage" type="text" inputmode="decimal" placeholder="0" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
               </div>
             </div>
             <div class="form-group">
@@ -4000,6 +4009,7 @@
         document.getElementById("c-end").value = r.end_date ? r.end_date.split("T")[0] : "";
         document.getElementById("c-days").value = r.work_days || "";
         document.getElementById("c-job-type").value = r.job_type || "";
+        document.getElementById("c-overtime-type").value = r.overtime_type || "hourly";
         document.getElementById("c-overtime-hours").value = r.overtime_hours || 0;
         document.getElementById("c-overtime-wage").value = r.overtime_wage || 0;
 
@@ -4141,9 +4151,8 @@
         let gun = getWorkDays();
         let monthlyWage =
           parseFloat(document.getElementById("c-per-wage").value) || 0;
-        let sDate = getStartDate();
-        let daysInMonth = getDaysInMonth(sDate);
-        let perWage = monthlyWage > 0 ? monthlyWage / daysInMonth : 0;
+        let daysInMonth = 30;
+        let perWage = monthlyWage > 0 ? monthlyWage / 30 : 0;
         
         let totalCom =
           parseFloat(document.getElementById("c-com-total").value) || 0;
@@ -4157,7 +4166,20 @@
 
         let additionalPayment = parseFloat(document.getElementById("c-additional-payment").value) || 0;
         let premium = parseFloat(document.getElementById("c-premium").value) || 0;
-        let overtimeWage = parseFloat(document.getElementById("c-overtime-wage").value) || 0;
+        
+        let overtimeHoursOrDays = parseFloat(document.getElementById("c-overtime-hours").value) || 0;
+        let overtimeType = document.getElementById("c-overtime-type") ? document.getElementById("c-overtime-type").value : "hourly";
+        let overtimeWage = 0;
+        if (overtimeType === "daily") {
+          overtimeWage = overtimeHoursOrDays * perWage;
+        } else {
+          overtimeWage = overtimeHoursOrDays * (perWage / 8);
+        }
+        const wageInput = document.getElementById("c-overtime-wage");
+        if (wageInput) {
+          wageInput.value = overtimeWage.toFixed(2);
+        }
+
         let deductions = parseFloat(document.getElementById("c-deductions").value) || 0;
 
         let workedWage = gun * perWage;
@@ -4208,6 +4230,7 @@
           netPer,
           kar,
           overtime_hours: parseFloat(document.getElementById("c-overtime-hours").value) || 0,
+          overtime_type: document.getElementById("c-overtime-type") ? document.getElementById("c-overtime-type").value : "hourly",
           overtime_wage: overtimeWage,
           job_type: document.getElementById("c-job-type").value.trim(),
           additional_payment: additionalPayment,
@@ -4288,6 +4311,7 @@
           needs_review: false,
 
           overtime_hours: previewData.overtime_hours,
+          overtime_type: previewData.overtime_type,
           overtime_wage: previewData.overtime_wage,
           job_type: previewData.job_type,
           additional_payment: previewData.additional_payment,
@@ -4370,6 +4394,8 @@
           var el = document.getElementById(id);
           if (el) el.value = "";
         });
+        const otTypeEl = document.getElementById("c-overtime-type");
+        if (otTypeEl) otTypeEl.value = "hourly";
         
         [
           "c-avans", 
