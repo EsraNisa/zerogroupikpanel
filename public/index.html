@@ -2572,23 +2572,18 @@
                 <input class="form-input" id="c-end" type="date" onchange="onDateChange()" />
               </div>
             </div>
-            <div class="form-grid g2">
-              <div class="form-group">
-                <label class="form-label">Görev Türü</label>
-                <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mesai Tipi</label>
-                <select class="form-input" id="c-overtime-type" onchange="calcPreview()">
-                  <option value="hourly">Saatlik</option>
-                  <option value="daily">Günlük</option>
-                </select>
-              </div>
+            <div class="form-group">
+              <label class="form-label">Görev Türü</label>
+              <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik" />
             </div>
-            <div class="form-grid g2">
+            <div class="form-grid g3">
               <div class="form-group">
-                <label class="form-label">Mesai Süresi (Saat/Gün)</label>
+                <label class="form-label">Saatlik Mesai (Saat)</label>
                 <input class="form-input" id="c-overtime-hours" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Günlük Mesai (Gün)</label>
+                <input class="form-input" id="c-overtime-days" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
               </div>
               <div class="form-group">
                 <label class="form-label">Mesai Ücreti (₺)</label>
@@ -2611,9 +2606,18 @@
 
           <!-- Sekme 2: Finansal Bilgiler -->
           <div id="c-tab-pane-financial" class="c-tab-pane" style="display: none;">
+            <div style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; gap: 12px; align-items: center;">
+              <span style="font-weight: 600; font-size: 11px; color: #374151;">Hesaplama Yöntemi:</span>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="radio" name="c-wage-mode" value="calculated" checked onchange="onWageModeChange(); calcPreview();" /> Aylık Maaş Üzerinden
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
+                <input type="radio" name="c-wage-mode" value="direct" onchange="onWageModeChange(); calcPreview();" /> Direkt Net Ödeme
+              </label>
+            </div>
             <div class="form-grid g3">
               <div class="form-group">
-                <label class="form-label">Aylık Ücret (₺)</label>
+                <label class="form-label" id="c-per-wage-label">Aylık Ücret (₺)</label>
                 <input class="form-input" id="c-per-wage" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this); calcPreview();" />
               </div>
               <div class="form-group">
@@ -4113,9 +4117,16 @@
           }
         }
         document.getElementById("c-job-type").value = r.job_type || "";
-        document.getElementById("c-overtime-type").value = r.overtime_type || "hourly";
         document.getElementById("c-overtime-hours").value = r.overtime_hours || 0;
+        document.getElementById("c-overtime-days").value = r.overtime_days || 0;
         document.getElementById("c-overtime-wage").value = r.overtime_wage || 0;
+
+        const wm = r.wage_mode || "calculated";
+        const rBtn = document.querySelector(`input[name="c-wage-mode"][value="${wm}"]`);
+        if (rBtn) {
+          rBtn.checked = true;
+        }
+        onWageModeChange();
 
         document.getElementById("c-per-wage").value = r.personnel_monthly_wage || "";
         document.getElementById("c-com-total").value = r.total_company_payment || "";
@@ -4204,6 +4215,19 @@
         calcPreview();
       }
 
+      function onWageModeChange() {
+        const mode = document.querySelector('input[name="c-wage-mode"]:checked')?.value || "calculated";
+        const label = document.getElementById("c-per-wage-label");
+        const input = document.getElementById("c-per-wage");
+        if (mode === "direct") {
+          if (label) label.textContent = "Direkt Net Ödeme Tutarı (₺)";
+          if (input) input.placeholder = "Örn: 25000";
+        } else {
+          if (label) label.textContent = "Aylık Ücret (₺)";
+          if (input) input.placeholder = "Örn: 30000";
+        }
+      }
+
       function getDaysInMonth(dateStr) {
         if (!dateStr) return 30;
         const date = new Date(dateStr);
@@ -4265,7 +4289,19 @@
         let monthlyWage =
           parseFloat(document.getElementById("c-per-wage").value) || 0;
         let daysInMonth = 30;
-        let perWage = monthlyWage > 0 ? monthlyWage / 30 : 0;
+        
+        const wageMode = document.querySelector('input[name="c-wage-mode"]:checked')?.value || "calculated";
+        
+        let perWage = 0;
+        let workedWage = 0;
+        
+        if (wageMode === "direct") {
+          workedWage = monthlyWage; // The value is direct payment
+          perWage = workedWage / 30; // Overtime is computed assuming base rate = direct / 30
+        } else {
+          perWage = monthlyWage > 0 ? monthlyWage / 30 : 0;
+          workedWage = gun * perWage;
+        }
         
         let totalCom =
           parseFloat(document.getElementById("c-com-total").value) || 0;
@@ -4280,14 +4316,10 @@
         let additionalPayment = parseFloat(document.getElementById("c-additional-payment").value) || 0;
         let premium = parseFloat(document.getElementById("c-premium").value) || 0;
         
-        let overtimeHoursOrDays = parseFloat(document.getElementById("c-overtime-hours").value) || 0;
-        let overtimeType = document.getElementById("c-overtime-type") ? document.getElementById("c-overtime-type").value : "hourly";
-        let overtimeWage = 0;
-        if (overtimeType === "daily") {
-          overtimeWage = overtimeHoursOrDays * perWage;
-        } else {
-          overtimeWage = overtimeHoursOrDays * (perWage / 8);
-        }
+        const overtimeHours = parseFloat(document.getElementById("c-overtime-hours").value) || 0;
+        const overtimeDays = parseFloat(document.getElementById("c-overtime-days").value) || 0;
+        const overtimeWage = (overtimeHours * (perWage / 8)) + (overtimeDays * perWage);
+        
         const wageInput = document.getElementById("c-overtime-wage");
         if (wageInput) {
           wageInput.value = overtimeWage.toFixed(2);
@@ -4295,7 +4327,6 @@
 
         let deductions = parseFloat(document.getElementById("c-deductions").value) || 0;
 
-        let workedWage = gun * perWage;
         let totalPer = workedWage + additionalPayment + premium + overtimeWage - deductions;
         
         if (gun <= 0 && monthlyWage <= 0 && totalCom <= 0) {
@@ -4314,10 +4345,17 @@
         
         document.getElementById("r-gun").textContent =
           gun > 0 ? gun + " gün" : "—";
-        document.getElementById("r-calc-detail").textContent =
-          gun > 0 && monthlyWage > 0
-            ? fmt(monthlyWage) + " / " + daysInMonth + " × " + gun + " gün = " + fmt(workedWage)
-            : "—";
+          
+        if (wageMode === "direct") {
+          document.getElementById("r-calc-detail").textContent =
+            "Direkt Net Ödeme Modu = " + fmt(workedWage);
+        } else {
+          document.getElementById("r-calc-detail").textContent =
+            gun > 0 && monthlyWage > 0
+              ? fmt(monthlyWage) + " / " + daysInMonth + " × " + gun + " gün = " + fmt(workedWage)
+              : "—";
+        }
+        
         document.getElementById("r-per-od").textContent = fmt(totalPer);
         document.getElementById("r-avans").textContent =
           avans > 0 ? "- " + fmt(avans) : "—";
@@ -4342,9 +4380,11 @@
           masraf,
           netPer,
           kar,
-          overtime_hours: parseFloat(document.getElementById("c-overtime-hours").value) || 0,
-          overtime_type: document.getElementById("c-overtime-type") ? document.getElementById("c-overtime-type").value : "hourly",
+          overtime_hours: overtimeHours,
+          overtime_days: overtimeDays,
+          overtime_type: "both",
           overtime_wage: overtimeWage,
+          wage_mode: wageMode,
           job_type: document.getElementById("c-job-type").value.trim(),
           additional_payment: additionalPayment,
           premium: premium,
@@ -4369,15 +4409,32 @@
         let pn = p ? p.first_name + " " + p.last_name : "?";
         let cn = c ? c.company_name : "?";
         
+        let detailsHtml = "";
+        if (wageMode === "direct") {
+          detailsHtml = "<b>Direkt Net Ödeme Modu</b><br>" +
+            "<b>Taban Hak Ediş:</b> " + fmt(workedWage) + " (Çalışılan Gün: " + gun + " gün)<br>";
+        } else {
+          detailsHtml = "<b>" + fmt(monthlyWage) + " / " + daysInMonth + "</b> = " + fmt(perWage) + " günlük ücret<br>" +
+            "<b>" + gun + " gün</b> × " + fmt(perWage) + " = " + fmt(workedWage) + " (çalışılan brüt)<br>";
+        }
+        
+        let overtimeDetails = "";
+        if (overtimeHours > 0 || overtimeDays > 0) {
+          overtimeDetails = "Mesai: +" + fmt(overtimeWage) + " (";
+          let parts = [];
+          if (overtimeHours > 0) parts.push(overtimeHours + " saat saatlik");
+          if (overtimeDays > 0) parts.push(overtimeDays + " gün günlük");
+          overtimeDetails += parts.join(" + ") + ") | ";
+        }
+
         document.getElementById("confirm-summary").innerHTML =
           "<b>Personel:</b> " + pn + "<br>" +
           "<b>Kurum:</b> " + cn + "<br>" +
           "<b>Dönem:</b> " + (document.getElementById("c-start").value || "—") + " → " + (document.getElementById("c-end").value || "—") + "<br>" +
-          "<b>" + fmt(monthlyWage) + " / " + daysInMonth + "</b> = " + fmt(perWage) + " günlük ücret<br>" +
-          "<b>" + gun + " gün</b> × " + fmt(perWage) + " = " + fmt(workedWage) + " (çalışılan brüt)<br>" +
+          detailsHtml +
           (additionalPayment > 0 ? "Ek Ödeme: +" + fmt(additionalPayment) + " | " : "") +
           (premium > 0 ? "Prim: +" + fmt(premium) + " | " : "") +
-          (overtimeWage > 0 ? "Mesai: +" + fmt(overtimeWage) + " | " : "") +
+          overtimeDetails +
           (deductions > 0 ? "Kesinti: -" + fmt(deductions) + " | " : "") +
           "<br><b>Brüt Toplam: " + fmt(totalPer) + "</b>" +
           (avans > 0 ? " (Avans: -" + fmt(avans) + " → Net: <b>" + fmt(netPer) + "</b>)" : "") +
@@ -4424,8 +4481,10 @@
           needs_review: false,
 
           overtime_hours: previewData.overtime_hours,
+          overtime_days: previewData.overtime_days,
           overtime_type: previewData.overtime_type,
           overtime_wage: previewData.overtime_wage,
+          wage_mode: previewData.wage_mode,
           job_type: previewData.job_type,
           additional_payment: previewData.additional_payment,
           deductions: previewData.deductions,
@@ -4493,6 +4552,7 @@
           "c-not",
           "c-job-type",
           "c-overtime-hours",
+          "c-overtime-days",
           "c-overtime-wage",
           "c-additional-payment",
           "c-premium",
@@ -4507,12 +4567,11 @@
           var el = document.getElementById(id);
           if (el) el.value = "";
         });
-        const otTypeEl = document.getElementById("c-overtime-type");
-        if (otTypeEl) otTypeEl.value = "hourly";
         
         [
           "c-avans", 
           "c-overtime-hours", 
+          "c-overtime-days",
           "c-overtime-wage", 
           "c-additional-payment", 
           "c-premium", 
@@ -4526,6 +4585,10 @@
           if (el) el.value = "0";
         });
         
+        const calcRadio = document.querySelector('input[name="c-wage-mode"][value="calculated"]');
+        if (calcRadio) calcRadio.checked = true;
+        onWageModeChange();
+
         var recCh = document.getElementById("c-recurring");
         if (recCh) recCh.checked = false;
         var fullWorkCb = document.getElementById("c-full-work");
