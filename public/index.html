@@ -2786,6 +2786,14 @@
             id="calc-btns"
           >
             <button
+              class="btn btn-danger"
+              id="btn-delete-rec"
+              style="display: none; margin-right: auto;"
+              onclick="onDeleteFromModal()"
+            >
+              Sil
+            </button>
+            <button
               class="btn"
               onclick="
                 closeM('modal-calisma');
@@ -2808,6 +2816,14 @@
             "
             id="confirm-btns"
           >
+            <button
+              class="btn btn-danger"
+              id="btn-delete-rec-confirm"
+              style="display: none; margin-right: auto;"
+              onclick="onDeleteFromModal()"
+            >
+              Sil
+            </button>
             <button
               class="btn"
               onclick="
@@ -4141,6 +4157,10 @@
         }
 
         document.getElementById("gun-auto-badge").textContent = "";
+        const delBtn = document.getElementById("btn-delete-rec");
+        if (delBtn) delBtn.style.display = "inline-flex";
+        const delBtnC = document.getElementById("btn-delete-rec-confirm");
+        if (delBtnC) delBtnC.style.display = "inline-flex";
         calcPreview();
         openM("modal-calisma");
       }
@@ -4522,6 +4542,10 @@
         if (tefCb) tefCb.checked = false;
         var comTotalInput = document.getElementById("c-com-total");
         if (comTotalInput) delete comTotalInput.dataset.baseVal;
+        var delBtn = document.getElementById("btn-delete-rec");
+        if (delBtn) delBtn.style.display = "none";
+        var delBtnC = document.getElementById("btn-delete-rec-confirm");
+        if (delBtnC) delBtnC.style.display = "none";
         var badge = document.getElementById("gun-auto-badge");
         if (badge) badge.textContent = "";
         
@@ -4641,6 +4665,19 @@
         try {
           await api.delete(`/admin/work_records/${id}`);
           toast("Kayıt silindi");
+          await loadAll();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+      async function onDeleteFromModal() {
+        if (!editRecId) return;
+        if (!confirm("Bu çalışma kaydını silmek istediğinize emin misiniz?")) return;
+        try {
+          await api.delete(`/admin/work_records/${editRecId}`);
+          toast("Kayıt silindi ✓");
+          closeM('modal-calisma');
+          resetCForm();
           await loadAll();
         } catch (e) {
           toast("Hata: " + e.message, "err");
