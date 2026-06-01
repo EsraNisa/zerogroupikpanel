@@ -1617,7 +1617,6 @@
                     <thead>
                       <tr>
                         <th>Kurum / Personel</th>
-                        <th>Görev</th>
                         <th>Maaş</th>
                         <th>Avans</th>
                         <th>İzinler</th>
@@ -2313,7 +2312,6 @@
                 <tr>
                   <th>Dönem</th>
                   <th>Kurum</th>
-                  <th>Görev</th>
                   <th>Çalışılan Gün</th>
                   <th>Maaş</th>
                   <th>Avans</th>
@@ -2364,7 +2362,6 @@
                 <tr>
                   <th>Dönem</th>
                   <th>Personel</th>
-                  <th>Görev</th>
                   <th>Çalışılan Gün</th>
                   <th>Pers. Ödeme</th>
                   <th>Kurum Hak Ediş</th>
@@ -2568,7 +2565,7 @@
               </div>
             </div>
 
-            <div class="form-grid g2">
+            <div class="form-grid g1">
               <div class="form-group" id="toplu-payment-group">
                 <label class="form-label">Toplam Kurum Ödemesi (Fatura Tutarı) (₺)</label>
                 <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="Örn: 90000" oninput="onlyNum(this); onComTotalInput(); calcPreview();" />
@@ -2580,10 +2577,6 @@
                     <input type="checkbox" id="c-com-tef" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%2 Tevkifat
                   </label>
                 </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Varsayılan Görev Türü</label>
-                <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik (Personellere kopyalanır)" oninput="syncGlobalJobType()" />
               </div>
             </div>
 
@@ -3645,7 +3638,7 @@
         });
         
         if (recurringList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div></td></tr>`;
         } else {
           tbody.innerHTML = recurringList.map(r => {
             const p = personnel.find(x => x.id == r.personnel_id);
@@ -3653,7 +3646,6 @@
             const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
             const pPos = p ? p.position : "—";
             const cName = c ? c.company_name : "Bilinmeyen Kurum";
-            const jobType = r.job_type || "—";
             const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
             const advance = parseFloat(r.advance_amount || 0);
             const leaves = parseFloat(r.leave_days || 0);
@@ -3673,7 +3665,6 @@
                     <span style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-left: 4px;">(${pPos})</span>
                   </div>
                 </td>
-                <td style="color:#475569;">${jobType}</td>
                 <td style="font-weight:700;color:#0f172a;">${fmt(monthlyWage)}</td>
                 <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
                 <td style="text-align:center;color:#475569;">${leaves > 0 ? leaves + " gün" : "—"}</td>
@@ -4343,33 +4334,13 @@
         const mode = document.getElementById(`c-wage-mode-${pId}`).value;
         const label = document.getElementById(`c-per-wage-label-${pId}`);
         const input = document.getElementById(`c-per-wage-${pId}`);
-        const otRow = document.getElementById(`overtime-row-${pId}`);
         
         if (mode === "direct") {
           label.textContent = "Direkt Net Ödeme (₺)";
           input.placeholder = "Örn: 25000";
-          if (otRow) {
-            otRow.querySelectorAll("input").forEach(el => {
-              if (el.id !== `c-overtime-wage-${pId}`) {
-                el.value = "0";
-                el.disabled = true;
-                el.style.backgroundColor = "#f1f5f9";
-                el.style.cursor = "not-allowed";
-              }
-            });
-          }
         } else {
           label.textContent = "Aylık Ücret (₺)";
           input.placeholder = "Örn: 30000";
-          if (otRow) {
-            otRow.querySelectorAll("input").forEach(el => {
-              if (el.id !== `c-overtime-wage-${pId}`) {
-                el.disabled = false;
-                el.style.backgroundColor = "";
-                el.style.cursor = "";
-              }
-            });
-          }
         }
       }
 
@@ -4405,13 +4376,7 @@
         onInputChanged();
       }
 
-      function syncGlobalJobType() {
-        const val = document.getElementById("c-job-type").value;
-        document.querySelectorAll('.text-job-type').forEach(input => {
-          input.value = val;
-        });
-        onInputChanged();
-      }
+
 
       function togglePersonnelCard(pId) {
         const body = document.getElementById(`card-body-${pId}`);
@@ -4486,7 +4451,6 @@
 
         syncPersonnelCards();
         
-        document.getElementById("c-job-type").value = r.job_type || "";
         document.getElementById(`c-days-${pId}`).value = r.work_days || "";
         
         const wageMode = r.wage_mode || "calculated";
@@ -4551,7 +4515,6 @@
         document.getElementById("c-kurum").value = "";
         document.getElementById("c-start").value = "";
         document.getElementById("c-end").value = "";
-        document.getElementById("c-job-type").value = "";
         document.getElementById("c-com-total").value = "";
         
         const kdvCb = document.getElementById("c-com-kdv");
@@ -4628,21 +4591,15 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
           
           let base_payment = 0;
-          let overtime_wage = 0;
-          
           if (wage_mode === "calculated") {
-            const daily_wage = input_wage / 30;
-            base_payment = daily_wage * work_days;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
-            
-            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
-            if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+            base_payment = (input_wage / 30) * work_days;
           } else {
             base_payment = input_wage;
-            overtime_wage = 0;
-            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
-            if (otWageInput) otWageInput.value = 0;
           }
+          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          
+          const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           const net_personnel_payment = total_personnel_payment - advance_amount;
@@ -4698,21 +4655,15 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
           
           let base_payment = 0;
-          let overtime_wage = 0;
-          
           if (wage_mode === "calculated") {
-            const daily_wage = input_wage / 30;
-            base_payment = daily_wage * work_days;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
-            
-            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
-            if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+            base_payment = (input_wage / 30) * work_days;
           } else {
             base_payment = input_wage;
-            overtime_wage = 0;
-            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
-            if (otWageInput) otWageInput.value = 0;
           }
+          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          
+          const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           const net_personnel_payment = total_personnel_payment - advance_amount;
@@ -4812,21 +4763,17 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
           
           let base_payment = 0;
-          let personnel_monthly_wage = 0;
+          let personnel_monthly_wage = input_wage;
           let personnel_daily_wage = 0;
-          let overtime_wage = 0;
           
           if (wage_mode === "calculated") {
-            personnel_monthly_wage = input_wage;
             personnel_daily_wage = input_wage / 30;
             base_payment = personnel_daily_wage * work_days;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
-            personnel_monthly_wage = input_wage;
             personnel_daily_wage = 0;
             base_payment = input_wage;
-            overtime_wage = 0;
           }
+          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           
@@ -4875,7 +4822,7 @@
             overtime_type: "hourly",
             overtime_days,
             overtime_wage,
-            job_type: document.getElementById("c-job-type").value || "",
+            job_type: "",
             additional_payment,
             deductions,
             premium,
@@ -5810,7 +5757,7 @@
         }
 
         let cols = [
-          "Kurum", "Personel", "Hes. Günlük(₺)", "Giriş", "Çıkış", "Görev Türü",
+          "Kurum", "Personel", "Hes. Günlük(₺)", "Giriş", "Çıkış",
           "Yıllık İzin(Gün)", "Rapor(Gün)", "Eksik Gün(Gün)", "Resmi Tatil(Gün)", "Toplam İzin Günü", "Çalışılan Gün",
           "Mesai Saati", "Mesai Ücreti(₺)", "Aylık Maaş(₺)", "Ek Ödeme(₺)", "Prim(₺)", "Kesinti(₺)",
           "Brüt Hak Ediş(₺)", "Avans(₺)", "Net Pers.(₺)", "Kur.Fat.(₺)", 
@@ -5827,7 +5774,6 @@
             parseFloat(row.personnel_daily_wage) || 0,
             fmtDate(row.start_day),
             fmtDate(row.end_date),
-            row.job_type || "",
             parseFloat(row.annual_leave) || 0,
             parseFloat(row.sick_leave) || 0,
             parseFloat(row.missing_days) || 0,
@@ -5870,7 +5816,7 @@
           let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
 
           sd.push([
-            "GENEL TOPLAM", "", "", "", "", "", 
+            "GENEL TOPLAM", "", "", "", "", 
             sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
             sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
             r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC,
@@ -5897,7 +5843,7 @@
           let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
 
           sd.push([
-            "GENEL TOPLAM", "", "", "", "", "", 
+            "GENEL TOPLAM", "", "", "", "", 
             sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
             sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
             r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), "",
@@ -5924,7 +5870,7 @@
           let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
 
           sd.push([
-            "GENEL TOPLAM", "", "", "", "", "", 
+            "GENEL TOPLAM", "", "", "", "", 
             sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
             sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
             r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC,
@@ -6022,14 +5968,13 @@
         
         let tbody = document.getElementById("per-history-tbody");
         if (records.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;color:#94a3b8">Bu personele ait geçmiş çalışma kaydı bulunamadı.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">Bu personele ait geçmiş çalışma kaydı bulunamadı.</td></tr>`;
         } else {
           tbody.innerHTML = records.map(r => {
             let start = r.start_day ? new Date(r.start_day) : null;
             let periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
             let c = companies.find(x => x.id == r.company_id);
             let cName = c ? c.company_name : "Bilinmeyen Kurum";
-            let jobType = r.job_type || "—";
             let days = r.work_days || 0;
             let monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
             let advance = parseFloat(r.advance_amount || 0);
@@ -6044,7 +5989,6 @@
               <tr>
                 <td style="font-weight:600;">${periodText}</td>
                 <td>${cName}</td>
-                <td style="color:#64748b;">${jobType}</td>
                 <td style="text-align:center;">${days} gün</td>
                 <td style="font-weight:600;">${fmt(monthlyWage)}</td>
                 <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
@@ -6098,14 +6042,13 @@
         
         let tbody = document.getElementById("com-history-tbody");
         if (records.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">Bu kuruma ait geçmiş çalışma kaydı bulunamadı.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8">Bu kuruma ait geçmiş çalışma kaydı bulunamadı.</td></tr>`;
         } else {
           tbody.innerHTML = records.map(r => {
             let start = r.start_day ? new Date(r.start_day) : null;
             let periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
             let p = personnel.find(x => x.id == r.personnel_id);
             let pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
-            let jobType = r.job_type || "—";
             let days = r.work_days || 0;
             let perPay = parseFloat(r.total_personnel_payment || 0);
             let comPay = parseFloat(r.total_company_payment || 0);
@@ -6117,7 +6060,6 @@
               <tr>
                 <td style="font-weight:600;">${periodText}</td>
                 <td>${pName}</td>
-                <td style="color:#64748b;">${jobType}</td>
                 <td style="text-align:center;">${days} gün</td>
                 <td style="font-weight:600;">${fmt(perPay)}</td>
                 <td style="font-weight:700;color:#16a34a;">${fmt(comPay)}</td>
@@ -6409,7 +6351,6 @@
           
           // Not detaylarını topla
           let noteDetails = [];
-          if (r.job_type) noteDetails.push(`Görev: ${r.job_type}`);
           if (r.reminder_note) noteDetails.push(`Hatırlatma: ${r.reminder_note}`);
           if (r.note) noteDetails.push(`Not: ${r.note}`);
           const noteText = noteDetails.join(" | ") || "—";
