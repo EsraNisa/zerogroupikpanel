@@ -4219,12 +4219,32 @@
         const mode = document.querySelector('input[name="c-wage-mode"]:checked')?.value || "calculated";
         const label = document.getElementById("c-per-wage-label");
         const input = document.getElementById("c-per-wage");
+        const otHours = document.getElementById("c-overtime-hours");
+        const otDays = document.getElementById("c-overtime-days");
         if (mode === "direct") {
           if (label) label.textContent = "Direkt Net Ödeme Tutarı (₺)";
           if (input) input.placeholder = "Örn: 25000";
+          if (otHours) {
+            otHours.value = "0";
+            otHours.disabled = true;
+            otHours.style.backgroundColor = "#f1f5f9";
+          }
+          if (otDays) {
+            otDays.value = "0";
+            otDays.disabled = true;
+            otDays.style.backgroundColor = "#f1f5f9";
+          }
         } else {
           if (label) label.textContent = "Aylık Ücret (₺)";
           if (input) input.placeholder = "Örn: 30000";
+          if (otHours) {
+            otHours.disabled = false;
+            otHours.style.backgroundColor = "";
+          }
+          if (otDays) {
+            otDays.disabled = false;
+            otDays.style.backgroundColor = "";
+          }
         }
       }
 
@@ -4316,9 +4336,9 @@
         let additionalPayment = parseFloat(document.getElementById("c-additional-payment").value) || 0;
         let premium = parseFloat(document.getElementById("c-premium").value) || 0;
         
-        const overtimeHours = parseFloat(document.getElementById("c-overtime-hours").value) || 0;
-        const overtimeDays = parseFloat(document.getElementById("c-overtime-days").value) || 0;
-        const overtimeWage = (overtimeHours * (perWage / 8)) + (overtimeDays * perWage);
+        const overtimeHours = wageMode === "direct" ? 0 : (parseFloat(document.getElementById("c-overtime-hours").value) || 0);
+        const overtimeDays = wageMode === "direct" ? 0 : (parseFloat(document.getElementById("c-overtime-days").value) || 0);
+        const overtimeWage = wageMode === "direct" ? 0 : ((overtimeHours * (perWage / 8)) + (overtimeDays * perWage));
         
         const wageInput = document.getElementById("c-overtime-wage");
         if (wageInput) {
