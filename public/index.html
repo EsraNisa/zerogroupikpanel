@@ -3078,6 +3078,19 @@
       function fmt(n) {
         return "₺" + Math.round(n || 0).toLocaleString("tr-TR");
       }
+      function isTopluRecord(r, allRecords) {
+        if (!r || !r.company_id || !r.start_day || !r.end_date) return false;
+        let list = allRecords || work_records;
+        let batch = list.filter(x => 
+          x.company_id == r.company_id && 
+          x.start_day == r.start_day && 
+          x.end_date == r.end_date && 
+          x.archived == r.archived
+        );
+        if (batch.length <= 1) return false;
+        let positivePayments = batch.filter(x => (parseFloat(x.total_company_payment) || 0) > 0);
+        return positivePayments.length === 1;
+      }
       function fmtDate(d) {
   if (!d || d === '—') return '—';
   const date = new Date(d);
@@ -5010,6 +5023,11 @@
             let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
             let rowStyle = r.archived ? "opacity:0.7;background:#fafafa;" : "";
             
+            let isToplu = isTopluRecord(r, rows);
+            let comPaymentDisp = isToplu ? "—" : ((parseFloat(r.total_company_payment) || 0) > 0 ? fmt(r.total_company_payment) : "—");
+            let profitDisp = isToplu ? "—" : fmt(profit);
+            let profitColor = isToplu ? "#64748b" : (profit >= 0 ? "#16a34a" : "#dc2626");
+
             let arsivBtn = r.archived
               ? `<button class="btn btn-sm" onclick="setArchive('${r.id}',false)" title="Geri al" style="color:#16a34a;border-color:#bbf7d0">↩ Geri Al</button>`
               : `<button class="btn btn-sm" onclick="openEditRecModal('${r.id}')" style="margin-right:3px">Düzenle</button>
@@ -5035,8 +5053,8 @@
                 <td>${fmt(r.total_personnel_payment)}</td>
                 <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
                 <td style="color:#16a34a;font-weight:700">${fmt(netPer)}</td>
-                <td>${(parseFloat(r.total_company_payment) || 0) > 0 ? fmt(r.total_company_payment) : "—"}</td>
-                <td style="font-weight:700;color:${profit >= 0 ? "#16a34a" : "#dc2626"}">${fmt(profit)}</td>
+                <td>${comPaymentDisp}</td>
+                <td style="font-weight:700;color:${profitColor}">${profitDisp}</td>
                 <td><span class="badge ${pB}">${r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
                 <td><span class="badge ${cB}">${r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
                 <td style="text-align:center;">${r.is_recurring ? `<span class="badge badge-blue">Evet</span>` : `<span style="color:#94a3b8">—</span>`}</td>
@@ -5323,6 +5341,11 @@
               let reviewBadge = r.needs_review 
                 ? `<span class="badge badge-amber" style="margin-left: 6px; font-size: 8px; padding: 1px 4px;">⚠️ Kontrol Edin</span>` 
                 : "";
+              
+              let isToplu = isTopluRecord(r, activeAyRows);
+              let profitDisp = isToplu ? "—" : fmt(profit);
+              let profitColor = isToplu ? "#64748b" : (profit >= 0 ? '#16a34a' : '#dc2626');
+              
               return `<tr>
                 <td>
                   <div style="font-weight: 800; color: #0f172a; font-size: 12px;">${cName(r.company_id)}</div>
@@ -5338,7 +5361,7 @@
                 <td>${fmt(r.total_personnel_payment)}</td>
                 <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
                 <td style="color:#16a34a;font-weight:700">${fmt(netPer)}</td>
-                <td style="font-weight:700;color:${profit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(profit)}</td>
+                <td style="font-weight:700;color:${profitColor}">${profitDisp}</td>
                 <td>
                   <button class="btn btn-sm" onclick="openEditRecModal('${r.id}')">Düzenle</button>
                 </td>
@@ -5530,6 +5553,12 @@
                     r.personnel_daily_wage > 0
                       ? fmt(r.personnel_daily_wage) + "/gün (hes.)"
                       : "—";
+                  
+                  let isToplu = isTopluRecord(r, rows);
+                  let comPaymentDisp = isToplu ? "—" : fmt(r.total_company_payment);
+                  let profitDisp = isToplu ? "—" : fmt(kar);
+                  let profitColor = isToplu ? "#64748b" : (kar >= 0 ? "#16a34a" : "#dc2626");
+
                   return `<tr>
         <td style="font-weight:600">${cName(r.company_id)}</td>
         <td style="color:#64748b;font-size:11px">${wage}</td>
@@ -5538,8 +5567,8 @@
         <td>${fmt(r.total_personnel_payment)}</td>
         <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
         <td style="font-weight:700;color:#16a34a">${fmt(net)}</td>
-        <td>${fmt(r.total_company_payment)}</td>
-        <td style="font-weight:700;color:${kar >= 0 ? "#16a34a" : "#dc2626"}">${fmt(kar)}</td>
+        <td>${comPaymentDisp}</td>
+        <td style="font-weight:700;color:${profitColor}">${profitDisp}</td>
       </tr>`;
                 })
                 .join("");
@@ -5638,6 +5667,12 @@
                     r.personnel_daily_wage > 0
                       ? fmt(r.personnel_daily_wage) + "/gün (hes.)"
                       : "—";
+                  
+                  let isToplu = isTopluRecord(r, rows);
+                  let comPaymentDisp = isToplu ? "—" : fmt(r.total_company_payment);
+                  let profitDisp = isToplu ? "—" : fmt(kar);
+                  let profitColor = isToplu ? "#64748b" : (kar >= 0 ? "#16a34a" : "#dc2626");
+
                   return `<tr>
         <td style="font-weight:600">${pName(r.personnel_id)}</td>
         <td style="color:#64748b;font-size:11px">${wage}</td>
@@ -5646,8 +5681,8 @@
         <td>${fmt(r.total_personnel_payment)}</td>
         <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
         <td style="color:#16a34a;font-weight:700">${fmt(net)}</td>
-        <td>${fmt(r.total_company_payment)}</td>
-        <td style="font-weight:700;color:${kar >= 0 ? "#16a34a" : "#dc2626"}">${fmt(kar)}</td>
+        <td>${comPaymentDisp}</td>
+        <td style="font-weight:700;color:${profitColor}">${profitDisp}</td>
       </tr>`;
                 })
                 .join("");
@@ -5774,6 +5809,11 @@
           let net = (parseFloat(row.total_personnel_payment) || 0) - (parseFloat(row.advance_amount) || 0);
           let kar = (parseFloat(row.total_company_payment) || 0) - (parseFloat(row.total_personnel_payment) || 0);
           let leaveSum = (parseFloat(row.annual_leave) || 0) + (parseFloat(row.sick_leave) || 0) + (parseFloat(row.missing_days) || 0) + (parseFloat(row.official_holiday) || 0);
+          
+          let isToplu = isTopluRecord(row, sortedRows);
+          let comPaymentVal = isToplu ? "" : (parseFloat(row.total_company_payment) || 0);
+          let profitVal = isToplu ? "" : kar;
+
           return [
             cName(row.company_id),
             pName(row.personnel_id),
@@ -5795,8 +5835,8 @@
             parseFloat(row.total_personnel_payment) || 0,
             parseFloat(row.advance_amount) || 0,
             net,
-            parseFloat(row.total_company_payment) || 0,
-            kar,
+            comPaymentVal,
+            profitVal,
             row.personnel_payment_status,
             row.company_payment_status,
             row.is_recurring ? "Evet" : "Hayır",
@@ -6059,6 +6099,10 @@
             let perPay = parseFloat(r.total_personnel_payment || 0);
             let comPay = parseFloat(r.total_company_payment || 0);
             
+            let isToplu = isTopluRecord(r, records);
+            let comPayDisp = isToplu ? "—" : fmt(comPay);
+            let comPayStyle = isToplu ? "color:#64748b;" : "color:#16a34a;";
+
             let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
             let cText = r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
             
@@ -6068,7 +6112,7 @@
                 <td>${pName}</td>
                 <td style="text-align:center;">${days} gün</td>
                 <td style="font-weight:600;">${fmt(perPay)}</td>
-                <td style="font-weight:700;color:#16a34a;">${fmt(comPay)}</td>
+                <td style="font-weight:700;${comPayStyle}">${comPayDisp}</td>
                 <td><span class="badge ${cB}">${cText}</span></td>
               </tr>
             `;
@@ -6349,6 +6393,11 @@
           const comTotal = parseFloat(r.total_company_payment) || 0;
           const profit = comTotal - (parseFloat(r.total_personnel_payment) || 0);
           
+          const isToplu = isTopluRecord(r, filtered);
+          const comPaymentDisp = isToplu ? "—" : fmt(comTotal);
+          const profitDisp = isToplu ? "—" : fmt(profit);
+          const profitColor = isToplu ? "#64748b" : (profit >= 0 ? '#16a34a' : '#dc2626');
+
           const pBadge = r.personnel_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
           const cBadge = r.company_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
           
@@ -6369,8 +6418,8 @@
                 ${fmt(r.total_personnel_payment)}
                 <div style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px;">Net: ${fmt(perNet)} (Avans: ${fmt(r.advance_amount)})</div>
               </td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e3a5f;">${fmt(comTotal)}</td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: ${profit >= 0 ? '#16a34a' : '#dc2626'};">${fmt(profit)}</td>
+              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e3a5f;">${comPaymentDisp}</td>
+              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: ${profitColor};">${profitDisp}</td>
               <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
                 <span class="badge ${pBadge}" style="cursor: pointer; user-select: none;" onclick="toggleRecordStatus('${r.id}', 'personnel')">${pStatusText}</span>
               </td>
