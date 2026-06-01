@@ -1017,6 +1017,9 @@
           border-radius: 16px;
           max-height: 90vh;
         }
+        #modal-calisma {
+          max-width: 950px;
+        }
         .modal-handle {
           display: none;
         }
@@ -3091,19 +3094,75 @@
         let positivePayments = batch.filter(x => (parseFloat(x.total_company_payment) || 0) > 0);
         return positivePayments.length === 1;
       }
+      function filterTable(tbodyId, val) {
+        let q = (val || "").toLocaleLowerCase('tr').trim();
+        let tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        let rows = Array.from(tbody.querySelectorAll("tr"));
+        
+        if (tbodyId === "calisma-tbody") {
+          let groups = [];
+          let currentGroup = null;
+          
+          rows.forEach(tr => {
+            let isHeader = tr.querySelector('td[colspan="15"]') !== null;
+            if (isHeader) {
+              currentGroup = { header: tr, children: [] };
+              groups.push(currentGroup);
+            } else {
+              if (currentGroup) {
+                currentGroup.children.push(tr);
+              }
+            }
+          });
+          
+          groups.forEach(g => {
+            let headerText = g.header.textContent.toLocaleLowerCase('tr');
+            let headerMatches = q === "" || headerText.includes(q);
+            
+            let matchedChildrenCount = 0;
+            g.children.forEach(ctr => {
+              let childText = ctr.textContent.toLocaleLowerCase('tr');
+              if (headerMatches || childText.includes(q)) {
+                ctr.style.display = "";
+                matchedChildrenCount++;
+              } else {
+                ctr.style.display = "none";
+              }
+            });
+            
+            if (q === "" || headerMatches || matchedChildrenCount > 0) {
+              g.header.style.display = "";
+            } else {
+              g.header.style.display = "none";
+            }
+          });
+        } else {
+          rows.forEach(tr => {
+            if (tr.classList.contains("loading-row")) return;
+            let text = tr.textContent.toLocaleLowerCase('tr');
+            if (text.includes(q)) {
+              tr.style.display = "";
+            } else {
+              tr.style.display = "none";
+            }
+          });
+        }
+      }
       function fmtDate(d) {
-  if (!d || d === '—') return '—';
-  const date = new Date(d);
-  if (isNaN(date.getTime())) return d; // Geçersiz tarih ise olduğu gibi bırak
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
-}
+        if (!d || d === '—') return '—';
+        const date = new Date(d);
+        if (isNaN(date.getTime())) return d;
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}.${month}.${year}`;
+      }
       function pName(id) {
         let p = personnel.find((x) => x.id === id);
         return p ? p.first_name + " " + p.last_name : "—";
       }
+
       function cName(id) {
         let c = companies.find((x) => x.id === id);
         return c ? c.company_name : "—";
@@ -3731,6 +3790,16 @@
           toast("Ad ve Soyad zorunludur!", "err");
           return;
         }
+        let fullName = (fn + " " + ln).toLowerCase().replace(/\s+/g, ' ').trim();
+        let exists = personnel.some(p => {
+          let pName = (p.first_name + " " + p.last_name).toLowerCase().replace(/\s+/g, ' ').trim();
+          return pName === fullName && p.id !== editPId;
+        });
+        if (exists) {
+          if (!confirm(`⚠️ "${fn} ${ln}" isimli personel zaten kayıtlı! Yine de kaydetmek istiyor musunuz?`)) {
+            return;
+          }
+        }
         let d = {
           first_name: fn,
           last_name: ln,
@@ -4000,26 +4069,37 @@
       }
 
       function syncPersonnelCards() {
-        const selectedIds = Array.from(document.querySelectorAll('.bulk-personnel-select'))
-          .map(el => el.value)
-          .filter(val => val !== "");
-          
+        const rows = Array.from(document.querySelectorAll('.personnel-select-row'));
         const container = document.getElementById("bulk-personnel-cards-container");
-        const existingCardIds = Array.from(container.querySelectorAll('.card'))
-          .map(card => card.id.replace('card-', ''));
-          
-        // 1. Add missing cards
-        selectedIds.forEach(pId => {
-          if (!existingCardIds.includes(pId)) {
-            renderPersonnelCard(pId);
+        if (!container) return;
+        
+        // Active rows that have a personnel selected
+        const activeRowsMap = {}; // rowId -> pId
+        rows.forEach(row => {
+          const pId = row.querySelector('.bulk-personnel-select').value;
+          if (pId) {
+            activeRowsMap[row.id] = pId;
           }
         });
         
-        // 2. Remove cards that are no longer selected
-        existingCardIds.forEach(pId => {
-          if (!selectedIds.includes(pId)) {
-            const card = document.getElementById(`card-${pId}`);
-            if (card) card.remove();
+        // 1. Remove cards for rows that are no longer active, or have changed personnel
+        const existingCards = Array.from(container.querySelectorAll('.card'));
+        existingCards.forEach(card => {
+          const cardId = card.id;
+          const rowId = cardId.replace('card-', '');
+          const currentPid = card.getAttribute('data-personnel-id');
+          
+          if (!activeRowsMap[rowId] || activeRowsMap[rowId] !== currentPid) {
+            card.remove();
+          }
+        });
+        
+        // 2. Add or update cards for active rows
+        Object.keys(activeRowsMap).forEach(rowId => {
+          const pId = activeRowsMap[rowId];
+          const card = document.getElementById(`card-${rowId}`);
+          if (!card) {
+            renderPersonnelCard(pId, rowId);
           }
         });
         
@@ -4027,6 +4107,10 @@
       }
 
       function initCSelects() {
+        let kurumVal = document.getElementById("c-kurum") ? document.getElementById("c-kurum").value : "";
+        let comVal = document.getElementById("f-com") ? document.getElementById("f-com").value : "";
+        let perVal = document.getElementById("f-per") ? document.getElementById("f-per").value : "";
+
         // Populating personnel filter select
         ["f-per"].forEach((id) => {
           let s = document.getElementById(id);
@@ -4056,6 +4140,10 @@
             s.appendChild(o);
           });
         });
+
+        if (document.getElementById("c-kurum")) document.getElementById("c-kurum").value = kurumVal;
+        if (document.getElementById("f-com")) document.getElementById("f-com").value = comVal;
+        if (document.getElementById("f-per")) document.getElementById("f-per").value = perVal;
 
         // Populate or initialize dynamic select rows
         const selContainer = document.getElementById("bulk-personnel-selectors-container");
@@ -4089,19 +4177,19 @@
         }
       }
 
-      function setFullWork(pId) {
-        const input = document.getElementById(`c-days-${pId}`);
+      function setFullWork(rowId) {
+        const input = document.getElementById(`c-days-${rowId}`);
         if (input) {
           input.value = "30";
           onInputChanged();
         }
       }
 
-      function onWageModeToggleChange(pId) {
-        const isChecked = document.getElementById(`c-wage-mode-toggle-${pId}`).checked;
-        const modeInput = document.getElementById(`c-wage-mode-${pId}`);
-        const textMonthly = document.getElementById(`c-wage-mode-text-${pId}`);
-        const textDirect = document.getElementById(`c-wage-mode-text-direct-${pId}`);
+      function onWageModeToggleChange(rowId) {
+        const isChecked = document.getElementById(`c-wage-mode-toggle-${rowId}`).checked;
+        const modeInput = document.getElementById(`c-wage-mode-${rowId}`);
+        const textMonthly = document.getElementById(`c-wage-mode-text-${rowId}`);
+        const textDirect = document.getElementById(`c-wage-mode-text-direct-${rowId}`);
         
         if (isChecked) {
           modeInput.value = "direct";
@@ -4112,23 +4200,23 @@
           textMonthly.style.color = "#1e3a5f";
           textDirect.style.color = "#94a3b8";
         }
-        onWageModeCardChange(pId);
+        onWageModeCardChange(rowId);
         onInputChanged();
       }
 
-      function onCardComTotalInput(pId) {
-        const el = document.getElementById(`c-com-total-${pId}`);
-        const kdvCb = document.getElementById(`c-com-kdv-${pId}`);
-        const tefCb = document.getElementById(`c-com-tef-${pId}`);
+      function onCardComTotalInput(rowId) {
+        const el = document.getElementById(`c-com-total-${rowId}`);
+        const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
+        const tefCb = document.getElementById(`c-com-tef-${rowId}`);
         if (kdvCb) kdvCb.checked = false;
         if (tefCb) tefCb.checked = false;
         el.dataset.baseVal = el.value;
       }
       
-      function recalcCardComTotal(pId) {
-        const el = document.getElementById(`c-com-total-${pId}`);
-        const kdvCb = document.getElementById(`c-com-kdv-${pId}`);
-        const tefCb = document.getElementById(`c-com-tef-${pId}`);
+      function recalcCardComTotal(rowId) {
+        const el = document.getElementById(`c-com-total-${rowId}`);
+        const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
+        const tefCb = document.getElementById(`c-com-tef-${rowId}`);
         let baseVal = parseFloat(el.dataset.baseVal) || 0;
         let factor = 1.0;
         if (kdvCb && kdvCb.checked) factor += 0.20;
@@ -4137,9 +4225,9 @@
         el.value = finalVal > 0 ? Number(finalVal.toFixed(2)).toString() : (el.dataset.baseVal || "");
       }
 
-      function toggleSubSection(pId, sectionName) {
-        const el = document.getElementById(`sub-section-${pId}-${sectionName}`);
-        const icon = document.getElementById(`sub-toggle-icon-${pId}-${sectionName}`);
+      function toggleSubSection(rowId, sectionName) {
+        const el = document.getElementById(`sub-section-${rowId}-${sectionName}`);
+        const icon = document.getElementById(`sub-toggle-icon-${rowId}-${sectionName}`);
         if (!el || !icon) return;
         if (el.style.display === "none" || el.style.display === "") {
           el.style.display = "block";
@@ -4150,7 +4238,7 @@
         }
       }
 
-      function renderPersonnelCard(pId) {
+      function renderPersonnelCard(pId, rowId) {
         const p = personnel.find(x => x.id == pId);
         const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
         const pWage = p ? parseFloat(p.daily_wage) || 0 : 0;
@@ -4163,40 +4251,40 @@
         }
         
         const cardHtml = `
-          <div class="card" id="card-${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${pId}')">
+          <div class="card" id="card-${rowId}" data-personnel-id="${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${rowId}')">
               <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
               <span style="display: flex; align-items: center; gap: 8px;">
-                <span id="card-sum-${pId}" style="font-size: 11px; font-weight: 700; color: #16a34a;"></span>
-                <span id="toggle-icon-${pId}" style="font-size: 12px; color: #94a3b8; transition: transform 0.2s;">▼</span>
+                <span id="card-sum-${rowId}" style="font-size: 11px; font-weight: 700; color: #16a34a;"></span>
+                <span id="toggle-icon-${rowId}" style="font-size: 12px; color: #94a3b8; transition: transform 0.2s;">▼</span>
               </span>
             </div>
-            <div class="card-body" id="card-body-${pId}" style="padding: 14px; display: block;">
+            <div class="card-body" id="card-body-${rowId}" style="padding: 14px; display: block;">
               
               <!-- Core fields: Çalışılan Gün & Maaş Yöntemi & Maaş/Ödeme Tutarı -->
               <div class="form-grid g3" style="margin-bottom: 10px;">
                 <div class="form-group">
                   <label class="form-label">Çalışılan Gün</label>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <input class="form-input" id="c-days-${pId}" type="text" inputmode="numeric" placeholder="30" value="${defaultDays}" oninput="onlyNum(this); onDaysInput('${pId}'); onInputChanged();" style="flex: 1;" />
-                    <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${pId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
+                    <input class="form-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${defaultDays}" oninput="onlyNum(this); onDaysInput('${rowId}'); onInputChanged();" style="flex: 1;" />
+                    <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${rowId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Maaş Yöntemi</label>
                   <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; background: #f1f5f9; border-radius: 8px; padding: 4px 10px; border: 1px solid #cbd5e1;">
-                    <span style="font-size: 11px; font-weight: 700; color: #1e3a5f;" id="c-wage-mode-text-${pId}">Aylık Maaş</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #1e3a5f;" id="c-wage-mode-text-${rowId}">Aylık Maaş</span>
                     <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
-                      <input type="checkbox" id="c-wage-mode-toggle-${pId}" onchange="onWageModeToggleChange('${pId}')" style="opacity: 0; width: 0; height: 0;" />
+                      <input type="checkbox" id="c-wage-mode-toggle-${rowId}" onchange="onWageModeToggleChange('${rowId}')" style="opacity: 0; width: 0; height: 0;" />
                       <span class="slider round" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px;"></span>
                     </label>
-                    <span style="font-size: 11px; font-weight: 700; color: #94a3b8;" id="c-wage-mode-text-direct-${pId}">Net Ödeme</span>
+                    <span style="font-size: 11px; font-weight: 700; color: #94a3b8;" id="c-wage-mode-text-direct-${rowId}">Net Ödeme</span>
                   </div>
-                  <input type="hidden" id="c-wage-mode-${pId}" value="calculated" />
+                  <input type="hidden" id="c-wage-mode-${rowId}" value="calculated" />
                 </div>
                 <div class="form-group">
-                  <label class="form-label" id="c-per-wage-label-${pId}">Aylık Ücret (₺)</label>
-                  <input class="form-input" id="c-per-wage-${pId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                  <label class="form-label" id="c-per-wage-label-${rowId}">Aylık Ücret (₺)</label>
+                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
                 </div>
               </div>
 
@@ -4207,13 +4295,13 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onCardComTotalInput('${pId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-kdv-${pId}" onchange="recalcCardComTotal('${pId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
+                        <input type="checkbox" id="c-com-kdv-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
                       </label>
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-tef-${pId}" onchange="recalcCardComTotal('${pId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
+                        <input type="checkbox" id="c-com-tef-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
                       </label>
                     </div>
                   </div>
@@ -4222,23 +4310,23 @@
 
               <!-- ACCORDION SECTION: MESAI -->
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'mesai')">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'mesai')">
                   <span>⏰ Mesai Bilgileri</span>
-                  <span id="sub-toggle-icon-${pId}-mesai" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                  <span id="sub-toggle-icon-${rowId}-mesai" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
                 </div>
-                <div id="sub-section-${pId}-mesai" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${pId}">
+                <div id="sub-section-${rowId}-mesai" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
                     <div class="form-group">
                       <label class="form-label">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="c-overtime-hours-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="c-overtime-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="c-overtime-wage-${pId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
                     </div>
                   </div>
                 </div>
@@ -4246,27 +4334,23 @@
 
               <!-- ACCORDION SECTION: EK ODEMELER -->
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'ekodemeler')">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'ekodemeler')">
                   <span>💰 Ek Ödemeler (Avans, Prim, Kesinti)</span>
-                  <span id="sub-toggle-icon-${pId}-ekodemeler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                  <span id="sub-toggle-icon-${rowId}-ekodemeler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
                 </div>
-                <div id="sub-section-${pId}-ekodemeler" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g4" style="margin-bottom: 0;">
+                <div id="sub-section-${rowId}-ekodemeler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g3" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">Avans (₺)</label>
-                      <input class="form-input" id="c-avans-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Ek Ödeme (₺)</label>
-                      <input class="form-input" id="c-additional-payment-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Prim (₺)</label>
-                      <input class="form-input" id="c-premium-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Kesinti (₺)</label>
-                      <input class="form-input" id="c-deductions-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                   </div>
                 </div>
@@ -4274,59 +4358,31 @@
 
               <!-- ACCORDION SECTION: IZINLER -->
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'izinler')">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'izinler')">
                   <span>🌴 İzin Bilgileri</span>
-                  <span id="sub-toggle-icon-${pId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
                 </div>
-                <div id="sub-section-${pId}-izinler" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g4" style="margin-bottom: 0;">
+                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
-                      <label class="form-label">Yıllık İzin (Gün)</label>
-                      <input class="form-input" id="c-annual-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Rapor (Gün)</label>
-                      <input class="form-input" id="c-sick-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Eksik Gün (Gün)</label>
-                      <input class="form-input" id="c-missing-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Resmi Tatil (Gün)</label>
-                      <input class="form-input" id="c-official-holiday-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                      <label class="form-label">İzin Günü (Gün)</label>
+                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- ACCORDION SECTION: NOTLAR & HATIRLATICILAR -->
+              <!-- ACCORDION SECTION: NOTLAR -->
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'notlar')">
-                  <span>📝 Notlar ve Hatırlatıcılar</span>
-                  <span id="sub-toggle-icon-${pId}-notlar" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'notlar')">
+                  <span>📝 Genel Not</span>
+                  <span id="sub-toggle-icon-${rowId}-notlar" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
                 </div>
-                <div id="sub-section-${pId}-notlar" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g2" style="margin-bottom: 10px;">
-                    <div class="form-group">
-                      <label class="form-label">Hatırlatıcı Notu</label>
-                      <input class="form-input" id="c-reminder-note-${pId}" placeholder="Örn: Avans eksik, kontrol et." oninput="onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Hatırlatma Zamanı</label>
-                      <input class="form-input" id="c-reminder-at-${pId}" type="datetime-local" onchange="onInputChanged();" />
-                    </div>
-                  </div>
-                  <div class="form-grid g2" style="margin-bottom: 0;">
+                <div id="sub-section-${rowId}-notlar" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">Genel Not</label>
-                      <input class="form-input" id="c-not-${pId}" placeholder="İşle ilgili not." oninput="onInputChanged();" />
-                    </div>
-                    <div class="form-group" style="justify-content: center; display: flex; align-items: center;">
-                      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #374151; height: 38px; margin: 0;">
-                        <input type="checkbox" id="c-recurring-${pId}" checked style="width: 16px; height: 16px; cursor: pointer;" onchange="onInputChanged();" />
-                        🔄 Otomatik Tekrarlansın
-                      </label>
+                      <input class="form-input" id="c-not-${rowId}" placeholder="İşle ilgili not." oninput="onInputChanged();" />
                     </div>
                   </div>
                 </div>
@@ -4343,10 +4399,10 @@
         }
       }
 
-      function onWageModeCardChange(pId) {
-        const mode = document.getElementById(`c-wage-mode-${pId}`).value;
-        const label = document.getElementById(`c-per-wage-label-${pId}`);
-        const input = document.getElementById(`c-per-wage-${pId}`);
+      function onWageModeCardChange(rowId) {
+        const mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+        const label = document.getElementById(`c-per-wage-label-${rowId}`);
+        const input = document.getElementById(`c-per-wage-${rowId}`);
         
         if (mode === "direct") {
           label.textContent = "Direkt Net Ödeme (₺)";
@@ -4357,24 +4413,27 @@
         }
       }
 
-      function onDaysInput(pId) {
+      function onDaysInput(rowId) {
+        const daysInput = document.getElementById(`c-days-${rowId}`);
+        if (daysInput) {
+          daysInput.dataset.manual = 'true';
+        }
         onInputChanged();
       }
 
-      function onLeaveChange(pId) {
+      function onLeaveChange(rowId) {
+        const daysInput = document.getElementById(`c-days-${rowId}`);
+        if (daysInput && daysInput.dataset.manual === 'true') return;
+
         let s = document.getElementById("c-start").value;
         let e = document.getElementById("c-end").value;
         if (!s || !e || new Date(s) > new Date(e)) return;
         
-        let annualLeave = parseFloat(document.getElementById(`c-annual-leave-${pId}`).value) || 0;
-        let sickLeave = parseFloat(document.getElementById(`c-sick-leave-${pId}`).value) || 0;
-        let missingDays = parseFloat(document.getElementById(`c-missing-days-${pId}`).value) || 0;
-        let officialHoliday = parseFloat(document.getElementById(`c-official-holiday-${pId}`).value) || 0;
-        let leaveDays = annualLeave + sickLeave + missingDays + officialHoliday;
+        let leaveDays = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
 
         let baseDays = totalDays(s, e);
         let total = Math.max(0, baseDays - leaveDays);
-        document.getElementById(`c-days-${pId}`).value = total;
+        if (daysInput) daysInput.value = total;
       }
 
       function onGlobalDateChange() {
@@ -4382,24 +4441,27 @@
         let e = document.getElementById("c-end").value;
         if (!s || !e || new Date(s) > new Date(e)) return;
         
-        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
-        selectedPersonnelIds.forEach(pId => {
-          onLeaveChange(pId);
+        const rows = document.querySelectorAll('.personnel-select-row');
+        rows.forEach(row => {
+          const rowId = row.id;
+          onLeaveChange(rowId);
         });
         onInputChanged();
       }
 
 
 
-      function togglePersonnelCard(pId) {
-        const body = document.getElementById(`card-body-${pId}`);
-        const icon = document.getElementById(`toggle-icon-${pId}`);
-        if (body.style.display === "none") {
-          body.style.display = "block";
-          icon.style.transform = "rotate(0deg)";
-        } else {
-          body.style.display = "none";
-          icon.style.transform = "rotate(-90deg)";
+      function togglePersonnelCard(rowId) {
+        const body = document.getElementById(`card-body-${rowId}`);
+        const icon = document.getElementById(`toggle-icon-${rowId}`);
+        if (body) {
+          if (body.style.display === "none") {
+            body.style.display = "block";
+            if (icon) icon.style.transform = "rotate(0deg)";
+          } else {
+            body.style.display = "none";
+            if (icon) icon.style.transform = "rotate(-90deg)";
+          }
         }
       }
 
@@ -4452,7 +4514,9 @@
         if (addRowBtn) addRowBtn.style.display = "none";
         
         const row = container.querySelector('.personnel-select-row');
+        let rowId = pId;
         if (row) {
+          rowId = row.id;
           const quickBtn = row.querySelector('.btn-secondary');
           const removeBtn = row.querySelector('.btn-remove-personnel-row');
           if (quickBtn) quickBtn.style.display = "none";
@@ -4464,17 +4528,21 @@
 
         syncPersonnelCards();
         
-        document.getElementById(`c-days-${pId}`).value = r.work_days || "";
+        if (document.getElementById(`c-days-${rowId}`)) {
+          document.getElementById(`c-days-${rowId}`).value = r.work_days || "";
+        }
         
         const wageMode = r.wage_mode || "calculated";
-        document.getElementById(`c-wage-mode-${pId}`).value = wageMode;
+        if (document.getElementById(`c-wage-mode-${rowId}`)) {
+          document.getElementById(`c-wage-mode-${rowId}`).value = wageMode;
+        }
         
-        const toggleEl = document.getElementById(`c-wage-mode-toggle-${pId}`);
+        const toggleEl = document.getElementById(`c-wage-mode-toggle-${rowId}`);
         if (toggleEl) {
           toggleEl.checked = (wageMode === "direct");
         }
-        const textMonthly = document.getElementById(`c-wage-mode-text-${pId}`);
-        const textDirect = document.getElementById(`c-wage-mode-text-direct-${pId}`);
+        const textMonthly = document.getElementById(`c-wage-mode-text-${rowId}`);
+        const textDirect = document.getElementById(`c-wage-mode-text-direct-${rowId}`);
         if (textMonthly && textDirect) {
           if (wageMode === "direct") {
             textMonthly.style.color = "#94a3b8";
@@ -4484,34 +4552,45 @@
             textDirect.style.color = "#94a3b8";
           }
         }
-        onWageModeCardChange(pId);
+        onWageModeCardChange(rowId);
         
-        document.getElementById(`c-per-wage-${pId}`).value = r.personnel_monthly_wage || "";
-        document.getElementById(`c-avans-${pId}`).value = r.advance_amount || 0;
+        if (document.getElementById(`c-per-wage-${rowId}`)) {
+          document.getElementById(`c-per-wage-${rowId}`).value = r.personnel_monthly_wage || "";
+        }
+        if (document.getElementById(`c-avans-${rowId}`)) {
+          document.getElementById(`c-avans-${rowId}`).value = r.advance_amount || 0;
+        }
         
-        const comTotalEl = document.getElementById(`c-com-total-${pId}`);
+        const comTotalEl = document.getElementById(`c-com-total-${rowId}`);
         if (comTotalEl) {
           comTotalEl.value = r.total_company_payment || 0;
           comTotalEl.dataset.baseVal = r.total_company_payment || 0;
         }
         
-        document.getElementById(`c-additional-payment-${pId}`).value = r.additional_payment || 0;
-        document.getElementById(`c-premium-${pId}`).value = r.premium || 0;
-        document.getElementById(`c-deductions-${pId}`).value = r.deductions || 0;
+        if (document.getElementById(`c-premium-${rowId}`)) {
+          document.getElementById(`c-premium-${rowId}`).value = r.premium || 0;
+        }
+        if (document.getElementById(`c-deductions-${rowId}`)) {
+          document.getElementById(`c-deductions-${rowId}`).value = r.deductions || 0;
+        }
         
-        document.getElementById(`c-overtime-hours-${pId}`).value = r.overtime_hours || 0;
-        document.getElementById(`c-overtime-days-${pId}`).value = r.overtime_days || 0;
-        document.getElementById(`c-overtime-wage-${pId}`).value = r.overtime_wage || 0;
+        if (document.getElementById(`c-overtime-hours-${rowId}`)) {
+          document.getElementById(`c-overtime-hours-${rowId}`).value = r.overtime_hours || 0;
+        }
+        if (document.getElementById(`c-overtime-days-${rowId}`)) {
+          document.getElementById(`c-overtime-days-${rowId}`).value = r.overtime_days || 0;
+        }
+        if (document.getElementById(`c-overtime-wage-${rowId}`)) {
+          document.getElementById(`c-overtime-wage-${rowId}`).value = r.overtime_wage || 0;
+        }
         
-        document.getElementById(`c-annual-leave-${pId}`).value = r.annual_leave || 0;
-        document.getElementById(`c-sick-leave-${pId}`).value = r.sick_leave || 0;
-        document.getElementById(`c-missing-days-${pId}`).value = r.missing_days || 0;
-        document.getElementById(`c-official-holiday-${pId}`).value = r.official_holiday || 0;
+        if (document.getElementById(`c-annual-leave-${rowId}`)) {
+          document.getElementById(`c-annual-leave-${rowId}`).value = r.annual_leave || 0;
+        }
         
-        document.getElementById(`c-recurring-${pId}`).checked = r.is_recurring || false;
-        document.getElementById(`c-not-${pId}`).value = r.note || "";
-        document.getElementById(`c-reminder-note-${pId}`).value = r.reminder_note || "";
-        document.getElementById(`c-reminder-at-${pId}`).value = r.reminder_at ? r.reminder_at.substring(0, 16) : "";
+        if (document.getElementById(`c-not-${rowId}`)) {
+          document.getElementById(`c-not-${rowId}`).value = r.note || "";
+        }
 
         const delBtn = document.getElementById("btn-delete-rec");
         if (delBtn) delBtn.style.display = "inline-flex";
@@ -4589,19 +4668,23 @@
       }
 
       function updateIndividualCardSums() {
-        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
-        selectedPersonnelIds.forEach((pId) => {
-          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
-          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
-          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
+        const rows = document.querySelectorAll('.personnel-select-row');
+        rows.forEach(row => {
+          const rowId = row.id;
+          const pId = row.querySelector('.bulk-personnel-select').value;
+          if (!pId) return;
           
-          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
-          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
-          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
-          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
           
-          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
-          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
+          const additional_payment = 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           let base_payment = 0;
           let overtime_wage = 0;
@@ -4613,13 +4696,13 @@
             overtime_wage = 0;
           }
           
-          const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
-          const cardSumEl = document.getElementById(`card-sum-${pId}`);
+          const cardSumEl = document.getElementById(`card-sum-${rowId}`);
           if (cardSumEl) {
             cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
           }
@@ -4627,11 +4710,12 @@
       }
 
       function calcPreview() {
-        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
+        const rows = Array.from(document.querySelectorAll('.personnel-select-row'));
+        const activeRows = rows.filter(row => row.querySelector('.bulk-personnel-select').value !== "");
         const previewEl = document.getElementById("c-preview");
         if (!previewEl) return;
         
-        if (selectedPersonnelIds.length === 0) {
+        if (activeRows.length === 0) {
           previewEl.style.display = "none";
           previewData = null;
           
@@ -4645,7 +4729,7 @@
         const paymentType = document.querySelector('input[name="c-payment-type"]:checked').value;
         const globalComTotal = parseFloat(document.getElementById("c-com-total").value) || 0;
 
-        let totalStaff = selectedPersonnelIds.length;
+        let totalStaff = activeRows.length;
         let totalDaysSum = 0;
         let totalPerPaymentSum = 0;
         let totalPerAdvanceSum = 0;
@@ -4654,20 +4738,23 @@
         
         let confirmSummaryHtml = "";
 
-        selectedPersonnelIds.forEach((pId) => {
+        activeRows.forEach((row) => {
+          const rowId = row.id;
+          const pId = row.querySelector('.bulk-personnel-select').value;
           const p = personnel.find(x => x.id == pId);
           const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
-          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
-          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
-          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
           
-          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
-          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
-          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
-          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
           
-          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
-          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
+          const additional_payment = 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           let base_payment = 0;
           let overtime_wage = 0;
@@ -4679,7 +4766,7 @@
             overtime_wage = 0;
           }
           
-          const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
@@ -4687,10 +4774,10 @@
           
           let card_com_payment = 0;
           if (paymentType === "bireysel") {
-            card_com_payment = parseFloat(document.getElementById(`c-com-total-${pId}`).value) || 0;
+            card_com_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
           }
           
-          const cardSumEl = document.getElementById(`card-sum-${pId}`);
+          const cardSumEl = document.getElementById(`card-sum-${rowId}`);
           if (cardSumEl) {
             cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
           }
@@ -4742,8 +4829,9 @@
       }
 
       async function saveCalisme() {
-        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
-        if (selectedPersonnelIds.length === 0) {
+        const rows = Array.from(document.querySelectorAll('.personnel-select-row'));
+        const activeRows = rows.filter(row => row.querySelector('.bulk-personnel-select').value !== "");
+        if (activeRows.length === 0) {
           toast("Lütfen en az bir personel seçin!", "err");
           return;
         }
@@ -4766,18 +4854,21 @@
 
         const records = [];
 
-        selectedPersonnelIds.forEach((pId, index) => {
-          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
-          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
-          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
+        activeRows.forEach((row, index) => {
+          const rowId = row.id;
+          const pId = row.querySelector('.bulk-personnel-select').value;
           
-          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
-          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
-          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
-          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
           
-          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
-          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
+          const additional_payment = 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           let base_payment = 0;
           let personnel_monthly_wage = input_wage;
@@ -4804,19 +4895,19 @@
               total_company_payment = 0;
             }
           } else {
-            total_company_payment = parseFloat(document.getElementById(`c-com-total-${pId}`).value) || 0;
+            total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
           }
           
-          const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${pId}`).value) || 0;
-          const sick_leave = parseFloat(document.getElementById(`c-sick-leave-${pId}`).value) || 0;
-          const missing_days = parseFloat(document.getElementById(`c-missing-days-${pId}`).value) || 0;
-          const official_holiday = parseFloat(document.getElementById(`c-official-holiday-${pId}`).value) || 0;
-          const leave_days = annual_leave + sick_leave + missing_days + official_holiday;
+          const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+          const sick_leave = 0;
+          const missing_days = 0;
+          const official_holiday = 0;
+          const leave_days = annual_leave;
           
-          const note = document.getElementById(`c-not-${pId}`).value || "";
-          const reminder_note = document.getElementById(`c-reminder-note-${pId}`).value || "";
-          const reminder_at = document.getElementById(`c-reminder-at-${pId}`).value || null;
-          const is_recurring = document.getElementById(`c-recurring-${pId}`).checked;
+          const note = document.getElementById(`c-not-${rowId}`).value || "";
+          const reminder_note = "";
+          const reminder_at = null;
+          const is_recurring = false;
           
           records.push({
             personnel_id: pId,
@@ -4885,12 +4976,22 @@
         }
       }
 
-      async function quickSavePerBulk() {
+       async function quickSavePerBulk() {
         var first = document.getElementById("qp-first").value.trim();
         var last = document.getElementById("qp-last").value.trim();
         if (!first) {
           toast("Ad zorunludur!", "err");
           return;
+        }
+        let fullName = (first + " " + last).toLowerCase().replace(/\s+/g, ' ').trim();
+        let exists = personnel.some(p => {
+          let pName = (p.first_name + " " + p.last_name).toLowerCase().replace(/\s+/g, ' ').trim();
+          return pName === fullName;
+        });
+        if (exists) {
+          if (!confirm(`⚠️ "${first} ${last}" isimli personel zaten kayıtlı! Yine de eklemek istiyor musunuz?`)) {
+            return;
+          }
         }
         var d = {
           first_name: first,
@@ -5121,8 +5222,8 @@
         renderRecords(
           work_records.filter((r) => {
             if (arsivMode ? !r.archived : r.archived) return false;
-            if (fp && r.personnel_id !== fp) return false;
-            if (fc && r.company_id !== fc) return false;
+            if (fp && r.personnel_id != fp) return false;
+            if (fc && r.company_id != fc) return false;
             if (fb && r.start_day && r.start_day < fb) return false;
             if (fe && r.end_date && r.end_date > fe) return false;
             if (fps && r.personnel_payment_status !== fps) return false;
