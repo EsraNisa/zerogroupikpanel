@@ -2446,12 +2446,10 @@
       style="display: none"
       onclick="closeMBD(event, 'modal-calisma')"
     >
-      <div class="modal">
+      <div class="modal" style="max-width: 750px; width: 95%;">
         <div class="modal-handle"></div>
         <div class="modal-head">
-          <span class="modal-title" id="modal-calisma-title"
-            >Yeni Çalışma Kaydı</span
-          >
+          <span class="modal-title" id="modal-calisma-title">Yeni Çalışma Kaydı</span>
           <button
             class="modal-close"
             onclick="
@@ -2462,79 +2460,25 @@
             ×
           </button>
         </div>
-        <div class="modal-body">
-          <!-- Sekme Başlıkları -->
-          <div class="tab-bar">
-            <div class="tab active" onclick="switchCFormTab('working', this)">Çalışma Bilgileri</div>
-            <div class="tab" onclick="switchCFormTab('financial', this)">Finansal Bilgiler</div>
-            <!-- <div class="tab" onclick="switchCFormTab('expenses', this)">Masraflar</div> -->
-            <div class="tab" onclick="switchCFormTab('leaves', this)">İzin Bilgileri</div>
-            <div class="tab" onclick="switchCFormTab('recurrence', this)">Döngü & Not</div>
-          </div>
-
-          <!-- Sekme 1: Çalışma Bilgileri -->
-          <div id="c-tab-pane-working" class="c-tab-pane active" style="display: block;">
+        <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+          <!-- 1. GENEL BİLGİLER -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+            <h4 style="font-weight: 800; color: #1e3a5f; margin-bottom: 10px; font-size: 13px; text-transform: uppercase;">1. Genel Çalışma Bilgileri</h4>
+            
             <div class="form-grid g2">
               <div class="form-group">
                 <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
-                  Personel
-                  <button type="button" class="btn btn-sm" style="font-size: 10px; padding: 2px 7px; line-height: 1.4" onclick="toggleQuickAdd('per')">
-                    + Yeni
-                  </button>
-                </label>
-                <select class="form-input" id="c-personel" onchange="onCPersonelChange()">
-                  <option value="">Seçin...</option>
-                </select>
-                <!-- Quick add personnel -->
-                <div id="quick-per" style="display: none; margin-top: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
-                  <div class="form-grid g2" style="margin-bottom: 8px">
-                    <div class="form-group">
-                      <label class="form-label">Ad</label>
-                      <input class="form-input" id="qp-first" placeholder="Ad" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Soyad</label>
-                      <input class="form-input" id="qp-last" placeholder="Soyad" />
-                    </div>
-                  </div>
-                  <div class="form-grid g2" style="margin-bottom: 8px">
-                    <div class="form-group">
-                      <label class="form-label">Pozisyon</label>
-                      <input class="form-input" id="qp-pos" placeholder="Güvenlik..." />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Aylık Ücret (₺)</label>
-                      <input class="form-input" id="qp-wage" type="text" inputmode="decimal" placeholder="0" />
-                    </div>
-                  </div>
-                  <div class="form-grid g2" style="margin-bottom: 0">
-                    <div class="form-group">
-                      <label class="form-label">Telefon</label>
-                      <input class="form-input" id="qp-phone" placeholder="05XX..." />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">IBAN</label>
-                      <input class="form-input" id="qp-iban" placeholder="TR00..." />
-                    </div>
-                  </div>
-                  <div style="display: flex; gap: 6px; margin-top: 8px">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="quickSavePer()">Kaydet ve Seç</button>
-                    <button type="button" class="btn btn-sm" onclick="toggleQuickAdd('per')">İptal</button>
-                  </div>
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
-                  Kurum
+                  Kurum *
                   <button type="button" class="btn btn-sm" style="font-size: 10px; padding: 2px 7px; line-height: 1.4" onclick="toggleQuickAdd('kur')">
                     + Yeni
                   </button>
                 </label>
-                <select class="form-input" id="c-kurum">
+                <select class="form-input" id="c-kurum" onchange="calcPreview()">
                   <option value="">Seçin...</option>
                 </select>
+                
                 <!-- Quick add company -->
-                <div id="quick-kur" style="display: none; margin-top: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                <div id="quick-kur" style="display: none; margin-top: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
                   <div class="form-grid g2" style="margin-bottom: 8px">
                     <div class="form-group">
                       <label class="form-label">Kurum Adı</label>
@@ -2561,218 +2505,145 @@
                   </div>
                 </div>
               </div>
+              
+              <div class="form-group">
+                <label class="form-label">Kurum Ödeme Türü</label>
+                <div style="display: flex; gap: 14px; align-items: center; height: 38px;">
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">
+                    <input type="radio" name="c-payment-type" value="toplu" checked onchange="togglePaymentTypeUI(); calcPreview();" /> Toplu Ödeme
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; font-weight: 600;">
+                    <input type="radio" name="c-payment-type" value="bireysel" onchange="togglePaymentTypeUI(); calcPreview();" /> Bireysel Ödeme
+                  </label>
+                </div>
+              </div>
             </div>
+
             <div class="form-grid g2">
               <div class="form-group">
                 <label class="form-label">Giriş Tarihi</label>
-                <input class="form-input" id="c-start" type="date" onchange="onDateChange()" />
+                <input class="form-input" id="c-start" type="date" onchange="onGlobalDateChange()" />
               </div>
               <div class="form-group">
                 <label class="form-label">Çıkış Tarihi</label>
-                <input class="form-input" id="c-end" type="date" onchange="onDateChange()" />
+                <input class="form-input" id="c-end" type="date" onchange="onGlobalDateChange()" />
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Görev Türü</label>
-              <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik" />
-            </div>
-            <div class="form-grid g3">
-              <div class="form-group">
-                <label class="form-label">Saatlik Mesai (Saat)</label>
-                <input class="form-input" id="c-overtime-hours" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Günlük Mesai (Gün)</label>
-                <input class="form-input" id="c-overtime-days" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mesai Ücreti (₺)</label>
-                <input class="form-input" id="c-overtime-wage" type="text" inputmode="decimal" placeholder="0" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">
-                Çalışılan Gün
-                <span id="gun-auto-badge" style="font-size: 9px; color: #2563eb; font-weight: 600"></span>
-              </label>
-              <input class="form-input" id="c-days" type="text" inputmode="numeric" placeholder="0" oninput="onlyNum(this); calcPreview();" />
-              <div style="margin-top: 4px;">
-                <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
-                  <input type="checkbox" id="c-full-work" onchange="onFullWorkChange(); calcPreview();" style="width: 13px; height: 13px;" /> Tam Çalışma (30 Gün)
-                </label>
-              </div>
-            </div>
-          </div>
 
-          <!-- Sekme 2: Finansal Bilgiler -->
-          <div id="c-tab-pane-financial" class="c-tab-pane" style="display: none;">
-            <div style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; gap: 12px; align-items: center;">
-              <span style="font-weight: 600; font-size: 11px; color: #374151;">Hesaplama Yöntemi:</span>
-              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
-                <input type="radio" name="c-wage-mode" value="calculated" checked onchange="onWageModeChange(); calcPreview();" /> Aylık Maaş Üzerinden
-              </label>
-              <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
-                <input type="radio" name="c-wage-mode" value="direct" onchange="onWageModeChange(); calcPreview();" /> Direkt Net Ödeme
-              </label>
-            </div>
-            <div class="form-grid g3">
-              <div class="form-group">
-                <label class="form-label" id="c-per-wage-label">Aylık Ücret (₺)</label>
-                <input class="form-input" id="c-per-wage" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Kurumdan Alınacak (₺)</label>
-                <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="0" oninput="onlyNum(this); onComTotalInput(); calcPreview();" />
+            <div class="form-grid g2">
+              <div class="form-group" id="toplu-payment-group">
+                <label class="form-label">Toplam Kurum Ödemesi (Fatura Tutarı) (₺)</label>
+                <input class="form-input" id="c-com-total" type="text" inputmode="decimal" placeholder="Örn: 90000" oninput="onlyNum(this); onComTotalInput(); calcPreview();" />
                 <div style="display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
                   <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
                     <input type="checkbox" id="c-com-kdv" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%20 KDV
                   </label>
                   <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none;">
-                    <input type="checkbox" id="c-com-tef" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%2 Tefkifat
+                    <input type="checkbox" id="c-com-tef" onchange="recalcComTotal(); calcPreview();" style="width: 13px; height: 13px;" /> +%2 Tevkifat
                   </label>
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Avans (₺)</label>
-                <input class="form-input" id="c-avans" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
+                <label class="form-label">Varsayılan Görev Türü</label>
+                <input class="form-input" id="c-job-type" placeholder="Örn: Temizlik (Personellere kopyalanır)" oninput="syncGlobalJobType()" />
               </div>
             </div>
-            <div class="form-grid g3">
-              <div class="form-group">
-                <label class="form-label">Ek Ödeme (₺)</label>
-                <input class="form-input" id="c-additional-payment" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Prim (₺)</label>
-                <input class="form-input" id="c-premium" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Kesinti (₺)</label>
-                <input class="form-input" id="c-deductions" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-            </div>
-          </div>
 
-          <!-- Sekme 3: Masraflar (Kaldırıldı) -->
-          <!--
-          <div id="c-tab-pane-expenses" class="c-tab-pane" style="display: none;">
-            <div class="form-grid g2">
-              <div class="form-group">
-                <label class="form-label">Yol Masrafı (₺)</label>
-                <input class="form-input" id="c-travel-expense" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Yemek Masrafı (₺)</label>
-                <input class="form-input" id="c-food-expense" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-            </div>
-            <div class="form-grid g2">
-              <div class="form-group">
-                <label class="form-label">Konaklama Masrafı (₺)</label>
-                <input class="form-input" id="c-accommodation" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Diğer Giderler (₺)</label>
-                <input class="form-input" id="c-other-expenses" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); calcPreview();" />
-              </div>
-            </div>
-          </div>
-          -->
-
-          <!-- Sekme 4: İzinler -->
-          <div id="c-tab-pane-leaves" class="c-tab-pane" style="display: none;">
-            <div class="form-grid g2">
-              <div class="form-group">
-                <label class="form-label">Yıllık İzin (Gün)</label>
-                <input class="form-input" id="c-annual-leave" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onDateChange();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Rapor / Sıhhi İzin (Gün)</label>
-                <input class="form-input" id="c-sick-leave" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onDateChange();" />
-              </div>
-            </div>
-            <div class="form-grid g2">
-              <div class="form-group">
-                <label class="form-label">Eksik Gün (Gün)</label>
-                <input class="form-input" id="c-missing-days" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onDateChange();" />
-              </div>
-              <div class="form-group">
-                <label class="form-label">Resmi Tatil İzni (Gün)</label>
-                <input class="form-input" id="c-official-holiday" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onDateChange();" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Sekme 5: Döngü & Not -->
-          <div id="c-tab-pane-recurrence" class="c-tab-pane" style="display: none;">
-            <!-- Tekrarlı İş Ayarı -->
-            <div style="margin-bottom: 12px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #374151;">
-                <input type="checkbox" id="c-recurring" style="width: 16px; height: 16px; cursor: pointer;" onchange="calcPreview()" />
-                🔄 Sonraki Aylarda Otomatik Tekrarlansın
+            <!-- MULTI-SELECT PERSONNEL CHECKBOX LIST -->
+            <div class="form-group" style="margin-top: 10px;">
+              <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
+                Çalışan Personeller *
+                <button type="button" class="btn btn-sm" style="font-size: 10px; padding: 2px 7px; line-height: 1.4" onclick="toggleQuickAdd('per')">
+                  + Yeni Personel
+                </button>
               </label>
-              <div style="font-size: 10px; color: #64748b; margin-top: 4px; margin-left: 24px;">
-                Bu seçenek işaretlendiğinde, bu personel ve kurum için sonraki aylarda otomatik olarak yeni bir çalışma kaydı oluşturulacaktır.
+              
+              <!-- Quick add personnel -->
+              <div id="quick-per" style="display: none; margin-top: 6px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 8px;">
+                <div class="form-grid g2" style="margin-bottom: 8px">
+                  <div class="form-group">
+                    <label class="form-label">Ad</label>
+                    <input class="form-input" id="qp-first" placeholder="Ad" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Soyad</label>
+                    <input class="form-input" id="qp-last" placeholder="Soyad" />
+                  </div>
+                </div>
+                <div class="form-grid g2" style="margin-bottom: 8px">
+                  <div class="form-group">
+                    <label class="form-label">Pozisyon</label>
+                    <input class="form-input" id="qp-pos" placeholder="Güvenlik..." />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Aylık Ücret (₺)</label>
+                    <input class="form-input" id="qp-wage" type="text" inputmode="decimal" placeholder="0" />
+                  </div>
+                </div>
+                <div class="form-grid g2" style="margin-bottom: 0">
+                  <div class="form-group">
+                    <label class="form-label">Telefon</label>
+                    <input class="form-input" id="qp-phone" placeholder="05XX..." />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">IBAN</label>
+                    <input class="form-input" id="qp-iban" placeholder="TR00..." />
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 8px">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="quickSavePerBulk()">Kaydet ve Listeye Ekle</button>
+                  <button type="button" class="btn btn-sm" onclick="toggleQuickAdd('per')">İptal</button>
+                </div>
               </div>
-            </div>
-            <div class="form-group" style="margin-bottom: 10px;">
-              <label class="form-label">Hatırlatıcı Notu</label>
-              <textarea class="form-input" id="c-reminder-note" placeholder="Örn: Ay sonunda ödeme kontrol edilmeli, avans eksik vb." style="min-height: 50px;"></textarea>
-              <div style="margin-top: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <button type="button" class="btn btn-sm" id="btn-toggle-reminder-time" onclick="toggleReminderTime()" style="font-size: 11px; padding: 4px 8px; background: #f1f5f9; border: 1px solid #cbd5e1; color: #334155;">
-                  ⏰ Hatırlatma Zamanı Ekle
-                </button>
-                <input type="datetime-local" class="form-input" id="c-reminder-at" style="display: none; width: auto; font-size: 11px; padding: 3px 6px;" />
-                <button type="button" class="btn btn-sm btn-danger" id="btn-clear-reminder-time" onclick="clearReminderTime()" style="display: none; font-size: 11px; padding: 4px 8px; margin-left: -2px;">
-                  Temizle
-                </button>
+
+              <div id="bulk-personnel-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff;">
+                <!-- Dynamically populated checkboxes -->
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Genel Not</label>
-              <input class="form-input" id="c-not" placeholder="İsteğe bağlı genel açıklama notu" />
             </div>
           </div>
 
-          <!-- Hesap özeti (Her sekmeyle ortak gösterilir) -->
+          <!-- 2. DİNAMİK PERSONEL KARTLARI -->
+          <div id="bulk-personnel-cards-container">
+            <!-- Dynamic accordion cards will go here -->
+          </div>
+
+          <!-- 3. HESAPLAMA ÖZETİ -->
           <div id="c-preview" style="display: none; margin-top: 14px">
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 13px;">
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 14px; border-left: 4px solid #0ea5e9;">
+              <h5 style="font-weight: 800; color: #0369a1; margin-bottom: 8px; font-size: 12px; text-transform: uppercase;">📊 Toplu Çalışma Hesap Özeti</h5>
               <div class="result-row">
-                <span>Çalışma Günü</span>
-                <span id="r-gun" style="font-weight: 700"></span>
+                <span>Toplam Çalışan Personel</span>
+                <span id="r-total-staff" style="font-weight: 700;">0 kişi</span>
               </div>
               <div class="result-row">
-                <span>(Aylık/Ay Gün Sayısı) × Gün</span>
-                <span id="r-calc-detail" style="color: #64748b; font-size: 11px"></span>
+                <span>Toplam Gün (Tüm Çalışanlar)</span>
+                <span id="r-total-days" style="font-weight: 700;">0 gün</span>
               </div>
               <div class="result-row">
-                <span>Brüt Ödeme (Çalışılan + Mesai + Ek + Prim - Kesinti)</span>
-                <span id="r-per-od" style="font-weight: 600"></span>
+                <span>Toplam Personel Ödemesi (Brüt)</span>
+                <span id="r-total-per-payment" style="font-weight: 700; color: #475569;">₺0</span>
               </div>
               <div class="result-row">
-                <span>Avans</span>
-                <span id="r-avans" style="color: #dc2626"></span>
+                <span>Toplam Personel Avansları</span>
+                <span id="r-total-per-advance" style="font-weight: 700; color: #dc2626;">- ₺0</span>
               </div>
               <div class="result-row">
-                <span>Net Personel Ödenecek</span>
-                <span id="r-net-per" style="color: #16a34a; font-weight: 700"></span>
+                <span>Net Ödenecek Personel Maaşları</span>
+                <span id="r-total-per-net" style="font-weight: 700; color: #16a34a;">₺0</span>
               </div>
               <div class="result-row">
-                <span>Kurumdan Alınacak</span>
-                <span id="r-com-fat"></span>
+                <span>Kurumdan Alınacak Toplam Tutar (Fatura)</span>
+                <span id="r-total-com-invoice" style="font-weight: 700; color: #1e3a5f;">₺0</span>
               </div>
-              <div class="result-row">
-                <span>Toplam Masraf (Yol+Yemek+Konaklama+Diğer)</span>
-                <span id="r-masraf" style="color: #dc2626"></span>
-              </div>
-              <div class="result-row" style="border-bottom: none; padding-top: 6px">
-                <span style="font-weight: 800">Net Kar</span>
-                <span id="r-kar" style="font-weight: 800; font-size: 14px"></span>
+              <div class="result-row" style="border-bottom: none; padding-top: 6px;">
+                <span style="font-weight: 800; font-size: 13px;">Net Kurum Kârı</span>
+                <span id="r-total-net-profit" style="font-weight: 800; font-size: 15px; color: #16a34a;">₺0</span>
               </div>
             </div>
+            
             <div style="margin-top: 8px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 13px;">
-              <div style="font-size: 11px; font-weight: 700; color: #92400e; margin-bottom: 6px;">
-                ⚠️ Hesapları kontrol edin
+              <div style="font-size: 11px; font-weight: 700; color: #92400e; margin-bottom: 4px;">
+                ⚠️ Detaylı Hesap Özeti (Onaylama Listesi)
               </div>
               <div id="confirm-summary" style="font-size: 11px; color: #78350f; line-height: 1.7"></div>
             </div>
@@ -3441,11 +3312,26 @@
         document
           .querySelectorAll(".nav-item")
           .forEach((n) => n.classList.remove("active"));
-        document.getElementById("page-" + id).classList.add("active");
+        document
+          .querySelectorAll(".bn-item")
+          .forEach((b) => b.classList.remove("active"));
+
+        const pageEl = document.getElementById("page-" + id);
+        if (pageEl) pageEl.classList.add("active");
+
+        if (!el) {
+          el = document.getElementById("nav-" + id) || document.querySelector(`.nav-item[onclick*="'${id}'"]`);
+        }
         if (el) el.classList.add("active");
+
+        const bnEl = document.getElementById("bn-" + id);
+        if (bnEl) bnEl.classList.add("active");
+
         document.getElementById("page-title").textContent = PAGE_TITLES[id][0];
         document.getElementById("page-sub").textContent = PAGE_TITLES[id][1];
         closeSidebar();
+        localStorage.setItem("active_page", id);
+
         if (id === "calismalar") initCSelects();
         if (id === "operasyon") {
           initOpSelects();
@@ -3465,13 +3351,6 @@
         if (id === "ayarlar") loadSettingsForm();
       }
       function goPageMobile(id, bnEl) {
-        document
-          .querySelectorAll(".bn-item")
-          .forEach((b) => b.classList.remove("active"));
-        if (bnEl) bnEl.classList.add("active");
-        document
-          .querySelectorAll(".nav-item")
-          .forEach((n) => n.classList.remove("active"));
         goPage(id, null);
       }
 
@@ -3610,6 +3489,9 @@
           updateSidebarBadge();
           requestNotificationPermission();
           startRemindersCheck();
+
+          const activePage = localStorage.getItem("active_page") || "dashboard";
+          goPage(activePage);
         } catch (e) {
           setDbStatus("err");
           toast("Bağlantı hatası: " + e.message, "err");
@@ -4019,21 +3901,11 @@
     </tr>`;
   }).join('');
 }
-      function filterTable(tbodyId, q) {
-        q = q.toLowerCase();
-        document.querySelectorAll("#" + tbodyId + " tr").forEach((r) => {
-          r.style.display = r.textContent.toLowerCase().includes(q)
-            ? ""
-            : "none";
-        });
-      }
-
-      // ============================================================
-      // ÇALIŞMALAR — backend /admin/work_records kullanır
-      // ============================================================
       function initCSelects() {
-        ["c-personel", "f-per"].forEach((id) => {
+        // Populating personnel filter select
+        ["f-per"].forEach((id) => {
           let s = document.getElementById(id);
+          if (!s) return;
           let f = s.options[0];
           s.innerHTML = "";
           s.appendChild(f);
@@ -4044,8 +3916,24 @@
             s.appendChild(o);
           });
         });
+
+        // Populating personnel bulk list checkbox list
+        const container = document.getElementById("bulk-personnel-container");
+        if (container) {
+          container.innerHTML = personnel.map((p, idx) => {
+            return `
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; padding: 4px 6px; border-radius: 4px;" class="p-check-label">
+                <input type="checkbox" name="bulk-personnel-checked" value="${p.id}" onchange="onPersonnelCheckChange('${p.id}')" style="width: 14px; height: 14px;" />
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${p.first_name} ${p.last_name}">${p.first_name} ${p.last_name}</span>
+              </label>
+            `;
+          }).join('');
+        }
+
+        // Populating companies selects
         ["c-kurum", "f-com"].forEach((id) => {
           let s = document.getElementById(id);
+          if (!s) return;
           let f = s.options[0];
           s.innerHTML = "";
           s.appendChild(f);
@@ -4058,32 +3946,261 @@
         });
       }
 
-      function switchCFormTab(tabId, el) {
-        const tabs = el.parentElement.querySelectorAll(".tab");
-        tabs.forEach((t) => t.classList.remove("active"));
-        el.classList.add("active");
+      function togglePaymentTypeUI() {
+        const type = document.querySelector('input[name="c-payment-type"]:checked').value;
+        const topluGroup = document.getElementById("toplu-payment-group");
+        if (type === "toplu") {
+          topluGroup.style.display = "block";
+          document.querySelectorAll(".individual-payment-group").forEach(el => el.style.display = "none");
+        } else {
+          topluGroup.style.display = "none";
+          document.querySelectorAll(".individual-payment-group").forEach(el => el.style.display = "block");
+        }
+      }
 
-        const panes = el.parentElement.parentElement.querySelectorAll(".c-tab-pane");
-        panes.forEach((p) => (p.style.display = "none"));
-        document.getElementById("c-tab-pane-" + tabId).style.display = "block";
+      function onPersonnelCheckChange(pId) {
+        const container = document.getElementById("bulk-personnel-cards-container");
+        const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${pId}"]`);
+        
+        if (chk && chk.checked) {
+          if (document.getElementById(`card-${pId}`)) return;
+          
+          const p = personnel.find(x => x.id == pId);
+          const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
+          const pWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+          
+          let s = document.getElementById("c-start").value;
+          let e = document.getElementById("c-end").value;
+          let defaultDays = 1;
+          if (s && e && new Date(s) <= new Date(e)) {
+            defaultDays = totalDays(s, e);
+          }
+          
+          const cardHtml = `
+            <div class="card" id="card-${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden;">
+              <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${pId}')">
+                <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
+                <span style="display: flex; align-items: center; gap: 8px;">
+                  <span id="card-sum-${pId}" style="font-size: 11px; font-weight: 700; color: #16a34a;"></span>
+                  <span id="toggle-icon-${pId}" style="font-size: 12px; color: #94a3b8; transition: transform 0.2s;">▼</span>
+                </span>
+              </div>
+              <div class="card-body" id="card-body-${pId}" style="padding: 14px; display: block;">
+                <div class="form-grid g3" style="margin-bottom: 10px;">
+                  <div class="form-group">
+                    <label class="form-label">Görev Türü</label>
+                    <input class="form-input text-job-type" id="c-job-type-${pId}" placeholder="Örn: Temizlik" value="${document.getElementById("c-job-type").value || ""}" oninput="onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Çalışılan Gün</label>
+                    <input class="form-input" id="c-days-${pId}" type="text" inputmode="numeric" placeholder="30" value="${defaultDays}" oninput="onlyNum(this); onDaysInput('${pId}'); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Maaş Yöntemi</label>
+                    <select class="form-input" id="c-wage-mode-${pId}" onchange="onWageModeCardChange('${pId}'); onInputChanged();">
+                      <option value="calculated">Aylık Maaş Üzerinden</option>
+                      <option value="direct">Direkt Net Ödeme</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-grid g3" style="margin-bottom: 10px;">
+                  <div class="form-group">
+                    <label class="form-label" id="c-per-wage-label-${pId}">Aylık Ücret (₺)</label>
+                    <input class="form-input" id="c-per-wage-${pId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Avans (₺)</label>
+                    <input class="form-input" id="c-avans-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group individual-payment-group" style="display: none;">
+                    <label class="form-label" style="color: #1e3a5f; font-weight: 800;">Kurum Ödemesi (₺)</label>
+                    <input class="form-input" id="c-com-total-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                </div>
+
+                <div class="form-grid g3" style="margin-bottom: 10px;">
+                  <div class="form-group">
+                    <label class="form-label">Ek Ödeme (₺)</label>
+                    <input class="form-input" id="c-additional-payment-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Prim (₺)</label>
+                    <input class="form-input" id="c-premium-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Kesinti (₺)</label>
+                    <input class="form-input" id="c-deductions-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                </div>
+
+                <div class="form-grid g3" style="margin-bottom: 10px;" id="overtime-row-${pId}">
+                  <div class="form-group">
+                    <label class="form-label">Saatlik Mesai (Saat)</label>
+                    <input class="form-input" id="c-overtime-hours-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Günlük Mesai (Gün)</label>
+                    <input class="form-input" id="c-overtime-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Mesai Ücreti (₺)</label>
+                    <input class="form-input" id="c-overtime-wage-${pId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                  </div>
+                </div>
+
+                <div class="form-grid g4" style="margin-bottom: 10px;">
+                  <div class="form-group">
+                    <label class="form-label">Yıllık İzin (Gün)</label>
+                    <input class="form-input" id="c-annual-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Rapor (Gün)</label>
+                    <input class="form-input" id="c-sick-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Eksik Gün (Gün)</label>
+                    <input class="form-input" id="c-missing-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Resmi Tatil (Gün)</label>
+                    <input class="form-input" id="c-official-holiday-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                  </div>
+                </div>
+
+                <div class="form-grid g2" style="margin-bottom: 10px;">
+                  <div class="form-group">
+                    <label class="form-label">Hatırlatıcı Notu</label>
+                    <input class="form-input" id="c-reminder-note-${pId}" placeholder="Örn: Avans eksik, kontrol et." oninput="onInputChanged();" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Hatırlatma Zamanı</label>
+                    <input class="form-input" id="c-reminder-at-${pId}" type="datetime-local" onchange="onInputChanged();" />
+                  </div>
+                </div>
+
+                <div class="form-grid g2" style="margin-bottom: 0;">
+                  <div class="form-group">
+                    <label class="form-label">Genel Not</label>
+                    <input class="form-input" id="c-not-${pId}" placeholder="İşle ilgili not." oninput="onInputChanged();" />
+                  </div>
+                  <div class="form-group" style="justify-content: center; display: flex; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #374151; height: 38px; margin: 0;">
+                      <input type="checkbox" id="c-recurring-${pId}" checked style="width: 16px; height: 16px; cursor: pointer;" onchange="onInputChanged();" />
+                      🔄 Otomatik Tekrarlansın
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          
+          container.insertAdjacentHTML('beforeend', cardHtml);
+          togglePaymentTypeUI();
+        } else {
+          const card = document.getElementById(`card-${pId}`);
+          if (card) card.remove();
+        }
+        onInputChanged();
+      }
+
+      function onWageModeCardChange(pId) {
+        const mode = document.getElementById(`c-wage-mode-${pId}`).value;
+        const label = document.getElementById(`c-per-wage-label-${pId}`);
+        const input = document.getElementById(`c-per-wage-${pId}`);
+        const otRow = document.getElementById(`overtime-row-${pId}`);
+        
+        if (mode === "direct") {
+          label.textContent = "Direkt Net Ödeme (₺)";
+          input.placeholder = "Örn: 25000";
+          if (otRow) {
+            otRow.querySelectorAll("input").forEach(el => {
+              if (el.id !== `c-overtime-wage-${pId}`) {
+                el.value = "0";
+                el.disabled = true;
+                el.style.backgroundColor = "#f1f5f9";
+                el.style.cursor = "not-allowed";
+              }
+            });
+          }
+        } else {
+          label.textContent = "Aylık Ücret (₺)";
+          input.placeholder = "Örn: 30000";
+          if (otRow) {
+            otRow.querySelectorAll("input").forEach(el => {
+              if (el.id !== `c-overtime-wage-${pId}`) {
+                el.disabled = false;
+                el.style.backgroundColor = "";
+                el.style.cursor = "";
+              }
+            });
+          }
+        }
+      }
+
+      function onDaysInput(pId) {
+        onInputChanged();
+      }
+
+      function onLeaveChange(pId) {
+        let s = document.getElementById("c-start").value;
+        let e = document.getElementById("c-end").value;
+        if (!s || !e || new Date(s) > new Date(e)) return;
+        
+        let annualLeave = parseFloat(document.getElementById(`c-annual-leave-${pId}`).value) || 0;
+        let sickLeave = parseFloat(document.getElementById(`c-sick-leave-${pId}`).value) || 0;
+        let missingDays = parseFloat(document.getElementById(`c-missing-days-${pId}`).value) || 0;
+        let officialHoliday = parseFloat(document.getElementById(`c-official-holiday-${pId}`).value) || 0;
+        let leaveDays = annualLeave + sickLeave + missingDays + officialHoliday;
+
+        let baseDays = totalDays(s, e);
+        let total = Math.max(0, baseDays - leaveDays);
+        document.getElementById(`c-days-${pId}`).value = total;
+      }
+
+      function onGlobalDateChange() {
+        let s = document.getElementById("c-start").value;
+        let e = document.getElementById("c-end").value;
+        if (!s || !e || new Date(s) > new Date(e)) return;
+        
+        document.querySelectorAll('input[name="bulk-personnel-checked"]:checked').forEach(chk => {
+          const pId = chk.value;
+          onLeaveChange(pId);
+        });
+        onInputChanged();
+      }
+
+      function syncGlobalJobType() {
+        const val = document.getElementById("c-job-type").value;
+        document.querySelectorAll('.text-job-type').forEach(input => {
+          input.value = val;
+        });
+        onInputChanged();
+      }
+
+      function togglePersonnelCard(pId) {
+        const body = document.getElementById(`card-body-${pId}`);
+        const icon = document.getElementById(`toggle-icon-${pId}`);
+        if (body.style.display === "none") {
+          body.style.display = "block";
+          icon.style.transform = "rotate(0deg)";
+        } else {
+          body.style.display = "none";
+          icon.style.transform = "rotate(-90deg)";
+        }
+      }
+
+      function switchCFormTab(tabId, el) {
+        // Tab system removed for simple accordion flow
       }
 
       function openCalismaModal() {
         editRecId = null;
-        document.getElementById("modal-calisma-title").textContent =
-          "Yeni Çalışma Kaydı";
+        document.getElementById("modal-calisma-title").textContent = "Yeni Çalışma Kaydı";
         resetCForm();
         let today = new Date().toISOString().split("T")[0];
         document.getElementById("c-start").value = today;
         document.getElementById("c-end").value = today;
-        document.getElementById("c-days").value = "1";
-        document.getElementById("gun-auto-badge").textContent = "";
-
-        const tabEl = document.querySelector("#modal-calisma .tab-bar .tab");
-        if (tabEl) {
-          switchCFormTab("working", tabEl);
-        }
-
         openM("modal-calisma");
       }
 
@@ -4092,555 +4209,106 @@
         if (!r) return;
         resetCForm();
         editRecId = id;
-        document.getElementById("modal-calisma-title").textContent =
-          "Kaydı Düzenle";
-        initCSelects();
-
-        const tabEl = document.querySelector("#modal-calisma .tab-bar .tab");
-        if (tabEl) {
-          switchCFormTab("working", tabEl);
-        }
-
-        document.getElementById("c-personel").value = r.personnel_id || "";
+        document.getElementById("modal-calisma-title").textContent = "Kaydı Düzenle";
+        
         document.getElementById("c-kurum").value = r.company_id || "";
         document.getElementById("c-start").value = r.start_day ? r.start_day.split("T")[0] : "";
         document.getElementById("c-end").value = r.end_date ? r.end_date.split("T")[0] : "";
-        document.getElementById("c-days").value = r.work_days || "";
-        const fullWorkCb = document.getElementById("c-full-work");
-        if (fullWorkCb) {
-          if (r.work_days == 30) {
-            fullWorkCb.checked = true;
-            onFullWorkChange();
-          } else {
-            fullWorkCb.checked = false;
-            onFullWorkChange();
+        
+        const rBtn = document.querySelector('input[name="c-payment-type"][value="bireysel"]');
+        if (rBtn) rBtn.checked = true;
+        togglePaymentTypeUI();
+
+        const pId = r.personnel_id;
+        const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${pId}"]`);
+        if (chk) chk.checked = true;
+        
+        onPersonnelCheckChange(pId);
+        
+        // Disable other checkboxes since we're in edit mode for this single record
+        document.querySelectorAll('input[name="bulk-personnel-checked"]').forEach(c => {
+          if (c.value != pId) {
+            c.disabled = true;
+            c.parentElement.style.opacity = "0.5";
+            c.parentElement.style.cursor = "not-allowed";
           }
-        }
-        document.getElementById("c-job-type").value = r.job_type || "";
-        document.getElementById("c-overtime-hours").value = r.overtime_hours || 0;
-        document.getElementById("c-overtime-days").value = r.overtime_days || 0;
-        document.getElementById("c-overtime-wage").value = r.overtime_wage || 0;
+        });
+        const quickPerBtn = document.querySelector('button[onclick="toggleQuickAdd(\'per\')"]');
+        if (quickPerBtn) quickPerBtn.style.display = "none";
+        
+        document.getElementById(`c-job-type-${pId}`).value = r.job_type || "";
+        document.getElementById(`c-days-${pId}`).value = r.work_days || "";
+        document.getElementById(`c-wage-mode-${pId}`).value = r.wage_mode || "calculated";
+        onWageModeCardChange(pId);
+        
+        document.getElementById(`c-per-wage-${pId}`).value = r.personnel_monthly_wage || "";
+        document.getElementById(`c-avans-${pId}`).value = r.advance_amount || 0;
+        document.getElementById(`c-com-total-${pId}`).value = r.total_company_payment || 0;
+        
+        document.getElementById(`c-additional-payment-${pId}`).value = r.additional_payment || 0;
+        document.getElementById(`c-premium-${pId}`).value = r.premium || 0;
+        document.getElementById(`c-deductions-${pId}`).value = r.deductions || 0;
+        
+        document.getElementById(`c-overtime-hours-${pId}`).value = r.overtime_hours || 0;
+        document.getElementById(`c-overtime-days-${pId}`).value = r.overtime_days || 0;
+        document.getElementById(`c-overtime-wage-${pId}`).value = r.overtime_wage || 0;
+        
+        document.getElementById(`c-annual-leave-${pId}`).value = r.annual_leave || 0;
+        document.getElementById(`c-sick-leave-${pId}`).value = r.sick_leave || 0;
+        document.getElementById(`c-missing-days-${pId}`).value = r.missing_days || 0;
+        document.getElementById(`c-official-holiday-${pId}`).value = r.official_holiday || 0;
+        
+        document.getElementById(`c-recurring-${pId}`).checked = r.is_recurring || false;
+        document.getElementById(`c-not-${pId}`).value = r.note || "";
+        document.getElementById(`c-reminder-note-${pId}`).value = r.reminder_note || "";
+        document.getElementById(`c-reminder-at-${pId}`).value = r.reminder_at ? r.reminder_at.substring(0, 16) : "";
 
-        const wm = r.wage_mode || "calculated";
-        const rBtn = document.querySelector(`input[name="c-wage-mode"][value="${wm}"]`);
-        if (rBtn) {
-          rBtn.checked = true;
-        }
-        onWageModeChange();
-
-        document.getElementById("c-per-wage").value = r.personnel_monthly_wage || "";
-        document.getElementById("c-com-total").value = r.total_company_payment || "";
-        document.getElementById("c-com-total").dataset.baseVal = r.total_company_payment || "";
-        const kdvCb = document.getElementById("c-com-kdv");
-        if (kdvCb) kdvCb.checked = false;
-        const tefCb = document.getElementById("c-com-tef");
-        if (tefCb) tefCb.checked = false;
-        document.getElementById("c-avans").value = r.advance_amount || 0;
-        document.getElementById("c-additional-payment").value = r.additional_payment || 0;
-        document.getElementById("c-premium").value = r.premium || 0;
-        document.getElementById("c-deductions").value = r.deductions || 0;
-
-
-
-        document.getElementById("c-annual-leave").value = r.annual_leave || 0;
-        document.getElementById("c-sick-leave").value = r.sick_leave || 0;
-        document.getElementById("c-missing-days").value = r.missing_days || 0;
-        document.getElementById("c-official-holiday").value = r.official_holiday || 0;
-
-        document.getElementById("c-recurring").checked = r.is_recurring || false;
-        document.getElementById("c-reminder-note").value = r.reminder_note || "";
-        document.getElementById("c-not").value = r.note || "";
-
-        // Populate reminder datetime picker
-        const remAt = r.reminder_at ? r.reminder_at.substring(0, 16) : ""; // YYYY-MM-DDTHH:MM
-        document.getElementById("c-reminder-at").value = remAt;
-        const inp = document.getElementById("c-reminder-at");
-        const btn = document.getElementById("btn-toggle-reminder-time");
-        const clearBtn = document.getElementById("btn-clear-reminder-time");
-        if (remAt) {
-          if (inp) inp.style.display = "inline-block";
-          if (clearBtn) clearBtn.style.display = "inline-block";
-          if (btn) btn.textContent = "⏰ Zamanı Kapat";
-        } else {
-          if (inp) inp.style.display = "none";
-          if (clearBtn) clearBtn.style.display = "none";
-          if (btn) btn.textContent = "⏰ Hatırlatma Zamanı Ekle";
-        }
-
-        document.getElementById("gun-auto-badge").textContent = "";
         const delBtn = document.getElementById("btn-delete-rec");
         if (delBtn) delBtn.style.display = "inline-flex";
         const delBtnC = document.getElementById("btn-delete-rec-confirm");
         if (delBtnC) delBtnC.style.display = "inline-flex";
+
         calcPreview();
         openM("modal-calisma");
       }
 
-      function toggleArsivMode() {
-        arsivMode = !arsivMode;
-        let btn = document.getElementById("arsiv-toggle-btn");
-        let banner = document.getElementById("arsiv-banner");
-        let title = document.getElementById("rec-list-title");
-        if (arsivMode) {
-          btn.style.background = "#fef9c3";
-          btn.style.borderColor = "#fde68a";
-          btn.style.color = "#92400e";
-          banner.style.display = "flex";
-          title.textContent = "Arşivlenmiş Kayıtlar";
-        } else {
-          btn.style.background = "";
-          btn.style.borderColor = "";
-          btn.style.color = "";
-          banner.style.display = "none";
-          title.textContent = "Aktif Kayıtlar";
-        }
-        renderRecords();
-      }
-
-      function toggleFilter() {
-        let el = document.getElementById("filter-inline");
-        let btn = document.getElementById("filter-toggle-btn");
-        let isOpen = el.style.display !== "none";
-        el.style.display = isOpen ? "none" : "block";
-        btn.style.background = isOpen ? "" : "#eff6ff";
-        btn.style.borderColor = isOpen ? "" : "#bfdbfe";
-        btn.style.color = isOpen ? "" : "#1d4ed8";
-      }
-
-      function onCPersonelChange() {
-        const selectedPersonnelId = document.getElementById("c-personel").value;
-        const monthlyWage = getPersonnelMonthlyWage(selectedPersonnelId);
-        if (monthlyWage > 0)
-          document.getElementById("c-per-wage").value = monthlyWage;
-        calcPreview();
-      }
-
-      function onWageModeChange() {
-        const mode = document.querySelector('input[name="c-wage-mode"]:checked')?.value || "calculated";
-        const label = document.getElementById("c-per-wage-label");
-        const input = document.getElementById("c-per-wage");
-        const otHours = document.getElementById("c-overtime-hours");
-        const otDays = document.getElementById("c-overtime-days");
-        if (mode === "direct") {
-          if (label) label.textContent = "Direkt Net Ödeme Tutarı (₺)";
-          if (input) input.placeholder = "Örn: 25000";
-          if (otHours) {
-            otHours.value = "0";
-            otHours.disabled = true;
-            otHours.style.backgroundColor = "#f1f5f9";
-          }
-          if (otDays) {
-            otDays.value = "0";
-            otDays.disabled = true;
-            otDays.style.backgroundColor = "#f1f5f9";
-          }
-        } else {
-          if (label) label.textContent = "Aylık Ücret (₺)";
-          if (input) input.placeholder = "Örn: 30000";
-          if (otHours) {
-            otHours.disabled = false;
-            otHours.style.backgroundColor = "";
-          }
-          if (otDays) {
-            otDays.disabled = false;
-            otDays.style.backgroundColor = "";
-          }
-        }
-      }
-
-      function getDaysInMonth(dateStr) {
-        if (!dateStr) return 30;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return 30;
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-      }
-
-      function onDateChange() {
-        let s = document.getElementById("c-start").value,
-          e = document.getElementById("c-end").value;
-        if (!s || !e || new Date(s) > new Date(e)) return;
-
-        let annualLeave = parseFloat(document.getElementById("c-annual-leave").value) || 0;
-        let sickLeave = parseFloat(document.getElementById("c-sick-leave").value) || 0;
-        let missingDays = parseFloat(document.getElementById("c-missing-days").value) || 0;
-        let officialHoliday = parseFloat(document.getElementById("c-official-holiday").value) || 0;
-        let leaveDays = annualLeave + sickLeave + missingDays + officialHoliday;
-
-        let baseDays = weekendIncluded ? totalDays(s, e) : countWorkdays(s, e);
-        let total = Math.max(0, baseDays - leaveDays);
-        document.getElementById("c-days").value = total;
-        document.getElementById("gun-auto-badge").textContent = "(otomatik)";
-        calcPreview();
-      }
-
-      function setWeekend(val) {
-        weekendIncluded = val;
-        document.getElementById("wc-evet").classList.toggle("selected", val);
-        document.getElementById("wc-hayir").classList.toggle("selected", !val);
-        let s = document.getElementById("c-start").value,
-          e = document.getElementById("c-end").value;
-        if (s && e) {
-          let annualLeave = parseFloat(document.getElementById("c-annual-leave").value) || 0;
-          let sickLeave = parseFloat(document.getElementById("c-sick-leave").value) || 0;
-          let missingDays = parseFloat(document.getElementById("c-missing-days").value) || 0;
-          let officialHoliday = parseFloat(document.getElementById("c-official-holiday").value) || 0;
-          let leaveDays = annualLeave + sickLeave + missingDays + officialHoliday;
-
-          let baseDays = val ? totalDays(s, e) : countWorkdays(s, e);
-          document.getElementById("c-days").value = Math.max(0, baseDays - leaveDays);
-          document.getElementById("gun-auto-badge").textContent =
-            "(otomatik hesaplandı)";
-        }
-        calcPreview();
-      }
-
-      function getWorkDays() {
-        return parseInt(document.getElementById("c-days").value) || 0;
-      }
-      function getStartDate() {
-        return document.getElementById("c-start").value;
-      }
-      function getEndDate() {
-        return document.getElementById("c-end").value;
-      }
-
-      function calcPreview() {
-        let gun = getWorkDays();
-        let monthlyWage =
-          parseFloat(document.getElementById("c-per-wage").value) || 0;
-        let daysInMonth = 30;
-        
-        const wageMode = document.querySelector('input[name="c-wage-mode"]:checked')?.value || "calculated";
-        
-        let perWage = 0;
-        let workedWage = 0;
-        
-        if (wageMode === "direct") {
-          workedWage = monthlyWage; // The value is direct payment
-          perWage = workedWage / 30; // Overtime is computed assuming base rate = direct / 30
-        } else {
-          perWage = monthlyWage > 0 ? monthlyWage / 30 : 0;
-          workedWage = gun * perWage;
-        }
-        
-        let totalCom =
-          parseFloat(document.getElementById("c-com-total").value) || 0;
-        let avans = parseFloat(document.getElementById("c-avans").value) || 0;
-        
-        let travelExpense = 0;
-        let foodExpense = 0;
-        let accommodation = 0;
-        let otherExpenses = 0;
-        let masraf = 0;
-
-        let additionalPayment = parseFloat(document.getElementById("c-additional-payment").value) || 0;
-        let premium = parseFloat(document.getElementById("c-premium").value) || 0;
-        
-        const overtimeHours = wageMode === "direct" ? 0 : (parseFloat(document.getElementById("c-overtime-hours").value) || 0);
-        const overtimeDays = wageMode === "direct" ? 0 : (parseFloat(document.getElementById("c-overtime-days").value) || 0);
-        const overtimeWage = wageMode === "direct" ? 0 : ((overtimeHours * (perWage / 8)) + (overtimeDays * perWage));
-        
-        const wageInput = document.getElementById("c-overtime-wage");
-        if (wageInput) {
-          wageInput.value = overtimeWage.toFixed(2);
-        }
-
-        let deductions = parseFloat(document.getElementById("c-deductions").value) || 0;
-
-        let totalPer = workedWage + additionalPayment + premium + overtimeWage - deductions;
-        
-        if (gun <= 0 && monthlyWage <= 0 && totalCom <= 0) {
-          var _p = document.getElementById("c-preview");
-          if (_p) _p.style.display = "none";
-          var _cb = document.getElementById("calc-btns");
-          if (_cb) _cb.style.display = "flex";
-          var _cfb = document.getElementById("confirm-btns");
-          if (_cfb) _cfb.style.display = "none";
-          previewData = null;
-          return;
-        }
-        
-        let netPer = totalPer - avans;
-        let kar = totalCom - totalPer - masraf;
-        
-        document.getElementById("r-gun").textContent =
-          gun > 0 ? gun + " gün" : "—";
-          
-        if (wageMode === "direct") {
-          document.getElementById("r-calc-detail").textContent =
-            "Direkt Net Ödeme Modu = " + fmt(workedWage);
-        } else {
-          document.getElementById("r-calc-detail").textContent =
-            gun > 0 && monthlyWage > 0
-              ? fmt(monthlyWage) + " / " + daysInMonth + " × " + gun + " gün = " + fmt(workedWage)
-              : "—";
-        }
-        
-        document.getElementById("r-per-od").textContent = fmt(totalPer);
-        document.getElementById("r-avans").textContent =
-          avans > 0 ? "- " + fmt(avans) : "—";
-        document.getElementById("r-net-per").textContent = fmt(netPer);
-        document.getElementById("r-com-fat").textContent = fmt(totalCom);
-        document.getElementById("r-masraf").textContent =
-          masraf > 0 ? "- " + fmt(masraf) : "—";
-        document.getElementById("r-kar").textContent = fmt(kar);
-        document.getElementById("r-kar").style.color =
-          kar >= 0 ? "#16a34a" : "#dc2626";
-          
-        var _pv = document.getElementById("c-preview");
-        if (_pv) _pv.style.display = "block";
-        
-        previewData = {
-          gun,
-          monthlyWage,
-          perWage,
-          totalPer,
-          totalCom,
-          avans,
-          masraf,
-          netPer,
-          kar,
-          overtime_hours: overtimeHours,
-          overtime_days: overtimeDays,
-          overtime_type: "both",
-          overtime_wage: overtimeWage,
-          wage_mode: wageMode,
-          job_type: document.getElementById("c-job-type").value.trim(),
-          additional_payment: additionalPayment,
-          premium: premium,
-          deductions: deductions,
-          travel_expense: travelExpense,
-          food_expense: foodExpense,
-          accommodation: accommodation,
-          other_expenses: otherExpenses,
-          annual_leave: parseFloat(document.getElementById("c-annual-leave").value) || 0,
-          sick_leave: parseFloat(document.getElementById("c-sick-leave").value) || 0,
-          missing_days: parseFloat(document.getElementById("c-missing-days").value) || 0,
-          official_holiday: parseFloat(document.getElementById("c-official-holiday").value) || 0,
-          reminder_note: document.getElementById("c-reminder-note").value.trim()
-        };
-        
-        let p = personnel.find(
-          (x) => x.id == document.getElementById("c-personel").value,
-        );
-        let c = companies.find(
-          (x) => x.id == document.getElementById("c-kurum").value,
-        );
-        let pn = p ? p.first_name + " " + p.last_name : "?";
-        let cn = c ? c.company_name : "?";
-        
-        let detailsHtml = "";
-        if (wageMode === "direct") {
-          detailsHtml = "<b>Direkt Net Ödeme Modu</b><br>" +
-            "<b>Taban Hak Ediş:</b> " + fmt(workedWage) + " (Çalışılan Gün: " + gun + " gün)<br>";
-        } else {
-          detailsHtml = "<b>" + fmt(monthlyWage) + " / " + daysInMonth + "</b> = " + fmt(perWage) + " günlük ücret<br>" +
-            "<b>" + gun + " gün</b> × " + fmt(perWage) + " = " + fmt(workedWage) + " (çalışılan brüt)<br>";
-        }
-        
-        let overtimeDetails = "";
-        if (overtimeHours > 0 || overtimeDays > 0) {
-          overtimeDetails = "Mesai: +" + fmt(overtimeWage) + " (";
-          let parts = [];
-          if (overtimeHours > 0) parts.push(overtimeHours + " saat saatlik");
-          if (overtimeDays > 0) parts.push(overtimeDays + " gün günlük");
-          overtimeDetails += parts.join(" + ") + ") | ";
-        }
-
-        document.getElementById("confirm-summary").innerHTML =
-          "<b>Personel:</b> " + pn + "<br>" +
-          "<b>Kurum:</b> " + cn + "<br>" +
-          "<b>Dönem:</b> " + (document.getElementById("c-start").value || "—") + " → " + (document.getElementById("c-end").value || "—") + "<br>" +
-          detailsHtml +
-          (additionalPayment > 0 ? "Ek Ödeme: +" + fmt(additionalPayment) + " | " : "") +
-          (premium > 0 ? "Prim: +" + fmt(premium) + " | " : "") +
-          overtimeDetails +
-          (deductions > 0 ? "Kesinti: -" + fmt(deductions) + " | " : "") +
-          "<br><b>Brüt Toplam: " + fmt(totalPer) + "</b>" +
-          (avans > 0 ? " (Avans: -" + fmt(avans) + " → Net: <b>" + fmt(netPer) + "</b>)" : "") +
-          "<br><b>Kurumdan:</b> " + fmt(totalCom) +
-          (masraf > 0 ? " | Toplam Masraf: -" + fmt(masraf) : "") +
-          ' | <b style="color:' + (kar >= 0 ? "#16a34a" : "#dc2626") + '">Kar: ' + fmt(kar) + "</b>";
-          
-        var _cb2 = document.getElementById("calc-btns");
-        if (_cb2) _cb2.style.display = "none";
-        var _cfb2 = document.getElementById("confirm-btns");
-        if (_cfb2) _cfb2.style.display = "flex";
-      }
-
-      async function saveCalisme() {
-        if (!previewData) {
-          toast("Önce Hesapla butonuna tıklayın!", "err");
-          return;
-        }
-        let pId = document.getElementById("c-personel").value;
-        let cId = document.getElementById("c-kurum").value;
-        if (!pId || !cId) {
-          toast("Personel ve kurum seçin!", "err");
-          return;
-        }
-        let rec = {
-          personnel_id: pId,
-          company_id: cId,
-          start_day: getStartDate() || null,
-          end_date: getEndDate() || null,
-          work_days: previewData.gun,
-          personnel_monthly_wage: previewData.monthlyWage,
-          personnel_daily_wage: previewData.perWage,
-          
-          total_personnel_payment: previewData.totalPer,
-          total_company_payment: previewData.totalCom,
-          advance_amount: previewData.avans,
-          expenses: previewData.masraf,
-          
-          company_payment_status: "bekliyor",
-          personnel_payment_status: "bekliyor",
-          note: document.getElementById("c-not").value.trim() || null,
-          leave_days: previewData.annual_leave + previewData.sick_leave + previewData.missing_days + previewData.official_holiday,
-          is_recurring: document.getElementById("c-recurring").checked,
-          needs_review: false,
-
-          overtime_hours: previewData.overtime_hours,
-          overtime_days: previewData.overtime_days,
-          overtime_type: previewData.overtime_type,
-          overtime_wage: previewData.overtime_wage,
-          wage_mode: previewData.wage_mode,
-          job_type: previewData.job_type,
-          additional_payment: previewData.additional_payment,
-          deductions: previewData.deductions,
-          premium: previewData.premium,
-          
-          travel_expense: previewData.travel_expense,
-          food_expense: previewData.food_expense,
-          accommodation: previewData.accommodation,
-          other_expenses: previewData.other_expenses,
-          
-          annual_leave: previewData.annual_leave,
-          sick_leave: previewData.sick_leave,
-          missing_days: previewData.missing_days,
-          official_holiday: previewData.official_holiday,
-          reminder_note: previewData.reminder_note,
-          reminder_at: document.getElementById("c-reminder-at").value || null
-        };
-        
-        let saveBtn = document.getElementById("btn-save-rec");
-        if (saveBtn) {
-          saveBtn.disabled = true;
-          saveBtn.textContent = "Kaydediliyor...";
-        }
-        try {
-          if (editRecId) {
-            const existing = work_records.find((x) => x.id == editRecId);
-            if (existing) {
-              rec.personnel_payment_status = existing.personnel_payment_status;
-              rec.company_payment_status = existing.company_payment_status;
-              rec.archived = existing.archived;
-            }
-            await api.patch(
-              `/admin/work_records/${editRecId}`,
-              rec,
-            );
-            toast("Kayıt güncellendi ✓");
-          } else {
-            await api.post("/admin/work_records", rec);
-            toast("Çalışma kaydı eklendi ✓");
-          }
-          closeM("modal-calisma");
-          resetCForm();
-          await loadAll();
-        } catch (e) {
-          toast("Hata: " + e.message, "err");
-          if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = "✓ Onayla ve Kaydet";
-          }
-        }
-        if (saveBtn) {
-          saveBtn.disabled = false;
-          saveBtn.textContent = "✓ Onayla ve Kaydet";
-        }
-      }
-
       function resetCForm() {
         editRecId = null;
-        [
-          "c-personel",
-          "c-kurum",
-          "c-per-wage",
-          "c-com-total",
-          "c-days",
-          "c-not",
-          "c-job-type",
-          "c-overtime-hours",
-          "c-overtime-days",
-          "c-overtime-wage",
-          "c-additional-payment",
-          "c-premium",
-          "c-deductions",
-          "c-annual-leave",
-          "c-sick-leave",
-          "c-missing-days",
-          "c-official-holiday",
-          "c-reminder-note",
-          "c-reminder-at"
-        ].forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el) el.value = "";
-        });
         
-        [
-          "c-avans", 
-          "c-overtime-hours", 
-          "c-overtime-days",
-          "c-overtime-wage", 
-          "c-additional-payment", 
-          "c-premium", 
-          "c-deductions", 
-          "c-annual-leave", 
-          "c-sick-leave", 
-          "c-missing-days", 
-          "c-official-holiday"
-        ].forEach(function (id) {
-          var el = document.getElementById(id);
-          if (el) el.value = "0";
-        });
+        document.getElementById("c-kurum").value = "";
+        document.getElementById("c-start").value = "";
+        document.getElementById("c-end").value = "";
+        document.getElementById("c-job-type").value = "";
+        document.getElementById("c-com-total").value = "";
         
-        const calcRadio = document.querySelector('input[name="c-wage-mode"][value="calculated"]');
-        if (calcRadio) calcRadio.checked = true;
-        onWageModeChange();
-
-        var recCh = document.getElementById("c-recurring");
-        if (recCh) recCh.checked = false;
-        var fullWorkCb = document.getElementById("c-full-work");
-        if (fullWorkCb) fullWorkCb.checked = false;
-        var daysInput = document.getElementById("c-days");
-        if (daysInput) {
-          daysInput.readOnly = false;
-          daysInput.style.backgroundColor = "";
-          daysInput.style.cursor = "";
-        }
-        var kdvCb = document.getElementById("c-com-kdv");
+        const kdvCb = document.getElementById("c-com-kdv");
         if (kdvCb) kdvCb.checked = false;
-        var tefCb = document.getElementById("c-com-tef");
+        const tefCb = document.getElementById("c-com-tef");
         if (tefCb) tefCb.checked = false;
-        var comTotalInput = document.getElementById("c-com-total");
-        if (comTotalInput) delete comTotalInput.dataset.baseVal;
-        var delBtn = document.getElementById("btn-delete-rec");
-        if (delBtn) delBtn.style.display = "none";
-        var delBtnC = document.getElementById("btn-delete-rec-confirm");
-        if (delBtnC) delBtnC.style.display = "none";
-        var badge = document.getElementById("gun-auto-badge");
-        if (badge) badge.textContent = "";
         
-        // Reset reminder datetime picker UI state
-        var inp = document.getElementById("c-reminder-at");
-        var btn = document.getElementById("btn-toggle-reminder-time");
-        var clearBtn = document.getElementById("btn-clear-reminder-time");
-        if (inp) {
-          inp.style.display = "none";
-        }
-        if (clearBtn) clearBtn.style.display = "none";
-        if (btn) btn.textContent = "⏰ Hatırlatma Zamanı Ekle";
+        const comTotalInput = document.getElementById("c-com-total");
+        if (comTotalInput) delete comTotalInput.dataset.baseVal;
+        
+        const topluRadio = document.querySelector('input[name="c-payment-type"][value="toplu"]');
+        if (topluRadio) topluRadio.checked = true;
+        togglePaymentTypeUI();
+
+        document.querySelectorAll('input[name="bulk-personnel-checked"]').forEach(chk => {
+          chk.checked = false;
+          chk.disabled = false;
+          chk.parentElement.style.opacity = "";
+          chk.parentElement.style.cursor = "";
+        });
+
+        const quickPerBtn = document.querySelector('button[onclick="toggleQuickAdd(\'per\')"]');
+        if (quickPerBtn) quickPerBtn.style.display = "inline-flex";
+
+        document.getElementById("bulk-personnel-cards-container").innerHTML = "";
+
+        const delBtn = document.getElementById("btn-delete-rec");
+        if (delBtn) delBtn.style.display = "none";
+        const delBtnC = document.getElementById("btn-delete-rec-confirm");
+        if (delBtnC) delBtnC.style.display = "none";
 
         var cb = document.getElementById("calc-btns");
         if (cb) cb.style.display = "flex";
@@ -4654,6 +4322,374 @@
         var prev = document.getElementById("c-preview");
         if (prev) prev.style.display = "none";
         previewData = null;
+      }
+
+      function onInputChanged() {
+        var cb = document.getElementById("calc-btns");
+        if (cb) cb.style.display = "flex";
+        var cfb = document.getElementById("confirm-btns");
+        if (cfb) cfb.style.display = "none";
+        
+        var prev = document.getElementById("c-preview");
+        if (prev) prev.style.display = "none";
+        
+        updateIndividualCardSums();
+      }
+
+      function updateIndividualCardSums() {
+        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        selectedPersonnelIds.forEach((pId) => {
+          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
+          
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
+          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          
+          let base_payment = 0;
+          let overtime_wage = 0;
+          
+          if (wage_mode === "calculated") {
+            const daily_wage = input_wage / 30;
+            base_payment = daily_wage * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+            
+            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+            if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          } else {
+            base_payment = input_wage;
+            overtime_wage = 0;
+            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+            if (otWageInput) otWageInput.value = 0;
+          }
+          
+          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          const net_personnel_payment = total_personnel_payment - advance_amount;
+          
+          const cardSumEl = document.getElementById(`card-sum-${pId}`);
+          if (cardSumEl) {
+            cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
+          }
+        });
+      }
+
+      function calcPreview() {
+        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        const previewEl = document.getElementById("c-preview");
+        if (!previewEl) return;
+        
+        if (selectedPersonnelIds.length === 0) {
+          previewEl.style.display = "none";
+          previewData = null;
+          
+          var cb = document.getElementById("calc-btns");
+          if (cb) cb.style.display = "flex";
+          var cfb = document.getElementById("confirm-btns");
+          if (cfb) cfb.style.display = "none";
+          return;
+        }
+
+        const paymentType = document.querySelector('input[name="c-payment-type"]:checked').value;
+        const globalComTotal = parseFloat(document.getElementById("c-com-total").value) || 0;
+
+        let totalStaff = selectedPersonnelIds.length;
+        let totalDaysSum = 0;
+        let totalPerPaymentSum = 0;
+        let totalPerAdvanceSum = 0;
+        let totalPerNetSum = 0;
+        let totalComInvoiceSum = 0;
+        
+        let confirmSummaryHtml = "";
+
+        selectedPersonnelIds.forEach((pId) => {
+          const p = personnel.find(x => x.id == pId);
+          const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
+          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
+          
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
+          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          
+          let base_payment = 0;
+          let overtime_wage = 0;
+          
+          if (wage_mode === "calculated") {
+            const daily_wage = input_wage / 30;
+            base_payment = daily_wage * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+            
+            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+            if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          } else {
+            base_payment = input_wage;
+            overtime_wage = 0;
+            const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
+            if (otWageInput) otWageInput.value = 0;
+          }
+          
+          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          const net_personnel_payment = total_personnel_payment - advance_amount;
+          
+          let card_com_payment = 0;
+          if (paymentType === "bireysel") {
+            card_com_payment = parseFloat(document.getElementById(`c-com-total-${pId}`).value) || 0;
+          }
+          
+          const cardSumEl = document.getElementById(`card-sum-${pId}`);
+          if (cardSumEl) {
+            cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
+          }
+
+          totalDaysSum += work_days;
+          totalPerPaymentSum += total_personnel_payment;
+          totalPerAdvanceSum += advance_amount;
+          totalPerNetSum += net_personnel_payment;
+          
+          if (paymentType === "bireysel") {
+            totalComInvoiceSum += card_com_payment;
+          }
+
+          confirmSummaryHtml += `• <strong>${pName}</strong>: ${work_days} gün | Maaş Hakediş: ${fmt(total_personnel_payment)} | Avans: ${fmt(advance_amount)} | Net: ${fmt(net_personnel_payment)}`;
+          if (paymentType === "bireysel") {
+            confirmSummaryHtml += ` | Fatura (Bireysel): ${fmt(card_com_payment)}`;
+          }
+          confirmSummaryHtml += "<br/>";
+        });
+
+        if (paymentType === "toplu") {
+          totalComInvoiceSum = globalComTotal;
+        }
+
+        const totalNetProfit = totalComInvoiceSum - totalPerPaymentSum;
+
+        document.getElementById("r-total-staff").textContent = `${totalStaff} kişi`;
+        document.getElementById("r-total-days").textContent = `${totalDaysSum} gün`;
+        document.getElementById("r-total-per-payment").textContent = fmt(totalPerPaymentSum);
+        document.getElementById("r-total-per-advance").textContent = `- ${fmt(totalPerAdvanceSum)}`;
+        document.getElementById("r-total-per-net").textContent = fmt(totalPerNetSum);
+        document.getElementById("r-total-com-invoice").textContent = fmt(totalComInvoiceSum);
+        
+        const profitEl = document.getElementById("r-total-net-profit");
+        profitEl.textContent = fmt(totalNetProfit);
+        if (totalNetProfit >= 0) {
+          profitEl.style.color = "#16a34a";
+        } else {
+          profitEl.style.color = "#dc2626";
+        }
+
+        document.getElementById("confirm-summary").innerHTML = confirmSummaryHtml;
+        previewEl.style.display = "block";
+
+        var cb = document.getElementById("calc-btns");
+        if (cb) cb.style.display = "none";
+        var cfb = document.getElementById("confirm-btns");
+        if (cfb) cfb.style.display = "flex";
+      }
+
+      async function saveCalisme() {
+        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        if (selectedPersonnelIds.length === 0) {
+          toast("Lütfen en az bir personel seçin!", "err");
+          return;
+        }
+
+        const companyId = document.getElementById("c-kurum").value;
+        if (!companyId) {
+          toast("Lütfen bir kurum seçin!", "err");
+          return;
+        }
+
+        const startDay = document.getElementById("c-start").value;
+        const endDate = document.getElementById("c-end").value;
+        if (!startDay || !endDate) {
+          toast("Giriş ve Çıkış tarihleri zorunludur!", "err");
+          return;
+        }
+
+        const paymentType = document.querySelector('input[name="c-payment-type"]:checked').value;
+        const globalComTotal = parseFloat(document.getElementById("c-com-total").value) || 0;
+
+        const records = [];
+
+        selectedPersonnelIds.forEach((pId, index) => {
+          const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${pId}`).value) || 0;
+          
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${pId}`).value) || 0;
+          const additional_payment = parseFloat(document.getElementById(`c-additional-payment-${pId}`).value) || 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${pId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${pId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${pId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
+          
+          let base_payment = 0;
+          let personnel_monthly_wage = 0;
+          let personnel_daily_wage = 0;
+          let overtime_wage = 0;
+          
+          if (wage_mode === "calculated") {
+            personnel_monthly_wage = input_wage;
+            personnel_daily_wage = input_wage / 30;
+            base_payment = personnel_daily_wage * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          } else {
+            personnel_monthly_wage = input_wage;
+            personnel_daily_wage = 0;
+            base_payment = input_wage;
+            overtime_wage = 0;
+          }
+          
+          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          
+          let total_company_payment = 0;
+          if (paymentType === "toplu") {
+            if (index === 0) {
+              total_company_payment = globalComTotal;
+            } else {
+              total_company_payment = 0;
+            }
+          } else {
+            total_company_payment = parseFloat(document.getElementById(`c-com-total-${pId}`).value) || 0;
+          }
+          
+          const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${pId}`).value) || 0;
+          const sick_leave = parseFloat(document.getElementById(`c-sick-leave-${pId}`).value) || 0;
+          const missing_days = parseFloat(document.getElementById(`c-missing-days-${pId}`).value) || 0;
+          const official_holiday = parseFloat(document.getElementById(`c-official-holiday-${pId}`).value) || 0;
+          const leave_days = annual_leave + sick_leave + missing_days + official_holiday;
+          
+          const note = document.getElementById(`c-not-${pId}`).value || "";
+          const reminder_note = document.getElementById(`c-reminder-note-${pId}`).value || "";
+          const reminder_at = document.getElementById(`c-reminder-at-${pId}`).value || null;
+          const is_recurring = document.getElementById(`c-recurring-${pId}`).checked;
+          
+          records.push({
+            personnel_id: pId,
+            company_id: companyId,
+            start_day: startDay,
+            end_date: endDate,
+            work_days,
+            personnel_daily_wage,
+            personnel_monthly_wage,
+            total_personnel_payment,
+            total_company_payment,
+            advance_amount,
+            expenses: 0,
+            personnel_payment_status: "bekliyor",
+            company_payment_status: "bekliyor",
+            note,
+            archived: false,
+            leave_days,
+            is_recurring,
+            needs_review: false,
+            overtime_hours,
+            overtime_type: "hourly",
+            overtime_days,
+            overtime_wage,
+            job_type: document.getElementById(`c-job-type-${pId}`).value || "",
+            additional_payment,
+            deductions,
+            premium,
+            travel_expense: 0,
+            food_expense: 0,
+            accommodation: 0,
+            other_expenses: 0,
+            annual_leave,
+            sick_leave,
+            missing_days,
+            official_holiday,
+            reminder_note,
+            reminder_at,
+            wage_mode
+          });
+        });
+
+        const saveBtn = document.getElementById("btn-save-rec");
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Kaydediliyor...";
+        }
+
+        try {
+          if (editRecId) {
+            await api.patch(`/admin/work_records/${editRecId}`, records[0]);
+            toast("Kayıt başarıyla güncellendi ✓");
+          } else {
+            await api.post("/admin/work_records", records);
+            toast("Kayıtlar başarıyla eklendi ✓");
+          }
+          closeM("modal-calisma");
+          resetCForm();
+          await loadAll();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "✓ Onayla ve Kaydet";
+          }
+        }
+      }
+
+      async function quickSavePerBulk() {
+        var first = document.getElementById("qp-first").value.trim();
+        var last = document.getElementById("qp-last").value.trim();
+        if (!first) {
+          toast("Ad zorunludur!", "err");
+          return;
+        }
+        var d = {
+          first_name: first,
+          last_name: last,
+          position: document.getElementById("qp-pos").value.trim(),
+          daily_wage: parseFloat(document.getElementById("qp-wage").value) || 0,
+          phone: document.getElementById("qp-phone").value.trim(),
+          iban: document.getElementById("qp-iban").value.trim(),
+        };
+        try {
+          var res = await api.post("/admin/personnel", d);
+          var np =
+            Array.isArray(res) && res[0]
+              ? res[0]
+              : Object.assign({ id: "p" + Date.now() }, d);
+          personnel.push(np);
+          
+          initCSelects();
+          
+          const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${np.id}"]`);
+          if (chk) {
+            chk.checked = true;
+            onPersonnelCheckChange(np.id);
+          }
+          
+          [
+            "qp-first",
+            "qp-last",
+            "qp-pos",
+            "qp-wage",
+            "qp-phone",
+            "qp-iban",
+          ].forEach(function (id) {
+            document.getElementById(id).value = "";
+          });
+          document.getElementById("quick-per").style.display = "none";
+          renderPersonnel();
+          toast("Personel eklendi ve seçildi ✓");
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
       }
 
       function renderRecords(data) {
@@ -4670,6 +4706,10 @@
           let cB = cName(b.company_id) || "";
           let cmp = cA.localeCompare(cB, 'tr');
           if (cmp !== 0) return cmp;
+          let sA = a.start_day || "";
+          let sB = b.start_day || "";
+          let sCmp = sA.localeCompare(sB);
+          if (sCmp !== 0) return sCmp;
           let pA = pName(a.personnel_id) || "";
           let pB = pName(b.personnel_id) || "";
           return pA.localeCompare(pB, 'tr');
@@ -4682,39 +4722,84 @@
           tbody.innerHTML = `<tr><td colspan="15"><div class="empty"><div class="empty-icon">${arsivMode ? "📦" : "📅"}</div><div class="empty-text">${msg}</div></div></td></tr>`;
           return;
         }
-        tbody.innerHTML = rows
-          .map((r) => {
-            let netPer =
-              (r.total_personnel_payment || 0) - (r.advance_amount || 0);
-            let profit =
-              (r.total_company_payment || 0) -
-              (r.total_personnel_payment || 0);
-            let pB =
-              r.personnel_payment_status === "odendi"
-                ? "badge-green"
-                : "badge-amber";
-            let cB =
-              r.company_payment_status === "odendi"
-                ? "badge-green"
-                : "badge-amber";
+
+        // Group rows by company_id
+        let groups = {}, groupOrder = [];
+        rows.forEach((r) => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+            groupOrder.push(r.company_id);
+          }
+          groups[r.company_id].push(r);
+        });
+
+        let html = '';
+        groupOrder.forEach((cId) => {
+          let grRows = groups[cId];
+          let grTG = grRows.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
+          let grTP = grRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+          let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
+          let grKar = grTC - grTP;
+
+          // Header row for the company (Institution)
+          html += `
+            <tr style="background: #e8f0fe;">
+              <td colspan="15" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
+                🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | 
+                Fatura: <span style="color:#0f172a">${fmt(grTC)}</span> | 
+                Personel Öd: <span style="color:#0f172a">${fmt(grTP)}</span> | 
+                Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span>
+              </td>
+            </tr>
+          `;
+
+          // Individual personnel rows under the company
+          grRows.forEach((r, i) => {
+            let netPer = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+            let profit = (parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0);
+            let pB = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
+            let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
             let rowStyle = r.archived ? "opacity:0.7;background:#fafafa;" : "";
+            
             let arsivBtn = r.archived
               ? `<button class="btn btn-sm" onclick="setArchive('${r.id}',false)" title="Geri al" style="color:#16a34a;border-color:#bbf7d0">↩ Geri Al</button>`
               : `<button class="btn btn-sm" onclick="openEditRecModal('${r.id}')" style="margin-right:3px">Düzenle</button>
-          <button class="btn btn-sm" onclick="setArchive('${r.id}',true)" title="Arşivle" style="color:#94a3b8">📦</button>
-          <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>`;
+                 <button class="btn btn-sm" onclick="setArchive('${r.id}',true)" title="Arşivle" style="color:#94a3b8">📦</button>
+                 <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>`;
+            
             let reviewBadge = r.needs_review 
               ? `<span class="badge badge-amber" style="margin-left: 6px; font-size: 8px; padding: 1px 4px;">⚠️ Kontrol Edin</span>` 
               : "";
-            return `<tr style="${rowStyle}">
-      <td>
-        <div style="font-weight: 800; color: #0f172a; font-size: 12px;">${cName(r.company_id)}</div>
-        <div style="display: flex; align-items: center; gap: 4px; padding-left: 12px; margin-top: 2px;">
-          <span style="font-weight: 600; color: #475569; white-space: nowrap;">${pName(r.personnel_id)}</span>
-          ${reviewBadge}
-        </div>
-      </td>
-      <td style="color:#64748b">${fmtDate(r.start_day)}</td>
+
+            html += `
+              <tr style="${rowStyle}">
+                <td style="padding-left: 20px;">
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-weight: 600; color: #475569; white-space: nowrap;">${pName(r.personnel_id)}</span>
+                    ${reviewBadge}
+                  </div>
+                </td>
+                <td style="color:#64748b">${fmtDate(r.start_day)}</td>
+                <td style="color:#64748b">${fmtDate(r.end_date)}</td>
+                <td style="text-align:center;color:#64748b">${r.leave_days || 0}</td>
+                <td style="font-weight:700;text-align:center">${r.work_days || 0}</td>
+                <td>${fmt(r.total_personnel_payment)}</td>
+                <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
+                <td style="color:#16a34a;font-weight:700">${fmt(netPer)}</td>
+                <td>${(parseFloat(r.total_company_payment) || 0) > 0 ? fmt(r.total_company_payment) : "—"}</td>
+                <td style="font-weight:700;color:${profit >= 0 ? "#16a34a" : "#dc2626"}">${fmt(profit)}</td>
+                <td><span class="badge ${pB}">${r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
+                <td><span class="badge ${cB}">${r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
+                <td style="text-align:center;">${r.is_recurring ? `<span class="badge badge-blue">Evet</span>` : `<span style="color:#94a3b8">—</span>`}</td>
+                <td style="color:#64748b;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.note || "—"}</td>
+                <td style="white-space:nowrap">${arsivBtn}</td>
+              </tr>
+            `;
+          });
+        });
+
+        tbody.innerHTML = html;
+      }color:#64748b">${fmtDate(r.start_day)}</td>
       <td style="color:#64748b">${fmtDate(r.end_date)}</td>
       <td style="text-align:center;color:#64748b">${r.leave_days || 0}</td>
       <td style="font-weight:700;text-align:center">${r.work_days || 0}</td>
@@ -4748,6 +4833,11 @@
         try {
           await api.delete(`/admin/work_records/${id}`);
           toast("Kayıt silindi");
+          work_records = work_records.filter((r) => r.id != id);
+          renderRecords();
+          renderOperasyonCockpit();
+          renderDashboard();
+          updateSidebarBadge();
           await loadAll();
         } catch (e) {
           toast("Hata: " + e.message, "err");
@@ -4761,6 +4851,11 @@
           toast("Kayıt silindi ✓");
           closeM('modal-calisma');
           resetCForm();
+          work_records = work_records.filter((r) => r.id != editRecId);
+          renderRecords();
+          renderOperasyonCockpit();
+          renderDashboard();
+          updateSidebarBadge();
           await loadAll();
         } catch (e) {
           toast("Hata: " + e.message, "err");
@@ -5756,24 +5851,6 @@
         openM("modal-com-history");
       }
 
-      function toggleReminderTime() {
-        const inp = document.getElementById("c-reminder-at");
-        const btn = document.getElementById("btn-toggle-reminder-time");
-        const clearBtn = document.getElementById("btn-clear-reminder-time");
-        if (inp.style.display === "none") {
-          inp.style.display = "inline-block";
-          clearBtn.style.display = "inline-block";
-          btn.textContent = "⏰ Zamanı Kapat";
-        } else {
-          inp.style.display = "none";
-          clearBtn.style.display = "none";
-          btn.textContent = "⏰ Hatırlatma Zamanı Ekle";
-        }
-      }
-
-      function clearReminderTime() {
-        document.getElementById("c-reminder-at").value = "";
-      }
 
       async function saveMonthlyExpense() {
         const val = document.getElementById("dash-monthly-expense").value;
