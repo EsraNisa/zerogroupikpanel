@@ -4591,12 +4591,14 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
           
           let base_payment = 0;
+          let overtime_wage = 0;
           if (wage_mode === "calculated") {
             base_payment = (input_wage / 30) * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
+            overtime_wage = 0;
           }
-          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           
           const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
@@ -4655,12 +4657,14 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${pId}`).value) || 0;
           
           let base_payment = 0;
+          let overtime_wage = 0;
           if (wage_mode === "calculated") {
             base_payment = (input_wage / 30) * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
+            overtime_wage = 0;
           }
-          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           
           const otWageInput = document.getElementById(`c-overtime-wage-${pId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
@@ -4765,15 +4769,17 @@
           let base_payment = 0;
           let personnel_monthly_wage = input_wage;
           let personnel_daily_wage = 0;
+          let overtime_wage = 0;
           
           if (wage_mode === "calculated") {
             personnel_daily_wage = input_wage / 30;
             base_payment = personnel_daily_wage * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             personnel_daily_wage = 0;
             base_payment = input_wage;
+            overtime_wage = 0;
           }
-          let overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           
           const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           
