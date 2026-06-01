@@ -21,6 +21,44 @@
         padding: 0;
         -webkit-tap-highlight-color: transparent;
       }
+      /* Custom Slider Switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background-color: #cbd5e1;
+        transition: .3s;
+        border-radius: 20px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+      input:checked + .slider {
+        background-color: #1e3a5f;
+      }
+      input:checked + .slider:before {
+        transform: translateX(20px);
+      }
       html {
         height: 100%;
       }
@@ -2549,11 +2587,11 @@
               </div>
             </div>
 
-            <!-- MULTI-SELECT PERSONNEL CHECKBOX LIST -->
+            <!-- DYNAMIC PERSONNEL SELECT LIST -->
             <div class="form-group" style="margin-top: 10px;">
               <label class="form-label" style="display: flex; align-items: center; justify-content: space-between;">
                 Çalışan Personeller *
-                <button type="button" class="btn btn-sm" style="font-size: 10px; padding: 2px 7px; line-height: 1.4" onclick="toggleQuickAdd('per')">
+                <button type="button" id="btn-global-new-per" class="btn btn-sm" style="font-size: 10px; padding: 2px 7px; line-height: 1.4" onclick="activeQuickAddRowId = null; toggleQuickAdd('per')">
                   + Yeni Personel
                 </button>
               </label>
@@ -2596,9 +2634,12 @@
                 </div>
               </div>
 
-              <div id="bulk-personnel-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; max-height: 140px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff;">
-                <!-- Dynamically populated checkboxes -->
+              <div id="bulk-personnel-selectors-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Dynamically populated select rows -->
               </div>
+              <button type="button" id="btn-add-per-select-row" class="btn btn-sm btn-secondary" style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="createPersonnelSelectRow()">
+                ➕ Personel Ekle
+              </button>
             </div>
           </div>
 
@@ -3901,6 +3942,86 @@
     </tr>`;
   }).join('');
 }
+      let selectRowCounter = 0;
+      let activeQuickAddRowId = null;
+
+      function createPersonnelSelectRow(selectedVal = "") {
+        const container = document.getElementById("bulk-personnel-selectors-container");
+        if (!container) return;
+        
+        selectRowCounter++;
+        const rowId = `per-select-row-${selectRowCounter}`;
+        
+        let optionsHtml = personnel.map(p => {
+          return `<option value="${p.id}" ${p.id == selectedVal ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`;
+        }).join('');
+        
+        const rowHtml = `
+          <div class="personnel-select-row" id="${rowId}" style="display: flex; gap: 6px; margin-bottom: 8px; align-items: center;">
+            <select class="form-input bulk-personnel-select" style="flex: 1;" onchange="syncPersonnelCards()">
+              <option value="">Personel Seçin...</option>
+              ${optionsHtml}
+            </select>
+            <button type="button" class="btn btn-secondary btn-sm" style="padding: 9px 12px; font-weight: 700; height: 38px;" onclick="quickAddForSelectRow('${rowId}')">+ Yeni</button>
+            <button type="button" class="btn btn-danger btn-sm btn-remove-personnel-row" style="padding: 9px 12px; font-weight: 800; height: 38px; display: flex; align-items: center; justify-content: center;" onclick="removePersonnelSelectRow('${rowId}')">×</button>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', rowHtml);
+        updateRemoveButtonsVisibility();
+      }
+
+      function removePersonnelSelectRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+          row.remove();
+          updateRemoveButtonsVisibility();
+          syncPersonnelCards();
+        }
+      }
+
+      function updateRemoveButtonsVisibility() {
+        const rows = document.querySelectorAll('.personnel-select-row');
+        rows.forEach(row => {
+          const removeBtn = row.querySelector('.btn-remove-personnel-row');
+          if (removeBtn) {
+            removeBtn.style.display = rows.length > 1 ? 'inline-flex' : 'none';
+          }
+        });
+      }
+
+      function quickAddForSelectRow(rowId) {
+        activeQuickAddRowId = rowId;
+        toggleQuickAdd('per');
+      }
+
+      function syncPersonnelCards() {
+        const selectedIds = Array.from(document.querySelectorAll('.bulk-personnel-select'))
+          .map(el => el.value)
+          .filter(val => val !== "");
+          
+        const container = document.getElementById("bulk-personnel-cards-container");
+        const existingCardIds = Array.from(container.querySelectorAll('.card'))
+          .map(card => card.id.replace('card-', ''));
+          
+        // 1. Add missing cards
+        selectedIds.forEach(pId => {
+          if (!existingCardIds.includes(pId)) {
+            renderPersonnelCard(pId);
+          }
+        });
+        
+        // 2. Remove cards that are no longer selected
+        existingCardIds.forEach(pId => {
+          if (!selectedIds.includes(pId)) {
+            const card = document.getElementById(`card-${pId}`);
+            if (card) card.remove();
+          }
+        });
+        
+        onInputChanged();
+      }
+
       function initCSelects() {
         // Populating personnel filter select
         ["f-per"].forEach((id) => {
@@ -3917,19 +4038,6 @@
           });
         });
 
-        // Populating personnel bulk list checkbox list
-        const container = document.getElementById("bulk-personnel-container");
-        if (container) {
-          container.innerHTML = personnel.map((p, idx) => {
-            return `
-              <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; user-select: none; padding: 4px 6px; border-radius: 4px;" class="p-check-label">
-                <input type="checkbox" name="bulk-personnel-checked" value="${p.id}" onchange="onPersonnelCheckChange('${p.id}')" style="width: 14px; height: 14px;" />
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${p.first_name} ${p.last_name}">${p.first_name} ${p.last_name}</span>
-              </label>
-            `;
-          }).join('');
-        }
-
         // Populating companies selects
         ["c-kurum", "f-com"].forEach((id) => {
           let s = document.getElementById(id);
@@ -3944,6 +4052,25 @@
             s.appendChild(o);
           });
         });
+
+        // Populate or initialize dynamic select rows
+        const selContainer = document.getElementById("bulk-personnel-selectors-container");
+        if (selContainer) {
+          const rows = selContainer.querySelectorAll('.personnel-select-row');
+          if (rows.length === 0) {
+            createPersonnelSelectRow();
+          } else {
+            rows.forEach(row => {
+              const sel = row.querySelector('.bulk-personnel-select');
+              const currentVal = sel.value;
+              let optionsHtml = `<option value="">Personel Seçin...</option>`;
+              optionsHtml += personnel.map(p => {
+                return `<option value="${p.id}" ${p.id == currentVal ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`;
+              }).join('');
+              sel.innerHTML = optionsHtml;
+            });
+          }
+        }
       }
 
       function togglePaymentTypeUI() {
@@ -3958,150 +4085,258 @@
         }
       }
 
-      function onPersonnelCheckChange(pId) {
-        const container = document.getElementById("bulk-personnel-cards-container");
-        const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${pId}"]`);
+      function setFullWork(pId) {
+        const input = document.getElementById(`c-days-${pId}`);
+        if (input) {
+          input.value = "30";
+          onInputChanged();
+        }
+      }
+
+      function onWageModeToggleChange(pId) {
+        const isChecked = document.getElementById(`c-wage-mode-toggle-${pId}`).checked;
+        const modeInput = document.getElementById(`c-wage-mode-${pId}`);
+        const textMonthly = document.getElementById(`c-wage-mode-text-${pId}`);
+        const textDirect = document.getElementById(`c-wage-mode-text-direct-${pId}`);
         
-        if (chk && chk.checked) {
-          if (document.getElementById(`card-${pId}`)) return;
-          
-          const p = personnel.find(x => x.id == pId);
-          const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
-          const pWage = p ? parseFloat(p.daily_wage) || 0 : 0;
-          
-          let s = document.getElementById("c-start").value;
-          let e = document.getElementById("c-end").value;
-          let defaultDays = 1;
-          if (s && e && new Date(s) <= new Date(e)) {
-            defaultDays = totalDays(s, e);
-          }
-          
-          const cardHtml = `
-            <div class="card" id="card-${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden;">
-              <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${pId}')">
-                <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
-                <span style="display: flex; align-items: center; gap: 8px;">
-                  <span id="card-sum-${pId}" style="font-size: 11px; font-weight: 700; color: #16a34a;"></span>
-                  <span id="toggle-icon-${pId}" style="font-size: 12px; color: #94a3b8; transition: transform 0.2s;">▼</span>
-                </span>
-              </div>
-              <div class="card-body" id="card-body-${pId}" style="padding: 14px; display: block;">
-                <div class="form-grid g3" style="margin-bottom: 10px;">
-                  <div class="form-group">
-                    <label class="form-label">Görev Türü</label>
-                    <input class="form-input text-job-type" id="c-job-type-${pId}" placeholder="Örn: Temizlik" value="${document.getElementById("c-job-type").value || ""}" oninput="onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Çalışılan Gün</label>
-                    <input class="form-input" id="c-days-${pId}" type="text" inputmode="numeric" placeholder="30" value="${defaultDays}" oninput="onlyNum(this); onDaysInput('${pId}'); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Maaş Yöntemi</label>
-                    <select class="form-input" id="c-wage-mode-${pId}" onchange="onWageModeCardChange('${pId}'); onInputChanged();">
-                      <option value="calculated">Aylık Maaş Üzerinden</option>
-                      <option value="direct">Direkt Net Ödeme</option>
-                    </select>
-                  </div>
-                </div>
+        if (isChecked) {
+          modeInput.value = "direct";
+          textMonthly.style.color = "#94a3b8";
+          textDirect.style.color = "#1e3a5f";
+        } else {
+          modeInput.value = "calculated";
+          textMonthly.style.color = "#1e3a5f";
+          textDirect.style.color = "#94a3b8";
+        }
+        onWageModeCardChange(pId);
+        onInputChanged();
+      }
 
-                <div class="form-grid g3" style="margin-bottom: 10px;">
-                  <div class="form-group">
-                    <label class="form-label" id="c-per-wage-label-${pId}">Aylık Ücret (₺)</label>
-                    <input class="form-input" id="c-per-wage-${pId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Avans (₺)</label>
-                    <input class="form-input" id="c-avans-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group individual-payment-group" style="display: none;">
-                    <label class="form-label" style="color: #1e3a5f; font-weight: 800;">Kurum Ödemesi (₺)</label>
-                    <input class="form-input" id="c-com-total-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                </div>
+      function onCardComTotalInput(pId) {
+        const el = document.getElementById(`c-com-total-${pId}`);
+        const kdvCb = document.getElementById(`c-com-kdv-${pId}`);
+        const tefCb = document.getElementById(`c-com-tef-${pId}`);
+        if (kdvCb) kdvCb.checked = false;
+        if (tefCb) tefCb.checked = false;
+        el.dataset.baseVal = el.value;
+      }
+      
+      function recalcCardComTotal(pId) {
+        const el = document.getElementById(`c-com-total-${pId}`);
+        const kdvCb = document.getElementById(`c-com-kdv-${pId}`);
+        const tefCb = document.getElementById(`c-com-tef-${pId}`);
+        let baseVal = parseFloat(el.dataset.baseVal) || 0;
+        let factor = 1.0;
+        if (kdvCb && kdvCb.checked) factor += 0.20;
+        if (tefCb && tefCb.checked) factor += 0.02;
+        let finalVal = baseVal * factor;
+        el.value = finalVal > 0 ? Number(finalVal.toFixed(2)).toString() : (el.dataset.baseVal || "");
+      }
 
-                <div class="form-grid g3" style="margin-bottom: 10px;">
-                  <div class="form-group">
-                    <label class="form-label">Ek Ödeme (₺)</label>
-                    <input class="form-input" id="c-additional-payment-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Prim (₺)</label>
-                    <input class="form-input" id="c-premium-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Kesinti (₺)</label>
-                    <input class="form-input" id="c-deductions-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                </div>
+      function toggleSubSection(pId, sectionName) {
+        const el = document.getElementById(`sub-section-${pId}-${sectionName}`);
+        const icon = document.getElementById(`sub-toggle-icon-${pId}-${sectionName}`);
+        if (!el || !icon) return;
+        if (el.style.display === "none" || el.style.display === "") {
+          el.style.display = "block";
+          icon.style.transform = "rotate(90deg)";
+        } else {
+          el.style.display = "none";
+          icon.style.transform = "rotate(0deg)";
+        }
+      }
 
-                <div class="form-grid g3" style="margin-bottom: 10px;" id="overtime-row-${pId}">
-                  <div class="form-group">
-                    <label class="form-label">Saatlik Mesai (Saat)</label>
-                    <input class="form-input" id="c-overtime-hours-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Günlük Mesai (Gün)</label>
-                    <input class="form-input" id="c-overtime-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Mesai Ücreti (₺)</label>
-                    <input class="form-input" id="c-overtime-wage-${pId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
-                  </div>
-                </div>
-
-                <div class="form-grid g4" style="margin-bottom: 10px;">
-                  <div class="form-group">
-                    <label class="form-label">Yıllık İzin (Gün)</label>
-                    <input class="form-input" id="c-annual-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Rapor (Gün)</label>
-                    <input class="form-input" id="c-sick-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Eksik Gün (Gün)</label>
-                    <input class="form-input" id="c-missing-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Resmi Tatil (Gün)</label>
-                    <input class="form-input" id="c-official-holiday-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
-                  </div>
-                </div>
-
-                <div class="form-grid g2" style="margin-bottom: 10px;">
-                  <div class="form-group">
-                    <label class="form-label">Hatırlatıcı Notu</label>
-                    <input class="form-input" id="c-reminder-note-${pId}" placeholder="Örn: Avans eksik, kontrol et." oninput="onInputChanged();" />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Hatırlatma Zamanı</label>
-                    <input class="form-input" id="c-reminder-at-${pId}" type="datetime-local" onchange="onInputChanged();" />
-                  </div>
-                </div>
-
-                <div class="form-grid g2" style="margin-bottom: 0;">
-                  <div class="form-group">
-                    <label class="form-label">Genel Not</label>
-                    <input class="form-input" id="c-not-${pId}" placeholder="İşle ilgili not." oninput="onInputChanged();" />
-                  </div>
-                  <div class="form-group" style="justify-content: center; display: flex; align-items: center;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #374151; height: 38px; margin: 0;">
-                      <input type="checkbox" id="c-recurring-${pId}" checked style="width: 16px; height: 16px; cursor: pointer;" onchange="onInputChanged();" />
-                      🔄 Otomatik Tekrarlansın
-                    </label>
-                  </div>
-                </div>
-              </div>
+      function renderPersonnelCard(pId) {
+        const p = personnel.find(x => x.id == pId);
+        const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
+        const pWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+        
+        let s = document.getElementById("c-start").value;
+        let e = document.getElementById("c-end").value;
+        let defaultDays = 1;
+        if (s && e && new Date(s) <= new Date(e)) {
+          defaultDays = totalDays(s, e);
+        }
+        
+        const cardHtml = `
+          <div class="card" id="card-${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${pId}')">
+              <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
+              <span style="display: flex; align-items: center; gap: 8px;">
+                <span id="card-sum-${pId}" style="font-size: 11px; font-weight: 700; color: #16a34a;"></span>
+                <span id="toggle-icon-${pId}" style="font-size: 12px; color: #94a3b8; transition: transform 0.2s;">▼</span>
+              </span>
             </div>
-          `;
-          
+            <div class="card-body" id="card-body-${pId}" style="padding: 14px; display: block;">
+              
+              <!-- Core fields: Çalışılan Gün & Maaş Yöntemi & Maaş/Ödeme Tutarı -->
+              <div class="form-grid g3" style="margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Çalışılan Gün</label>
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <input class="form-input" id="c-days-${pId}" type="text" inputmode="numeric" placeholder="30" value="${defaultDays}" oninput="onlyNum(this); onDaysInput('${pId}'); onInputChanged();" style="flex: 1;" />
+                    <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${pId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Maaş Yöntemi</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; background: #f1f5f9; border-radius: 8px; padding: 4px 10px; border: 1px solid #cbd5e1;">
+                    <span style="font-size: 11px; font-weight: 700; color: #1e3a5f;" id="c-wage-mode-text-${pId}">Aylık Maaş</span>
+                    <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
+                      <input type="checkbox" id="c-wage-mode-toggle-${pId}" onchange="onWageModeToggleChange('${pId}')" style="opacity: 0; width: 0; height: 0;" />
+                      <span class="slider round" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px;"></span>
+                    </label>
+                    <span style="font-size: 11px; font-weight: 700; color: #94a3b8;" id="c-wage-mode-text-direct-${pId}">Net Ödeme</span>
+                  </div>
+                  <input type="hidden" id="c-wage-mode-${pId}" value="calculated" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" id="c-per-wage-label-${pId}">Aylık Ücret (₺)</label>
+                  <input class="form-input" id="c-per-wage-${pId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                </div>
+              </div>
+
+              <!-- Individual Company Payment Group (Shown only when Bireysel is active) -->
+              <div class="form-grid g1 individual-payment-group" style="display: none; margin-bottom: 10px;">
+                <div class="form-group" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px;">
+                  <label class="form-label" style="color: #0369a1; font-weight: 800; display: flex; align-items: center; justify-content: space-between;">
+                    Kurum Ödemesi (₺)
+                  </label>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input class="form-input" id="c-com-total-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onCardComTotalInput('${pId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
+                        <input type="checkbox" id="c-com-kdv-${pId}" onchange="recalcCardComTotal('${pId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
+                        <input type="checkbox" id="c-com-tef-${pId}" onchange="recalcCardComTotal('${pId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: MESAI -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'mesai')">
+                  <span>⏰ Mesai Bilgileri</span>
+                  <span id="sub-toggle-icon-${pId}-mesai" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${pId}-mesai" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${pId}">
+                    <div class="form-group">
+                      <label class="form-label">Saatlik Mesai (Saat)</label>
+                      <input class="form-input" id="c-overtime-hours-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Günlük Mesai (Gün)</label>
+                      <input class="form-input" id="c-overtime-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Mesai Ücreti (₺)</label>
+                      <input class="form-input" id="c-overtime-wage-${pId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: EK ODEMELER -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'ekodemeler')">
+                  <span>💰 Ek Ödemeler (Avans, Prim, Kesinti)</span>
+                  <span id="sub-toggle-icon-${pId}-ekodemeler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${pId}-ekodemeler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g4" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">Avans (₺)</label>
+                      <input class="form-input" id="c-avans-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Ek Ödeme (₺)</label>
+                      <input class="form-input" id="c-additional-payment-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Prim (₺)</label>
+                      <input class="form-input" id="c-premium-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Kesinti (₺)</label>
+                      <input class="form-input" id="c-deductions-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: IZINLER -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'izinler')">
+                  <span>🌴 İzin Bilgileri</span>
+                  <span id="sub-toggle-icon-${pId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${pId}-izinler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g4" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">Yıllık İzin (Gün)</label>
+                      <input class="form-input" id="c-annual-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Rapor (Gün)</label>
+                      <input class="form-input" id="c-sick-leave-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Eksik Gün (Gün)</label>
+                      <input class="form-input" id="c-missing-days-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Resmi Tatil (Gün)</label>
+                      <input class="form-input" id="c-official-holiday-${pId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${pId}'); onInputChanged();" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: NOTLAR & HATIRLATICILAR -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${pId}', 'notlar')">
+                  <span>📝 Notlar ve Hatırlatıcılar</span>
+                  <span id="sub-toggle-icon-${pId}-notlar" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${pId}-notlar" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g2" style="margin-bottom: 10px;">
+                    <div class="form-group">
+                      <label class="form-label">Hatırlatıcı Notu</label>
+                      <input class="form-input" id="c-reminder-note-${pId}" placeholder="Örn: Avans eksik, kontrol et." oninput="onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Hatırlatma Zamanı</label>
+                      <input class="form-input" id="c-reminder-at-${pId}" type="datetime-local" onchange="onInputChanged();" />
+                    </div>
+                  </div>
+                  <div class="form-grid g2" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">Genel Not</label>
+                      <input class="form-input" id="c-not-${pId}" placeholder="İşle ilgili not." oninput="onInputChanged();" />
+                    </div>
+                    <div class="form-group" style="justify-content: center; display: flex; align-items: center;">
+                      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #374151; height: 38px; margin: 0;">
+                        <input type="checkbox" id="c-recurring-${pId}" checked style="width: 16px; height: 16px; cursor: pointer;" onchange="onInputChanged();" />
+                        🔄 Otomatik Tekrarlansın
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `;
+        
+        const container = document.getElementById("bulk-personnel-cards-container");
+        if (container) {
           container.insertAdjacentHTML('beforeend', cardHtml);
           togglePaymentTypeUI();
-        } else {
-          const card = document.getElementById(`card-${pId}`);
-          if (card) card.remove();
         }
-        onInputChanged();
       }
 
       function onWageModeCardChange(pId) {
@@ -4163,8 +4398,8 @@
         let e = document.getElementById("c-end").value;
         if (!s || !e || new Date(s) > new Date(e)) return;
         
-        document.querySelectorAll('input[name="bulk-personnel-checked"]:checked').forEach(chk => {
-          const pId = chk.value;
+        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
+        selectedPersonnelIds.forEach(pId => {
           onLeaveChange(pId);
         });
         onInputChanged();
@@ -4220,30 +4455,68 @@
         togglePaymentTypeUI();
 
         const pId = r.personnel_id;
-        const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${pId}"]`);
-        if (chk) chk.checked = true;
         
-        onPersonnelCheckChange(pId);
+        const container = document.getElementById("bulk-personnel-selectors-container");
+        if (container) container.innerHTML = "";
         
-        // Disable other checkboxes since we're in edit mode for this single record
-        document.querySelectorAll('input[name="bulk-personnel-checked"]').forEach(c => {
-          if (c.value != pId) {
-            c.disabled = true;
-            c.parentElement.style.opacity = "0.5";
-            c.parentElement.style.cursor = "not-allowed";
-          }
-        });
-        const quickPerBtn = document.querySelector('button[onclick="toggleQuickAdd(\'per\')"]');
-        if (quickPerBtn) quickPerBtn.style.display = "none";
+        createPersonnelSelectRow(pId);
         
-        document.getElementById(`c-job-type-${pId}`).value = r.job_type || "";
+        // Disable the select dropdown in edit mode
+        const sel = container.querySelector('.bulk-personnel-select');
+        if (sel) {
+          sel.disabled = true;
+          sel.style.backgroundColor = "#f1f5f9";
+          sel.style.cursor = "not-allowed";
+        }
+        
+        // Hide row addition button and "+ Yeni" & "×" buttons inside the row
+        const addRowBtn = document.getElementById("btn-add-per-select-row");
+        if (addRowBtn) addRowBtn.style.display = "none";
+        
+        const row = container.querySelector('.personnel-select-row');
+        if (row) {
+          const quickBtn = row.querySelector('.btn-secondary');
+          const removeBtn = row.querySelector('.btn-remove-personnel-row');
+          if (quickBtn) quickBtn.style.display = "none";
+          if (removeBtn) removeBtn.style.display = "none";
+        }
+        
+        const globalNewPerBtn = document.getElementById("btn-global-new-per");
+        if (globalNewPerBtn) globalNewPerBtn.style.display = "none";
+
+        syncPersonnelCards();
+        
+        document.getElementById("c-job-type").value = r.job_type || "";
         document.getElementById(`c-days-${pId}`).value = r.work_days || "";
-        document.getElementById(`c-wage-mode-${pId}`).value = r.wage_mode || "calculated";
+        
+        const wageMode = r.wage_mode || "calculated";
+        document.getElementById(`c-wage-mode-${pId}`).value = wageMode;
+        
+        const toggleEl = document.getElementById(`c-wage-mode-toggle-${pId}`);
+        if (toggleEl) {
+          toggleEl.checked = (wageMode === "direct");
+        }
+        const textMonthly = document.getElementById(`c-wage-mode-text-${pId}`);
+        const textDirect = document.getElementById(`c-wage-mode-text-direct-${pId}`);
+        if (textMonthly && textDirect) {
+          if (wageMode === "direct") {
+            textMonthly.style.color = "#94a3b8";
+            textDirect.style.color = "#1e3a5f";
+          } else {
+            textMonthly.style.color = "#1e3a5f";
+            textDirect.style.color = "#94a3b8";
+          }
+        }
         onWageModeCardChange(pId);
         
         document.getElementById(`c-per-wage-${pId}`).value = r.personnel_monthly_wage || "";
         document.getElementById(`c-avans-${pId}`).value = r.advance_amount || 0;
-        document.getElementById(`c-com-total-${pId}`).value = r.total_company_payment || 0;
+        
+        const comTotalEl = document.getElementById(`c-com-total-${pId}`);
+        if (comTotalEl) {
+          comTotalEl.value = r.total_company_payment || 0;
+          comTotalEl.dataset.baseVal = r.total_company_payment || 0;
+        }
         
         document.getElementById(`c-additional-payment-${pId}`).value = r.additional_payment || 0;
         document.getElementById(`c-premium-${pId}`).value = r.premium || 0;
@@ -4293,12 +4566,15 @@
         if (topluRadio) topluRadio.checked = true;
         togglePaymentTypeUI();
 
-        document.querySelectorAll('input[name="bulk-personnel-checked"]').forEach(chk => {
-          chk.checked = false;
-          chk.disabled = false;
-          chk.parentElement.style.opacity = "";
-          chk.parentElement.style.cursor = "";
-        });
+        const container = document.getElementById("bulk-personnel-selectors-container");
+        if (container) container.innerHTML = "";
+        createPersonnelSelectRow();
+        
+        const addRowBtn = document.getElementById("btn-add-per-select-row");
+        if (addRowBtn) addRowBtn.style.display = "block";
+        
+        const globalNewPerBtn = document.getElementById("btn-global-new-per");
+        if (globalNewPerBtn) globalNewPerBtn.style.display = "inline-flex";
 
         const quickPerBtn = document.querySelector('button[onclick="toggleQuickAdd(\'per\')"]');
         if (quickPerBtn) quickPerBtn.style.display = "inline-flex";
@@ -4337,7 +4613,7 @@
       }
 
       function updateIndividualCardSums() {
-        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
         selectedPersonnelIds.forEach((pId) => {
           const work_days = parseFloat(document.getElementById(`c-days-${pId}`).value) || 0;
           const wage_mode = document.getElementById(`c-wage-mode-${pId}`).value;
@@ -4379,7 +4655,7 @@
       }
 
       function calcPreview() {
-        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
         const previewEl = document.getElementById("c-preview");
         if (!previewEl) return;
         
@@ -4498,7 +4774,7 @@
       }
 
       async function saveCalisme() {
-        const selectedPersonnelIds = Array.from(document.querySelectorAll('input[name="bulk-personnel-checked"]:checked')).map(el => el.value);
+        const selectedPersonnelIds = Array.from(new Set(Array.from(document.querySelectorAll('.bulk-personnel-select')).map(el => el.value).filter(val => val !== "")));
         if (selectedPersonnelIds.length === 0) {
           toast("Lütfen en az bir personel seçin!", "err");
           return;
@@ -4599,7 +4875,7 @@
             overtime_type: "hourly",
             overtime_days,
             overtime_wage,
-            job_type: document.getElementById(`c-job-type-${pId}`).value || "",
+            job_type: document.getElementById("c-job-type").value || "",
             additional_payment,
             deductions,
             premium,
@@ -4668,11 +4944,31 @@
           
           initCSelects();
           
-          const chk = document.querySelector(`input[name="bulk-personnel-checked"][value="${np.id}"]`);
-          if (chk) {
-            chk.checked = true;
-            onPersonnelCheckChange(np.id);
+          if (activeQuickAddRowId) {
+            const row = document.getElementById(activeQuickAddRowId);
+            if (row) {
+              const sel = row.querySelector('.bulk-personnel-select');
+              if (sel) {
+                sel.value = np.id;
+              }
+            }
+          } else {
+            const rows = document.querySelectorAll('.personnel-select-row');
+            let placed = false;
+            for (let row of rows) {
+              const sel = row.querySelector('.bulk-personnel-select');
+              if (sel && sel.value === "") {
+                sel.value = np.id;
+                placed = true;
+                break;
+              }
+            }
+            if (!placed) {
+              createPersonnelSelectRow(np.id);
+            }
           }
+          
+          syncPersonnelCards();
           
           [
             "qp-first",
