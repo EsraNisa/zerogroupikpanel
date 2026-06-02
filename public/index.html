@@ -3240,10 +3240,17 @@
       }
       function getYearMonth(dateStr) {
         if (!dateStr) return { year: 0, month: 0 };
-        const parts = dateStr.substring(0, 10).split('-');
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) {
+          const parts = dateStr.substring(0, 10).split('-');
+          return {
+            year: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1
+          };
+        }
         return {
-          year: parseInt(parts[0], 10),
-          month: parseInt(parts[1], 10) - 1
+          year: d.getFullYear(),
+          month: d.getMonth()
         };
       }
       function isPeriodApproved(dateStr) {
@@ -3251,6 +3258,12 @@
         const ym = getYearMonth(dateStr);
         const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
         return approvedPeriods.includes(periodStr);
+      }
+      function toLocalYYYYMMDD(dateStr) {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr.substring(0, 10);
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
       }
       function parseSubstituteNote(noteStr) {
         if (!noteStr) return null;
@@ -5198,7 +5211,7 @@
             existingCover = work_records.find(x => 
               x.company_id == r.company_id && 
               x.start_day && r.start_day &&
-              x.start_day.substring(0, 10) === r.start_day.substring(0, 10) && 
+              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
               x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
               !x.archived
             );
@@ -5599,7 +5612,7 @@
         const existingCover = work_records.find(x => 
           x.company_id == parentRecord.company_id && 
           x.start_day && parentRecord.start_day &&
-          x.start_day.substring(0, 10) === parentRecord.start_day.substring(0, 10) && 
+          toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(parentRecord.start_day) && 
           x.note && x.note.includes("__SUB_FOR_PID:" + parentRecord.personnel_id + ":") &&
           !x.archived
         );
@@ -5623,8 +5636,8 @@
           }
         } else {
           if (coverPid && coverDays > 0) {
-            const startStr = parentRecord.start_day ? parentRecord.start_day.substring(0, 10) : "";
-            const endStr = parentRecord.end_date ? parentRecord.end_date.substring(0, 10) : "";
+            const startStr = parentRecord.start_day ? toLocalYYYYMMDD(parentRecord.start_day) : "";
+            const endStr = parentRecord.end_date ? toLocalYYYYMMDD(parentRecord.end_date) : "";
             await api.post("/admin/work_records", [{
               personnel_id: parseInt(coverPid),
               company_id: parentRecord.company_id,
@@ -6453,8 +6466,16 @@
             if (arsivMode ? !r.archived : r.archived) return false;
             if (fp && r.personnel_id != fp) return false;
             if (fc && r.company_id != fc) return false;
-            let rStart = r.start_day ? r.start_day.substring(0, 10) : "";
-            let rEnd = r.end_date ? r.end_date.substring(0, 10) : "";
+            let rStart = "";
+            if (r.start_day) {
+              let d = new Date(r.start_day);
+              rStart = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+            }
+            let rEnd = "";
+            if (r.end_date) {
+              let d = new Date(r.end_date);
+              rEnd = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+            }
             if (fb && rStart && rStart < fb) return false;
             if (fe && rEnd && rEnd > fe) return false;
             if (fps && r.personnel_payment_status !== fps) return false;
@@ -6844,9 +6865,8 @@
       bit = document.getElementById("rap-p-bit").value;
   let rows = work_records.filter((r) => {
     if (pId && r.personnel_id != pId) return false;
-    // Tarih karşılaştırması için ISO string'i kısa formata çevir
-    let startDate = r.start_day ? r.start_day.substring(0, 10) : '';
-    let endDate = r.end_date ? r.end_date.substring(0, 10) : '';
+    let startDate = r.start_day ? toLocalYYYYMMDD(r.start_day) : '';
+    let endDate = r.end_date ? toLocalYYYYMMDD(r.end_date) : '';
     if (bas && startDate && startDate < bas) return false;
     if (bit && endDate && endDate > bit) return false;
     return true;
@@ -6958,8 +6978,8 @@
       bit = document.getElementById("rap-k-bit").value;
   let rows = work_records.filter((r) => {
     if (cId && r.company_id != cId) return false;
-    let startDate = r.start_day ? r.start_day.substring(0, 10) : '';
-    let endDate = r.end_date ? r.end_date.substring(0, 10) : '';
+    let startDate = r.start_day ? toLocalYYYYMMDD(r.start_day) : '';
+    let endDate = r.end_date ? toLocalYYYYMMDD(r.end_date) : '';
     if (bas && startDate && startDate < bas) return false;
     if (bit && endDate && endDate > bit) return false;
     return true;
@@ -7393,7 +7413,10 @@
         // Filter work records for this company, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.company_id != id) return false;
-          return r.start_day ? true : false;
+          if (!r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+          return approvedPeriods.includes(periodStr);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
