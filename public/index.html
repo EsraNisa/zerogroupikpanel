@@ -3259,6 +3259,14 @@
         const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
         return approvedPeriods.includes(periodStr);
       }
+      function isRecordVisibleInHistory(r) {
+        if (!r || !r.start_day) return false;
+        const ym = getYearMonth(r.start_day);
+        const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+        const now = new Date();
+        const currentPeriodStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        return (periodStr <= currentPeriodStr) || approvedPeriods.includes(periodStr);
+      }
       function toLocalYYYYMMDD(dateStr) {
         if (!dateStr) return "";
         const d = new Date(dateStr);
@@ -3804,7 +3812,10 @@
         if (isGeneratingRecurring) return;
         isGeneratingRecurring = true;
         
+        const targetPeriodValue = selYear * 12 + selMonth;
+        
         // Find all unique (personnel_id, company_id) active recurring records in the system
+        // that were active BEFORE the target month.
         const latestPairs = {};
         work_records.forEach(r => {
           if (!r.start_day) return;
@@ -3814,6 +3825,9 @@
           const key = `${r.personnel_id}-${r.company_id}`;
           const ym = getYearMonth(r.start_day);
           const rPeriodValue = ym.year * 12 + ym.month;
+          
+          // Only copy template from a month strictly before the target period
+          if (rPeriodValue >= targetPeriodValue) return;
           
           if (!latestPairs[key]) {
             latestPairs[key] = r;
@@ -3839,37 +3853,49 @@
 
         Object.values(latestPairs).forEach(rec => {
           if (rec.is_recurring && !rec.archived) {
-            const ym = getYearMonth(rec.start_day);
-            const recPeriodValue = ym.year * 12 + ym.month;
-            const targetPeriodValue = selYear * 12 + selMonth;
+            // Check if a record already exists in this target month
+            const exists = work_records.some(r => {
+              if (!r.start_day) return false;
+              const rYM = getYearMonth(r.start_day);
+              return r.personnel_id == rec.personnel_id && 
+                     r.company_id == rec.company_id && 
+                     rYM.month === selMonth && 
+                     rYM.year === selYear;
+            });
             
-            if (targetPeriodValue > recPeriodValue) {
-              const exists = work_records.some(r => {
-                if (!r.start_day) return false;
-                const rYM = getYearMonth(r.start_day);
-                return r.personnel_id == rec.personnel_id && 
-                       r.company_id == rec.company_id && 
-                       rYM.month === selMonth && 
-                       rYM.year === selYear;
+            if (!exists) {
+              missingRecords.push({
+                personnel_id: rec.personnel_id,
+                company_id: rec.company_id,
+                start_day: targetStartStr,
+                end_date: targetEndStr,
+                work_days: lastDay,
+                personnel_monthly_wage: 0,
+                personnel_daily_wage: 0,
+                total_personnel_payment: 0,
+                total_company_payment: 0,
+                advance_amount: 0,
+                expenses: 0,
+                is_recurring: true,
+                needs_review: true,
+                wage_mode: "calculated",
+                note: "",
+                overtime_hours: 0,
+                overtime_days: 0,
+                overtime_wage: 0,
+                additional_payment: 0,
+                deductions: 0,
+                premium: 0,
+                travel_expense: 0,
+                food_expense: 0,
+                accommodation: 0,
+                other_expenses: 0,
+                annual_leave: 0,
+                sick_leave: 0,
+                missing_days: 0,
+                official_holiday: 0,
+                leave_days: 0
               });
-              
-              if (!exists) {
-                missingRecords.push({
-                  personnel_id: rec.personnel_id,
-                  company_id: rec.company_id,
-                  start_day: targetStartStr,
-                  end_date: targetEndStr,
-                  work_days: lastDay,
-                  personnel_monthly_wage: 0,
-                  personnel_daily_wage: 0,
-                  total_personnel_payment: 0,
-                  total_company_payment: 0,
-                  is_recurring: true,
-                  needs_review: true,
-                  wage_mode: "calculated",
-                  note: ""
-                });
-              }
             }
           }
         });
@@ -4820,10 +4846,7 @@
             let tg = work_records
               .filter((r) => {
                 if (r.personnel_id !== p.id) return false;
-                if (!r.start_day) return false;
-                const ym = getYearMonth(r.start_day);
-                const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
-                return approvedPeriods.includes(periodStr);
+                return isRecordVisibleInHistory(r);
               })
               .reduce((s, r) => s + (r.work_days || 0), 0);
             return `<tr>
@@ -6289,9 +6312,10 @@
         if (data !== undefined) {
           rows = data;
         } else {
-          rows = work_records.filter((r) =>
-            arsivMode ? r.archived === true : !r.archived,
-          );
+          rows = work_records.filter((r) => {
+            const arch = arsivMode ? r.archived === true : !r.archived;
+            return arch && isRecordVisibleInHistory(r);
+          });
         }
         rows = [...rows].sort((a, b) => {
           let cA = cName(a.company_id) || "";
@@ -6464,6 +6488,7 @@
         renderRecords(
           work_records.filter((r) => {
             if (arsivMode ? !r.archived : r.archived) return false;
+            if (!isRecordVisibleInHistory(r)) return false;
             if (fp && r.personnel_id != fp) return false;
             if (fc && r.company_id != fc) return false;
             let rStart = "";
@@ -7356,10 +7381,7 @@
         // Filter work records for this personnel, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.personnel_id != id) return false;
-          if (!r.start_day) return false;
-          const ym = getYearMonth(r.start_day);
-          const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
-          return approvedPeriods.includes(periodStr);
+          return isRecordVisibleInHistory(r);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
@@ -7413,10 +7435,7 @@
         // Filter work records for this company, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.company_id != id) return false;
-          if (!r.start_day) return false;
-          const ym = getYearMonth(r.start_day);
-          const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
-          return approvedPeriods.includes(periodStr);
+          return isRecordVisibleInHistory(r);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
@@ -7696,7 +7715,8 @@
         const filtered = work_records.filter(r => {
           if (!r.start_day) return false;
           const d = new Date(r.start_day);
-          return d.getMonth() === selMonth && d.getFullYear() === selYear && !r.archived;
+          const isMonthMatch = d.getMonth() === selMonth && d.getFullYear() === selYear && !r.archived;
+          return isMonthMatch && isRecordVisibleInHistory(r);
         });
         
         if (filtered.length === 0) {
