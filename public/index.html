@@ -3728,6 +3728,7 @@
           renderPersonnel();
           renderCompanies();
           renderRecords();
+          initCSelects();
           initOpSelects();
           renderOperasyonCockpit();
           updateSidebarBadge();
@@ -5633,6 +5634,7 @@
       }
 
       function openCalismaModal() {
+        initCSelects();
         editRecId = null;
         document.getElementById("modal-calisma-title").textContent = "Yeni Çalışma Kaydı";
         resetCForm();
@@ -5785,6 +5787,7 @@
       }
 
       function openEditRecModal(id) {
+        initCSelects();
         let r = work_records.find((x) => x.id == id);
         if (!r) return;
         if (isPeriodApproved(r.start_day)) {
