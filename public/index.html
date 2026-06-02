@@ -1503,8 +1503,8 @@
                 </select>
               </div>
               <div>
-                <button class="btn btn-primary" onclick="downloadKontrolAsImage()">
-                  📸 Resim Olarak İndir
+                <button class="btn btn-primary" onclick="downloadKontrolAsPDF()">
+                  📄 PDF Olarak İndir
                 </button>
               </div>
             </div>
@@ -1555,10 +1555,10 @@
               <div class="card-body">
                 <div class="form-grid">
                   <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; color: #475569;">Aylık İşlerin Yenilenme Günü</label>
+                    <label class="form-label" style="font-weight: 700; color: #475569;">Aylık Operasyon ve Ödeme Bildirim Günü</label>
                     <input type="number" id="set-renew-day" class="form-input" min="1" max="28" value="1" placeholder="Örn: 1 (Her ayın 1. günü)">
                     <div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4;">
-                      Tekrarlayan aylık işlerin otomatik olarak yeni dönem kopyalarının üretileceği gündür. (1 - 28 arası değer giriniz)
+                      Aylık operasyon güncelleme ve ödeme bildirimlerinin tetikleneceği gündür. (1 - 28 arası değer giriniz)
                     </div>
                   </div>
                   <div class="form-group" style="margin-top: 15px;">
@@ -2878,6 +2878,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
       // ============================================================
       // CONFIG — Tüm istekler backend üzerinden geçer
@@ -3749,18 +3750,39 @@
             `;
           }
           
-          // C: Tamamlanmayan Ödeme (Sadece ödeme tarihi geldiğinde veya geçmişse uyarır)
-          if (r.personnel_payment_status !== 'odendi' && todayDay >= ikSettings.payment_day) {
-            alertsHtml += `
-              <div class="alert-item danger" style="margin-bottom: 8px;">
-                <div style="font-size: 16px; margin-top: 2px;">💳</div>
-                <div style="flex: 1;">
-                  <div class="alert-item-title">${pName}</div>
-                  <div class="alert-item-desc"><b>${cName}</b> — Ödeme kaydı tamamlanmadı.</div>
+          // C: Tamamlanmayan Ödemeler (Sadece ödeme tarihi geldiğinde veya geçmişse uyarır)
+          if (todayDay >= ikSettings.payment_day) {
+            // Kurum Ödemesi Uyarısı
+            const isToplu = isTopluRecord(r, records);
+            const isCompanyPaymentUnpaid = r.company_payment_status !== 'odendi';
+            const hasCompanyPayment = (parseFloat(r.total_company_payment) || 0) > 0;
+            
+            if (isCompanyPaymentUnpaid && (!isToplu || hasCompanyPayment)) {
+              alertsHtml += `
+                <div class="alert-item danger" style="margin-bottom: 8px; background: #fef2f2; border-color: #fecaca; color: #b91c1c;">
+                  <div style="font-size: 16px; margin-top: 2px;">🏢</div>
+                  <div style="flex: 1;">
+                    <div class="alert-item-title" style="font-weight: 700; color: #b91c1c;">${cName}</div>
+                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${cName}</b> kurumundan ödeme alınmadı.</div>
+                  </div>
+                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #b91c1c; color: #fff;" onclick="openEditRecModal('${r.id}')">Güncelle</button>
                 </div>
-                <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px;" onclick="openEditRecModal('${r.id}')">Güncelle</button>
-              </div>
-            `;
+              `;
+            }
+            
+            // Personel Ödemesi Uyarısı
+            if (r.personnel_payment_status !== 'odendi' && (parseFloat(r.total_personnel_payment) || 0) > 0) {
+              alertsHtml += `
+                <div class="alert-item danger" style="margin-bottom: 8px; background: #fef2f2; border-color: #fecaca; color: #b91c1c;">
+                  <div style="font-size: 16px; margin-top: 2px;">👤</div>
+                  <div style="flex: 1;">
+                    <div class="alert-item-title" style="font-weight: 700; color: #b91c1c;">${pName}</div>
+                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${pName}</b> personeline ödeme yapılmadı.</div>
+                  </div>
+                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #b91c1c; color: #fff;" onclick="openEditRecModal('${r.id}')">Güncelle</button>
+                </div>
+              `;
+            }
           }
           
           // D: Onay Bekleyen Kurum Kaydı (needs_review = true)
@@ -4252,6 +4274,12 @@
         const labelText = isDirect ? "Direkt Net Ödeme (₺)" : "Aylık Ücret (₺)";
         const placeholderText = isDirect ? "Örn: 25000" : "Örn: 30000";
         
+        let factor = 1.0;
+        if (r.com_kdv) factor += 0.20;
+        if (r.com_tevkifat) factor += 0.02;
+        let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
+        baseVal = Math.round(baseVal * 100) / 100;
+
         return `
           <div class="card" id="card-${rowId}" data-personnel-id="${r.personnel_id}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <div class="card-head" style="background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;">
@@ -4297,13 +4325,13 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-kdv-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
+                        <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
                       </label>
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-tef-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
+                        <input type="checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
                       </label>
                     </div>
                   </div>
@@ -4557,6 +4585,10 @@
             const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
             const note = document.getElementById(`c-not-${rowId}`).value || "";
             const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
+            const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
+            const tefCb = document.getElementById(`c-com-tef-${rowId}`);
+            const com_kdv = kdvCb ? kdvCb.checked : false;
+            const com_tevkifat = tefCb ? tefCb.checked : false;
 
             await api.patch(`/admin/work_records/${rowId}`, {
               work_days,
@@ -4574,7 +4606,9 @@
               annual_leave,
               leave_days: annual_leave,
               note,
-              needs_review: false
+              needs_review: false,
+              com_kdv,
+              com_tevkifat
             });
 
             // Also handle cover personnel record saving/updating
@@ -5226,11 +5260,13 @@
           defaultDays = totalDays(s, e);
         }
         
+        let r = { total_company_payment: 0, com_kdv: false, com_tevkifat: false };
         let existingCover = null;
         let subInfo = null;
         if (editRecId) {
-          const r = work_records.find(x => x.id == editRecId);
-          if (r) {
+          const found = work_records.find(x => x.id == editRecId);
+          if (found) {
+            r = found;
             existingCover = work_records.find(x => 
               x.company_id == r.company_id && 
               x.start_day && r.start_day &&
@@ -5244,6 +5280,12 @@
           }
         }
         const hasCover = !!subInfo;
+        
+        let factor = 1.0;
+        if (r.com_kdv) factor += 0.20;
+        if (r.com_tevkifat) factor += 0.02;
+        let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
+        baseVal = Math.round(baseVal * 100) / 100;
         const coverPid = existingCover ? existingCover.personnel_id : "";
         const coverDays = subInfo ? subInfo.days : "";
         const coverWage = subInfo ? subInfo.wage : "";
@@ -5293,13 +5335,13 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-kdv-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
+                        <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
                       </label>
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-tef-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
+                        <input type="checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
                       </label>
                     </div>
                   </div>
@@ -6111,8 +6153,30 @@
           const leave_days = annual_leave;
           
           const note = document.getElementById(`c-not-${rowId}`).value || "";
-          const reminder_at = null;
+          let reminder_note = "";
+          let reminder_at = null;
+          if (editRecId) {
+            const orig = work_records.find(x => x.id == editRecId);
+            if (orig) {
+              reminder_note = orig.reminder_note || "";
+              reminder_at = orig.reminder_at || null;
+            }
+          }
           const is_recurring = document.getElementById("c-is-recurring").checked;
+          
+          let com_kdv = false;
+          let com_tevkifat = false;
+          if (paymentType === "toplu") {
+            const globalKdvCb = document.getElementById("c-com-kdv");
+            const globalTefCb = document.getElementById("c-com-tef");
+            com_kdv = globalKdvCb ? globalKdvCb.checked : false;
+            com_tevkifat = globalTefCb ? globalTefCb.checked : false;
+          } else {
+            const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
+            const tefCb = document.getElementById(`c-com-tef-${rowId}`);
+            com_kdv = kdvCb ? kdvCb.checked : false;
+            com_tevkifat = tefCb ? tefCb.checked : false;
+          }
           
           records.push({
             personnel_id: pId,
@@ -6151,7 +6215,9 @@
             official_holiday,
             reminder_note,
             reminder_at,
-            wage_mode
+            wage_mode,
+            com_kdv,
+            com_tevkifat
           });
 
           if (!editRecId && annual_leave > 0) {
@@ -7223,30 +7289,206 @@
         }
 
         if (type === "aylik") {
-          let sd = buildGroupedSheet(sortedRows, cols, mapRow);
+          let sd = [];
           
-          let sumAnnualLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.annual_leave) || 0), 0);
-          let sumSickLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.sick_leave) || 0), 0);
-          let sumMissingDays = sortedRows.reduce((s, r) => s + (parseFloat(r.missing_days) || 0), 0);
-          let sumOfficialHoliday = sortedRows.reduce((s, r) => s + (parseFloat(r.official_holiday) || 0), 0);
-          let sumLeaveSum = sumAnnualLeave + sumSickLeave + sumMissingDays + sumOfficialHoliday;
-          
-          let sumOvertimeHours = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_hours) || 0), 0);
-          let sumOvertimeWage = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_wage) || 0), 0);
-          let sumMonthlyWage = sortedRows.reduce((s, r) => s + (parseFloat(r.personnel_monthly_wage) || 0), 0);
-          let sumAdditionalPayment = sortedRows.reduce((s, r) => s + (parseFloat(r.additional_payment) || 0), 0);
-          let sumPremium = sortedRows.reduce((s, r) => s + (parseFloat(r.premium) || 0), 0);
-          let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
-
+          // Header row
           sd.push([
-            "GENEL TOPLAM", "", "", "", "", 
-            sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
-            sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
-            r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC,
-            r.tK, "", "", "", "", ""
+            "KURUM", 
+            "", 
+            "PERSONEL", 
+            "ÇALIŞILAN GÜN", 
+            "İZİN / YERİNE GELEN", 
+            "KURUM ÖDEMESİ", 
+            "MAAŞ HESAP / NET ÖDEME", 
+            "MAAŞ / HAK EDİŞ"
           ]);
+          sd.push([]); // Spacing row
+
+          // Helper for cover personnel detection
+          function getSubstituteParentId(row) {
+            if (!row.note) return null;
+            const match = row.note.match(/__SUB_FOR_PID:(\d+):/);
+            return match ? parseInt(match[1], 10) : null;
+          }
+
+          // Group sortedRows by company
+          let companyGroups = {};
+          let companyIds = [];
+          sortedRows.forEach(row => {
+            if (!companyGroups[row.company_id]) {
+              companyGroups[row.company_id] = [];
+              companyIds.push(row.company_id);
+            }
+            companyGroups[row.company_id].push(row);
+          });
           
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), aylar[r.ay] + " " + r.yil);
+          // Sort companyIds by company name
+          companyIds.sort((a, b) => cName(a).localeCompare(cName(b), "tr"));
+          
+          companyIds.forEach(cId => {
+            let companyRecords = companyGroups[cId];
+            
+            // Separate main and sub records
+            let mainRecords = [];
+            let subRecords = [];
+            companyRecords.forEach(row => {
+              if (getSubstituteParentId(row)) {
+                subRecords.push(row);
+              } else {
+                mainRecords.push(row);
+              }
+            });
+            
+            // Sort main records by personnel name
+            mainRecords.sort((a, b) => pName(a.personnel_id).localeCompare(pName(b.personnel_id), "tr"));
+            
+            // 1. Company Header Row
+            sd.push([cName(cId), "", "", "", "", "", "", ""]);
+            
+            // 2. Personnel rows
+            mainRecords.forEach(row => {
+              // Check if it's collective or individual payment
+              let isToplu = isTopluRecord(row, sortedRows);
+              
+              // Column F: Kurum Ödemesi
+              let comPaymentVal = "";
+              if (!isToplu) {
+                let factor = 1.0;
+                if (row.com_kdv) factor += 0.20;
+                if (row.com_tevkifat) factor += 0.02;
+                let baseVal = factor > 0 ? (row.total_company_payment / factor) : row.total_company_payment;
+                baseVal = Math.round(baseVal);
+                
+                if (row.com_kdv && row.com_tevkifat) {
+                  comPaymentVal = `${Math.round(row.total_company_payment)} TL (+20% KDV, +2% Tef)`;
+                } else if (row.com_kdv) {
+                  comPaymentVal = `${baseVal} TL (+20% KDV = ${Math.round(row.total_company_payment)} TL)`;
+                } else if (row.com_tevkifat) {
+                  comPaymentVal = `${baseVal} TL (+2% Tevkifat = ${Math.round(row.total_company_payment)} TL)`;
+                } else {
+                  comPaymentVal = row.total_company_payment > 0 ? `${Math.round(row.total_company_payment)} TL` : "—";
+                }
+              }
+              
+              // Column G: Maaş Hesap
+              let salaryCalcVal = "";
+              if (row.advance_amount > 0) {
+                salaryCalcVal = `${Math.round(row.total_personnel_payment)} - ${Math.round(row.advance_amount)} AVANS = ${Math.round(row.total_personnel_payment - row.advance_amount)}`;
+              }
+              
+              // Column H: Maaş / Hakediş
+              let salaryHakedisVal = "";
+              if (row.advance_amount <= 0) {
+                salaryHakedisVal = Math.round(row.total_personnel_payment).toString();
+              }
+              
+              // Column E: İzin / Yerine Gelen
+              let leaveNoteVal = "";
+              if (row.annual_leave > 0) {
+                leaveNoteVal = `${row.annual_leave} Gün İzin`;
+                if (row.note && !row.note.startsWith("__SUB_FOR_PID")) {
+                  leaveNoteVal += ` (${row.note})`;
+                }
+              } else if (row.note && !row.note.startsWith("__SUB_FOR_PID")) {
+                leaveNoteVal = row.note;
+              }
+              
+              sd.push([
+                "", 
+                "", 
+                pName(row.personnel_id), 
+                (row.work_days || 0) + " GÜN", 
+                leaveNoteVal, 
+                comPaymentVal, 
+                salaryCalcVal, 
+                salaryHakedisVal
+              ]);
+              
+              // Find and push cover personnel rows directly under
+              let subs = subRecords.filter(s => getSubstituteParentId(s) == row.personnel_id);
+              subs.forEach(sub => {
+                sd.push([
+                  "", 
+                  "", 
+                  "", 
+                  "", 
+                  pName(sub.personnel_id) + " (Yerine)", 
+                  (sub.work_days || 0) + " GÜN", 
+                  Math.round(sub.total_personnel_payment) + " TL", 
+                  ""
+                ]);
+              });
+            });
+            
+            // 3. Company Total Row
+            // Company payment total
+            let totalComText = "";
+            let positiveComRecords = companyRecords.filter(rx => (parseFloat(rx.total_company_payment) || 0) > 0);
+            let totalComSum = companyRecords.reduce((sum, rx) => sum + (parseFloat(rx.total_company_payment) || 0), 0);
+            
+            // If it is collective payment, check KDV/Tevkifat on the record that has positive payment
+            let isTopluGroup = isTopluRecord(companyRecords[0], sortedRows);
+            if (isTopluGroup && positiveComRecords.length === 1) {
+              let topluRec = positiveComRecords[0];
+              let factor = 1.0;
+              if (topluRec.com_kdv) factor += 0.20;
+              if (topluRec.com_tevkifat) factor += 0.02;
+              let baseVal = factor > 0 ? (topluRec.total_company_payment / factor) : topluRec.total_company_payment;
+              baseVal = Math.round(baseVal);
+              
+              if (topluRec.com_kdv && topluRec.com_tevkifat) {
+                totalComText = `TOPLAM = ${baseVal} TL (+20% KDV, +2% Tef = ${Math.round(topluRec.total_company_payment)} TL)`;
+              } else if (topluRec.com_kdv) {
+                totalComText = `TOPLAM = ${baseVal} TL KDV=${Math.round(topluRec.total_company_payment)}`;
+              } else if (topluRec.com_tevkifat) {
+                totalComText = `TOPLAM = ${baseVal} TL TEVKİFAT=${Math.round(topluRec.total_company_payment)}`;
+              } else {
+                totalComText = `TOPLAM = ${Math.round(topluRec.total_company_payment)} TL`;
+              }
+            } else {
+              totalComText = `TOPLAM = ${Math.round(totalComSum)} TL`;
+            }
+            
+            // Personnel net payment total
+            let totalPerNetSum = companyRecords.reduce((sum, rx) => {
+              let net = (parseFloat(rx.total_personnel_payment) || 0) - (parseFloat(rx.advance_amount) || 0);
+              return sum + net;
+            }, 0);
+            let totalPerText = `TOPLAM = ${Math.round(totalPerNetSum)}`;
+            
+            sd.push([
+              "", 
+              "", 
+              "", 
+              "", 
+              "", 
+              totalComText, 
+              totalPerText, 
+              ""
+            ]);
+            
+            // Spacer row
+            sd.push([]);
+          });
+          
+          let ws = XLSX.utils.aoa_to_sheet(sd);
+          
+          // Apply row height (26pt)
+          ws['!rows'] = sd.map(() => ({ hpt: 26 }));
+          
+          // Apply column widths
+          ws['!cols'] = [
+            { wch: 22 }, // Column A: Kurum
+            { wch: 4 },  // Column B: spacing
+            { wch: 25 }, // Column C: Personel
+            { wch: 15 }, // Column D: Gün
+            { wch: 30 }, // Column E: İzin / Yerine
+            { wch: 35 }, // Column F: Kurum Ödemesi
+            { wch: 35 }, // Column G: Maaş Hesap
+            { wch: 18 }  // Column H: Net Maaş
+          ];
+          
+          XLSX.utils.book_append_sheet(wb, ws, aylar[r.ay] + " " + r.yil);
           XLSX.writeFile(wb, `Aylik_${aylar[r.ay]}_${r.yil}.xlsx`);
         } else if (type === "personel") {
           let title = r.p ? r.p.first_name + "_" + r.p.last_name : "Tum_Personel";
@@ -7579,8 +7821,8 @@
             <div class="alert alert-warn" style="background: #fffbeb; border: 1px solid #fde68a; color: #b45309; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 10px;">
               <div style="font-size: 18px;">⏳</div>
               <div>
-                <strong style="font-size: 13px;">Aylık Operasyon Yenilenmesi Yaklaşıyor!</strong>
-                <div style="font-size: 11px; margin-top: 2px;">Aylık operasyon işleriniz <strong>${daysLeftRenew} gün</strong> içinde yenilenecektir (ayın <strong>${ikSettings.renew_day}</strong>. günü). Lütfen hazırlıklarınızı yapın.</div>
+                <strong style="font-size: 13px;">Aylık Operasyon ve Ödeme Hatırlatması Yaklaşıyor!</strong>
+                <div style="font-size: 11px; margin-top: 2px;">Operasyon güncelleme ve ödeme hatırlatma gününe <strong>${daysLeftRenew} gün</strong> kaldı (ayın <strong>${ikSettings.renew_day}</strong>. günü). Lütfen hazırlıklarınızı tamamlayın.</div>
               </div>
             </div>
           `;
@@ -7589,8 +7831,8 @@
             <div class="alert alert-success" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 10px;">
               <div style="font-size: 18px;">🔄</div>
               <div>
-                <strong style="font-size: 13px;">İş Yenilenme Günü Bugün!</strong>
-                <div style="font-size: 11px; margin-top: 2px;">Bugün aylık tekrarlanan işlerinizin yenilenme günüdür. Yeni dönem kayıtları oluşturulmuştur.</div>
+                <strong style="font-size: 13px;">Aylık Operasyon ve Ödeme Bildirimi!</strong>
+                <div style="font-size: 11px; margin-top: 2px;"><strong>Aylık operasyonları güncelleme ve ödemeleri yap</strong></div>
               </div>
             </div>
           `;
@@ -7599,8 +7841,8 @@
             <div class="alert alert-info" style="background: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; gap: 10px;">
               <div style="font-size: 18px;">ℹ️</div>
               <div>
-                <strong style="font-size: 13px;">Yenilenme Bilgisi</strong>
-                <div style="font-size: 11px; margin-top: 2px;">Tekrarlayan işler her ayın <strong>${ikSettings.renew_day}</strong>. günü yenilenir. Bir sonraki yenilenmeye <strong>${daysLeftRenew}</strong> gün var.</div>
+                <strong style="font-size: 13px;">Operasyon ve Ödeme Bildirim Günü</strong>
+                <div style="font-size: 11px; margin-top: 2px;">Aylık operasyon ve ödeme hatırlatmaları her ayın <strong>${ikSettings.renew_day}</strong>. günü tetiklenir. Bir sonraki bildirim gününe <strong>${daysLeftRenew}</strong> gün var.</div>
               </div>
             </div>
           `;
@@ -7831,7 +8073,7 @@
         }
       }
 
-      function downloadKontrolAsImage() {
+      function downloadKontrolAsPDF() {
         const printContainer = document.getElementById("kontrol-print-container");
         const printHeader = document.getElementById("kontrol-print-header");
         const subheader = document.getElementById("kontrol-print-subheader");
@@ -7844,7 +8086,7 @@
         printHeader.style.display = "block";
         subheader.textContent = `Toplu Kontrol Tablosu — ${selMonthText} ${selYear}`;
         
-        toast("Resim oluşturuluyor, lütfen bekleyin...");
+        toast("PDF oluşturuluyor, lütfen bekleyin...");
         
         setTimeout(() => {
           html2canvas(printContainer, {
@@ -7853,18 +8095,36 @@
             useCORS: true,
             logging: false
           }).then(canvas => {
-            const link = document.createElement("a");
-            link.download = `ik_kontrol_tablosu_${selMonthText}_${selYear}.png`;
-            link.href = canvas.toDataURL("image/png");
-            link.click();
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF("p", "mm", "a4");
+            
+            const imgData = canvas.toDataURL("image/png");
+            const imgWidth = 210; // A4 genişliği (mm)
+            const pageHeight = 295; // A4 yüksekliği (mm)
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            let heightLeft = imgHeight;
+            let position = 0;
+            
+            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+            
+            while (heightLeft >= 0) {
+              position = heightLeft - imgHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+              heightLeft -= pageHeight;
+            }
+            
+            pdf.save(`ik_kontrol_tablosu_${selMonthText}_${selYear}.pdf`);
             
             // Başlığı tekrar gizle
             printHeader.style.display = "none";
-            toast("Resim başarıyla indirildi ✓");
+            toast("PDF başarıyla indirildi ✓");
           }).catch(err => {
-            console.error("Resim kaydetme hatası:", err);
+            console.error("PDF kaydetme hatası:", err);
             printHeader.style.display = "none";
-            toast("Resim kaydedilirken hata oluştu: " + err.message, "err");
+            toast("PDF kaydedilirken hata oluştu: " + err.message, "err");
           });
         }, 100);
       }
