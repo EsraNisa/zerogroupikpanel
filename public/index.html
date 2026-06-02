@@ -1017,8 +1017,8 @@
           border-radius: 16px;
           max-height: 90vh;
         }
-        #modal-calisma {
-          max-width: 950px;
+        #modal-calisma .modal {
+          max-width: 1100px;
         }
         .modal-handle {
           display: none;
@@ -1597,44 +1597,59 @@
                 <option value="10">Kasım</option>
                 <option value="11">Aralık</option>
               </select>
+              <button class="btn btn-primary" id="btn-toggle-op-edit" onclick="toggleOpEditMode()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; margin-left: auto;">✍️ Bu Ayki Çalışmaları Gir</button>
             </div>
-            <div class="operasyon-grid">
-              <!-- Left Column: Tekrarlayan Kayıtlar (Full Width) -->
-              <div class="card">
-                <div class="card-head">
-                  <span class="card-title">🔄 Tekrarlayan Aylık İş Döngüsü</span>
+            
+            <div id="operasyon-cockpit-view">
+              <div class="operasyon-grid">
+                <!-- Left Column: Tekrarlayan Kayıtlar (Full Width) -->
+                <div class="card">
+                  <div class="card-head">
+                    <span class="card-title">🔄 Tekrarlayan Aylık İş Döngüsü</span>
+                  </div>
+                  <div style="padding: 12px 18px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #64748b; line-height: 1.5;">
+                    Bu listedeki işler her ayın başında otomatik olarak yeni dönem çalışması olarak kopyalanır. Çalışanların izin, avans ve mesailerini güncelleyerek onaylayabilirsiniz.
+                  </div>
+                  <div style="padding: 8px 18px; border-bottom: 1px solid #f1f5f9;">
+                    <input
+                      class="form-input"
+                      style="font-size: 12px; padding: 6px 10px;"
+                      placeholder="Tekrarlayan işlerde ara..."
+                      oninput="filterTable('operasyon-tbody', this.value)"
+                    />
+                  </div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Kurum / Personel</th>
+                          <th>Maaş</th>
+                          <th>Avans</th>
+                          <th>İzinler</th>
+                          <th>Net Ödeme</th>
+                          <th>Durum</th>
+                          <th>İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody id="operasyon-tbody">
+                        <tr class="loading-row">
+                          <td colspan="8"><div class="spinner"></div></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div style="padding: 12px 18px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #64748b; line-height: 1.5;">
-                  Bu listedeki işler her ayın başında otomatik olarak yeni dönem çalışması olarak kopyalanır. Çalışanların izin, avans ve mesailerini güncelleyerek onaylayabilirsiniz.
-                </div>
-                <div style="padding: 8px 18px; border-bottom: 1px solid #f1f5f9;">
-                  <input
-                    class="form-input"
-                    style="font-size: 12px; padding: 6px 10px;"
-                    placeholder="Tekrarlayan işlerde ara..."
-                    oninput="filterTable('operasyon-tbody', this.value)"
-                  />
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Kurum / Personel</th>
-                        <th>Maaş</th>
-                        <th>Avans</th>
-                        <th>İzinler</th>
-                        <th>Net Ödeme</th>
-                        <th>Durum</th>
-                        <th>İşlemler</th>
-                      </tr>
-                    </thead>
-                    <tbody id="operasyon-tbody">
-                      <tr class="loading-row">
-                        <td colspan="8"><div class="spinner"></div></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              </div>
+            </div>
+
+            <div id="operasyon-edit-view" style="display: none;">
+              <!-- Container for inline cards -->
+              <div id="operasyon-edit-container"></div>
+              
+              <!-- Save and Cancel actions -->
+              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                <button class="btn btn-secondary" onclick="toggleOpEditMode(false)">İptal</button>
+                <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
               </div>
             </div>
           </div>
@@ -2484,7 +2499,7 @@
       style="display: none"
       onclick="closeMBD(event, 'modal-calisma')"
     >
-      <div class="modal" style="max-width: 750px; width: 95%;">
+      <div class="modal" style="width: 95%;">
         <div class="modal-handle"></div>
         <div class="modal-head">
           <span class="modal-title" id="modal-calisma-title">Yeni Çalışma Kaydı</span>
@@ -2806,6 +2821,35 @@
           <button class="btn btn-primary" id="btn-save-com" onclick="saveCom()">
             Kaydet
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Operasyona Personel Ekle -->
+    <div
+      class="modal-backdrop"
+      id="modal-op-add-personnel"
+      style="display: none"
+      onclick="closeMBD(event, 'modal-op-add-personnel')"
+    >
+      <div class="modal" style="max-width: 450px; width: 95%;">
+        <div class="modal-handle"></div>
+        <div class="modal-head">
+          <span class="modal-title">Operasyona Personel Ekle</span>
+          <button class="modal-close" onclick="closeM('modal-op-add-personnel')">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="op-add-company-id" />
+          <div class="form-group">
+            <label class="form-label">Eklenecek Personel *</label>
+            <select class="form-input" id="op-add-personnel-select">
+              <option value="">Seçin...</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeM('modal-op-add-personnel')">İptal</button>
+          <button class="btn btn-primary" onclick="submitAddPersonnelToOp()">Ekle</button>
         </div>
       </div>
     </div>
@@ -3687,11 +3731,83 @@
         return alertsHtml;
       }
 
-      function renderOperasyonCockpit() {
+      let isGeneratingRecurring = false;
+      async function ensureRecurringRecordsForPeriod(selYear, selMonth) {
+        if (isGeneratingRecurring) return;
+        isGeneratingRecurring = true;
+        
+        // Find all unique (personnel_id, company_id) active recurring records in the system
+        const latestPairs = {};
+        work_records.forEach(r => {
+          if (!r.start_day) return;
+          const key = `${r.personnel_id}-${r.company_id}`;
+          const rDate = new Date(r.start_day);
+          if (!latestPairs[key] || new Date(latestPairs[key].start_day) < rDate) {
+            latestPairs[key] = r;
+          }
+        });
+
+        const missingRecords = [];
+        const targetStartStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+        const targetEndStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        Object.values(latestPairs).forEach(rec => {
+          if (rec.is_recurring && !rec.archived) {
+            const recDate = new Date(rec.start_day);
+            const recPeriodValue = recDate.getFullYear() * 12 + recDate.getMonth();
+            const targetPeriodValue = selYear * 12 + selMonth;
+            
+            if (targetPeriodValue > recPeriodValue) {
+              const exists = work_records.some(r => 
+                r.personnel_id == rec.personnel_id && 
+                r.company_id == rec.company_id && 
+                new Date(r.start_day).getMonth() === selMonth && 
+                new Date(r.start_day).getFullYear() === selYear
+              );
+              
+              if (!exists) {
+                missingRecords.push({
+                  personnel_id: rec.personnel_id,
+                  company_id: rec.company_id,
+                  start_day: targetStartStr,
+                  end_date: targetEndStr,
+                  work_days: lastDay,
+                  personnel_monthly_wage: rec.personnel_monthly_wage,
+                  personnel_daily_wage: rec.personnel_monthly_wage / 30,
+                  total_personnel_payment: rec.personnel_monthly_wage,
+                  total_company_payment: rec.total_company_payment || 0,
+                  is_recurring: true,
+                  needs_review: true,
+                  wage_mode: rec.wage_mode || "calculated",
+                  note: rec.note || ""
+                });
+              }
+            }
+          }
+        });
+
+        if (missingRecords.length > 0) {
+          try {
+            await api.post("/admin/work_records", missingRecords);
+            const res = await api.get("/work_records");
+            work_records = res;
+          } catch (err) {
+            console.error("Failed to generate missing recurring records:", err);
+          }
+        }
+        isGeneratingRecurring = false;
+      }
+
+      async function renderOperasyonCockpit() {
         const tbody = document.getElementById("operasyon-tbody");
+        if (!tbody) return;
         
         const selYear = parseInt(document.getElementById("op-yil").value);
         const selMonth = parseInt(document.getElementById("op-ay").value);
+        
+        // Auto-generate missing recurring records for this period
+        await ensureRecurringRecordsForPeriod(selYear, selMonth);
         
         // Filter records that are recurring and belong to the selected month & year
         const recurringList = work_records.filter(r => {
@@ -3699,43 +3815,72 @@
           const d = new Date(r.start_day);
           return d.getMonth() === selMonth && d.getFullYear() === selYear;
         });
-        recurringList.sort((a, b) => {
-          let cA = cName(a.company_id) || "";
-          let cB = cName(b.company_id) || "";
-          let cmp = cA.localeCompare(cB, 'tr');
-          if (cmp !== 0) return cmp;
-          let pA = pName(a.personnel_id) || "";
-          let pB = pName(b.personnel_id) || "";
-          return pA.localeCompare(pB, 'tr');
-        });
         
         if (recurringList.length === 0) {
           tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div></td></tr>`;
-        } else {
-          tbody.innerHTML = recurringList.map(r => {
+          return;
+        }
+
+        // Group rows by company_id
+        const groups = {};
+        const groupOrder = [];
+        recurringList.forEach((r) => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+            groupOrder.push(r.company_id);
+          }
+          groups[r.company_id].push(r);
+        });
+
+        // Sort groups by company name
+        groupOrder.sort((a, b) => {
+          let cA = cName(a) || "";
+          let cB = cName(b) || "";
+          return cA.localeCompare(cB, 'tr');
+        });
+
+        let html = '';
+        groupOrder.forEach((cId) => {
+          const grRows = groups[cId];
+          
+          // Sort rows inside the group by personnel name
+          grRows.sort((a, b) => {
+            let pA = pName(a.personnel_id) || "";
+            let pB = pName(b.personnel_id) || "";
+            return pA.localeCompare(pB, 'tr');
+          });
+
+          // Header row for the company (Institution) with "+ Personel Ekle" button
+          html += `
+            <tr style="background: #e8f0fe;">
+              <td colspan="7" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>🏢 ${cName(cId)} — ${grRows.length} personel</span>
+                  <button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>
+                </div>
+              </td>
+            </tr>
+          `;
+
+          // Individual personnel rows under the company
+          grRows.forEach((r) => {
             const p = personnel.find(x => x.id == r.personnel_id);
-            const c = companies.find(x => x.id == r.company_id);
             const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
             const pPos = p ? p.position : "—";
-            const cName = c ? c.company_name : "Bilinmeyen Kurum";
             const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
             const advance = parseFloat(r.advance_amount || 0);
             const leaves = parseFloat(r.leave_days || 0);
             const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
             
-            // Check if details are updated or still in review state
             const statusBadge = r.needs_review
               ? `<span class="badge badge-amber">⚠️ Güncellenmedi</span>`
               : `<span class="badge badge-green">✓ Güncellendi</span>`;
-            
-            return `
+
+            html += `
               <tr>
-                <td>
-                  <div style="font-weight: 800; color: #0f172a; font-size: 12px;">${cName}</div>
-                  <div style="display: flex; align-items: center; gap: 4px; padding-left: 12px; margin-top: 2px;">
-                    <span style="font-weight: 600; color: #475569; white-space: nowrap;">${pName}</span>
-                    <span style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-left: 4px;">(${pPos})</span>
-                  </div>
+                <td style="padding-left: 20px;">
+                  <div style="font-weight: 600; color: #475569;">${pName}</div>
+                  <div style="font-size: 10px; color: #94a3b8;">${pPos}</div>
                 </td>
                 <td style="font-weight:700;color:#0f172a;">${fmt(monthlyWage)}</td>
                 <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
@@ -3748,8 +3893,446 @@
                 </td>
               </tr>
             `;
-          }).join('');
+          });
+        });
+
+        tbody.innerHTML = html;
+      }
+
+      function openAddPersonnelToOpModal(companyId) {
+        document.getElementById("op-add-company-id").value = companyId;
+        const sel = document.getElementById("op-add-personnel-select");
+        if (sel) {
+          sel.innerHTML = '<option value="">Seçin...</option>';
+          const selYear = parseInt(document.getElementById("op-yil").value);
+          const selMonth = parseInt(document.getElementById("op-ay").value);
+          
+          const existingPids = work_records
+            .filter(r => r.company_id == companyId && new Date(r.start_day).getMonth() === selMonth && new Date(r.start_day).getFullYear() === selYear && !r.archived)
+            .map(r => r.personnel_id);
+            
+          personnel.forEach(p => {
+            if (!existingPids.includes(p.id)) {
+              const o = document.createElement("option");
+              o.value = p.id;
+              o.text = p.first_name + " " + p.last_name;
+              sel.appendChild(o);
+            }
+          });
         }
+        openM("modal-op-add-personnel");
+      }
+
+      async function submitAddPersonnelToOp() {
+        const companyId = document.getElementById("op-add-company-id").value;
+        const personnelId = document.getElementById("op-add-personnel-select").value;
+        if (!personnelId) {
+          toast("Lütfen bir personel seçin!", "err");
+          return;
+        }
+
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+        const monthStr = String(selMonth + 1).padStart(2, '0');
+        const targetStartStr = `${selYear}-${monthStr}-01`;
+        const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+        const p = personnel.find(x => x.id == personnelId);
+        const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+
+        const record = {
+          personnel_id: parseInt(personnelId),
+          company_id: parseInt(companyId),
+          start_day: targetStartStr,
+          end_date: targetEndStr,
+          work_days: lastDay,
+          personnel_monthly_wage: monthlyWage,
+          personnel_daily_wage: monthlyWage / 30,
+          total_personnel_payment: monthlyWage,
+          total_company_payment: 0,
+          is_recurring: true,
+          needs_review: true,
+          wage_mode: "calculated",
+          note: ""
+        };
+
+        try {
+          await api.post("/admin/work_records", [record]);
+          toast("Personel başarıyla eklendi ✓");
+          closeM("modal-op-add-personnel");
+          await loadAll();
+          renderOperasyonCockpit();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      let opEditModeActive = false;
+      function toggleOpEditMode(active) {
+        if (active === undefined) {
+          opEditModeActive = !opEditModeActive;
+        } else {
+          opEditModeActive = active;
+        }
+        
+        const cockpitView = document.getElementById("operasyon-cockpit-view");
+        const editView = document.getElementById("operasyon-edit-view");
+        const toggleBtn = document.getElementById("btn-toggle-op-edit");
+        
+        if (opEditModeActive) {
+          cockpitView.style.display = "none";
+          editView.style.display = "block";
+          if (toggleBtn) {
+            toggleBtn.textContent = "📋 Kokpit Görünümüne Dön";
+            toggleBtn.classList.remove("btn-primary");
+            toggleBtn.classList.add("btn-secondary");
+          }
+          renderOperasyonEditMode();
+        } else {
+          cockpitView.style.display = "block";
+          editView.style.display = "none";
+          if (toggleBtn) {
+            toggleBtn.textContent = "✍️ Bu Ayki Çalışmaları Gir";
+            toggleBtn.classList.remove("btn-secondary");
+            toggleBtn.classList.add("btn-primary");
+          }
+        }
+      }
+
+      function renderOperasyonEditCard(r) {
+        const p = personnel.find(x => x.id == r.personnel_id);
+        const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
+        const rowId = r.id; 
+        const pWage = r.personnel_monthly_wage || 0;
+        
+        const wageMode = r.wage_mode || "calculated";
+        const isDirect = (wageMode === "direct");
+        const labelText = isDirect ? "Direkt Net Ödeme (₺)" : "Aylık Ücret (₺)";
+        const placeholderText = isDirect ? "Örn: 25000" : "Örn: 30000";
+        
+        return `
+          <div class="card" id="card-${rowId}" data-personnel-id="${r.personnel_id}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="card-head" style="background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;">
+              <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
+              <span id="card-sum-${rowId}" style="font-size: 11px; font-weight: 700; color: #16a34a;">Net: ${fmt(r.total_personnel_payment - r.advance_amount)}</span>
+            </div>
+            <div class="card-body" id="card-body-${rowId}" style="padding: 14px; display: block;">
+              
+              <!-- Core fields: Çalışılan Gün & Maaş Yöntemi & Maaş/Ödeme Tutarı -->
+              <div class="form-grid g3" style="margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label">Çalışılan Gün</label>
+                  <div style="display: flex; gap: 4px; align-items: center;">
+                    <input class="form-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${r.work_days}" oninput="onlyNum(this); onDaysInput('${rowId}'); onInputChanged();" style="flex: 1;" />
+                    <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${rowId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Maaş Yöntemi</label>
+                  <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; background: #f1f5f9; border-radius: 8px; padding: 4px 10px; border: 1px solid #cbd5e1;">
+                    <span style="font-size: 11px; font-weight: 700; color: ${isDirect ? '#94a3b8' : '#1e3a5f'};" id="c-wage-mode-text-${rowId}">Aylık Maaş</span>
+                    <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
+                      <input type="checkbox" id="c-wage-mode-toggle-${rowId}" onchange="onWageModeToggleChange('${rowId}')" style="opacity: 0; width: 0; height: 0;" ${isDirect ? 'checked' : ''} />
+                      <span class="slider round" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px;"></span>
+                    </label>
+                    <span style="font-size: 11px; font-weight: 700; color: ${isDirect ? '#1e3a5f' : '#94a3b8'};" id="c-wage-mode-text-direct-${rowId}">Net Ödeme</span>
+                  </div>
+                  <input type="hidden" id="c-wage-mode-${rowId}" value="${wageMode}" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" id="c-per-wage-label-${rowId}">${labelText}</label>
+                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                </div>
+              </div>
+
+              <!-- Individual Company Payment Group -->
+              <div class="form-grid g1" style="margin-bottom: 10px;">
+                <div class="form-group" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px;">
+                  <label class="form-label" style="color: #0369a1; font-weight: 800; display: flex; align-items: center; justify-content: space-between;">
+                    Kurum Ödemesi (₺)
+                  </label>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
+                        <input type="checkbox" id="c-com-kdv-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
+                      </label>
+                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
+                        <input type="checkbox" id="c-com-tef-${rowId}" onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: MESAI -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'mesai')">
+                  <span>⏰ Mesai Bilgileri</span>
+                  <span id="sub-toggle-icon-${rowId}-mesai" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${rowId}-mesai" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
+                    <div class="form-group">
+                      <label class="form-label">Saatlik Mesai (Saat)</label>
+                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_hours || 0}" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Günlük Mesai (Gün)</label>
+                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_days || 0}" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Mesai Ücreti (₺)</label>
+                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" value="${r.overtime_wage || 0}" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: EK ODEMELER -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'ekodemeler')">
+                  <span>💰 Ek Ödemeler (Avans, Prim, Kesinti)</span>
+                  <span id="sub-toggle-icon-${rowId}-ekodemeler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${rowId}-ekodemeler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g3" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">Avans (₺)</label>
+                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.advance_amount || 0}" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Prim (₺)</label>
+                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.premium || 0}" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Kesinti (₺)</label>
+                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.deductions || 0}" oninput="onlyNum(this); onInputChanged();" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: IZINLER -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'izinler')">
+                  <span>🌴 İzin Bilgileri</span>
+                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g1" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">İzin Günü (Gün)</label>
+                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.annual_leave || 0}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACCORDION SECTION: NOTLAR -->
+              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'notlar')">
+                  <span>📝 Genel Not</span>
+                  <span id="sub-toggle-icon-${rowId}-notlar" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                </div>
+                <div id="sub-section-${rowId}-notlar" style="padding: 12px; display: none; background: #fff;">
+                  <div class="form-grid g1" style="margin-bottom: 0;">
+                    <div class="form-group">
+                      <label class="form-label">Genel Not</label>
+                      <input class="form-input" id="c-not-${rowId}" placeholder="İşle ilgili not." value="${r.note || ''}" oninput="onInputChanged();" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        `;
+      }
+
+      function renderOperasyonEditMode() {
+        const container = document.getElementById("operasyon-edit-container");
+        if (!container) return;
+        
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        
+        const recurringList = work_records.filter(r => {
+          if (!r.is_recurring || r.archived || !r.start_day) return false;
+          const d = new Date(r.start_day);
+          return d.getMonth() === selMonth && d.getFullYear() === selYear;
+        });
+        
+        if (recurringList.length === 0) {
+          container.innerHTML = `<div class="card" style="padding: 24px; text-align: center;"><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div>`;
+          return;
+        }
+        
+        const groups = {};
+        const groupOrder = [];
+        recurringList.forEach(r => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+            groupOrder.push(r.company_id);
+          }
+          groups[r.company_id].push(r);
+        });
+
+        groupOrder.sort((a, b) => {
+          let cA = cName(a) || "";
+          let cB = cName(b) || "";
+          return cA.localeCompare(cB, 'tr');
+        });
+        
+        let html = "";
+        groupOrder.forEach(cId => {
+          const grRows = groups[cId];
+          grRows.sort((a, b) => {
+            let pA = pName(a.personnel_id) || "";
+            let pB = pName(b.personnel_id) || "";
+            return pA.localeCompare(pB, 'tr');
+          });
+
+          html += `
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 14px; font-weight: 800; color: #1e3a5f; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 2px solid #3b82f6;">
+                🏢 ${cName(cId)}
+              </h3>
+              <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                ${grRows.map(r => renderOperasyonEditCard(r)).join('')}
+              </div>
+            </div>
+          `;
+        });
+        
+        container.innerHTML = html;
+        onInputChanged();
+      }
+
+      async function saveAllOpChanges() {
+        const container = document.getElementById("operasyon-edit-container");
+        if (!container) return;
+        
+        const cards = container.querySelectorAll('.card');
+        const saveBtn = document.getElementById("btn-save-all-op");
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Kaydediliyor...";
+        }
+        
+        try {
+          for (const card of cards) {
+            const rowId = card.id.replace('card-', ''); 
+            
+            const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
+            const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+            const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
+            
+            const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
+            const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
+            const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+            
+            const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
+            const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
+            
+            let base_payment = 0;
+            let personnel_daily_wage = 0;
+            let overtime_wage = 0;
+            
+            if (wage_mode === "calculated") {
+              personnel_daily_wage = input_wage / 30;
+              base_payment = personnel_daily_wage * work_days;
+              overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+            } else {
+              personnel_daily_wage = 0;
+              base_payment = input_wage;
+              overtime_wage = 0;
+            }
+            
+            const total_personnel_payment = base_payment + overtime_wage + premium - deductions;
+            const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+            const note = document.getElementById(`c-not-${rowId}`).value || "";
+            const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
+
+            await api.patch(`/admin/work_records/${rowId}`, {
+              work_days,
+              wage_mode,
+              personnel_monthly_wage: input_wage,
+              personnel_daily_wage,
+              total_personnel_payment,
+              total_company_payment,
+              advance_amount,
+              premium,
+              deductions,
+              overtime_hours,
+              overtime_days,
+              overtime_wage,
+              annual_leave,
+              leave_days: annual_leave,
+              note,
+              needs_review: false
+            });
+          }
+          
+          toast("Tüm operasyon kayıtları güncellendi ✓");
+          toggleOpEditMode(false);
+          await loadAll();
+          renderOperasyonCockpit();
+        } catch (err) {
+          toast("Hata: " + err.message, "err");
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "✓ Tümünü Kaydet";
+          }
+        }
+      }
+
+      function updateOpCardSums() {
+        if (!opEditModeActive) return;
+        const container = document.getElementById("operasyon-edit-container");
+        if (!container) return;
+        
+        const cards = container.querySelectorAll('.card');
+        cards.forEach(card => {
+          const rowId = card.id.replace('card-', ''); 
+          
+          const daysInput = document.getElementById(`c-days-${rowId}`);
+          if (!daysInput) return;
+          const work_days = parseFloat(daysInput.value) || 0;
+          const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+          const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
+          
+          const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
+          const additional_payment = 0;
+          const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
+          const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+          
+          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
+          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
+          
+          let base_payment = 0;
+          let overtime_wage = 0;
+          if (wage_mode === "calculated") {
+            base_payment = (input_wage / 30) * work_days;
+            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          } else {
+            base_payment = input_wage;
+            overtime_wage = 0;
+          }
+          
+          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
+          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          
+          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          const net_personnel_payment = total_personnel_payment - advance_amount;
+          
+          const cardSumEl = document.getElementById(`card-sum-${rowId}`);
+          if (cardSumEl) {
+            cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
+          }
+        });
       }
 
       // ============================================================
@@ -4665,6 +5248,7 @@
         if (prev) prev.style.display = "none";
         
         updateIndividualCardSums();
+        updateOpCardSums();
       }
 
       function updateIndividualCardSums() {
@@ -5224,8 +5808,10 @@
             if (arsivMode ? !r.archived : r.archived) return false;
             if (fp && r.personnel_id != fp) return false;
             if (fc && r.company_id != fc) return false;
-            if (fb && r.start_day && r.start_day < fb) return false;
-            if (fe && r.end_date && r.end_date > fe) return false;
+            let rStart = r.start_day ? r.start_day.substring(0, 10) : "";
+            let rEnd = r.end_date ? r.end_date.substring(0, 10) : "";
+            if (fb && rStart && rStart < fb) return false;
+            if (fe && rEnd && rEnd > fe) return false;
             if (fps && r.personnel_payment_status !== fps) return false;
             if (fcs && r.company_payment_status !== fcs) return false;
             return true;
