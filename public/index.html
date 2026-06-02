@@ -3836,8 +3836,26 @@
         
         const targetPeriodValue = selYear * 12 + selMonth;
         
+        // Skip generation if this period already contains any records (explicitly deleted rows shouldn't regenerate)
+        const targetHasAnyRecords = work_records.some(r => {
+          if (!r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
+        });
+        if (targetHasAnyRecords) {
+          isGeneratingRecurring = false;
+          return;
+        }
+
+        // Check if there are any recurring records strictly before the target period in the system
+        const hasPriorRecords = work_records.some(r => {
+          if (!r.start_day) return false;
+          if (parseSubstituteNote(r.note)) return false;
+          const ym = getYearMonth(r.start_day);
+          return (ym.year * 12 + ym.month) < targetPeriodValue;
+        });
+
         // Find all unique (personnel_id, company_id) active recurring records in the system
-        // that were active BEFORE the target month.
         const latestPairs = {};
         work_records.forEach(r => {
           if (!r.start_day) return;
@@ -3848,21 +3866,34 @@
           const ym = getYearMonth(r.start_day);
           const rPeriodValue = ym.year * 12 + ym.month;
           
-          // Only copy template from a month strictly before the target period
-          if (rPeriodValue >= targetPeriodValue) return;
-          
-          if (!latestPairs[key]) {
-            latestPairs[key] = r;
-          } else {
-            const latestYM = getYearMonth(latestPairs[key].start_day);
-            const latestPeriodValue = latestYM.year * 12 + latestYM.month;
-            
-            if (rPeriodValue > latestPeriodValue) {
+          if (!hasPriorRecords) {
+            // Backward initialization from closest subsequent month
+            if (!latestPairs[key]) {
               latestPairs[key] = r;
-            } else if (rPeriodValue === latestPeriodValue) {
-              // Prefer the recurring one if periods are equal
-              if (r.is_recurring && !latestPairs[key].is_recurring) {
+            } else {
+              const latestYM = getYearMonth(latestPairs[key].start_day);
+              const latestPeriodValue = latestYM.year * 12 + latestYM.month;
+              if (Math.abs(rPeriodValue - targetPeriodValue) < Math.abs(latestPeriodValue - targetPeriodValue)) {
                 latestPairs[key] = r;
+              }
+            }
+          } else {
+            // Forward copying: standard logic, only copy from strictly prior months
+            if (rPeriodValue >= targetPeriodValue) return;
+            
+            if (!latestPairs[key]) {
+              latestPairs[key] = r;
+            } else {
+              const latestYM = getYearMonth(latestPairs[key].start_day);
+              const latestPeriodValue = latestYM.year * 12 + latestYM.month;
+              
+              if (rPeriodValue > latestPeriodValue) {
+                latestPairs[key] = r;
+              } else if (rPeriodValue === latestPeriodValue) {
+                // Prefer the recurring one if periods are equal
+                if (r.is_recurring && !latestPairs[key].is_recurring) {
+                  latestPairs[key] = r;
+                }
               }
             }
           }
@@ -4567,13 +4598,18 @@
             const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
             const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
             
+            const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+            const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+            const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+
             let base_payment = 0;
             let personnel_daily_wage = 0;
             let overtime_wage = 0;
             
             if (wage_mode === "calculated") {
               personnel_daily_wage = input_wage / 30;
-              base_payment = personnel_daily_wage * work_days;
+              const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+              base_payment = personnel_daily_wage * calcDays;
               overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
             } else {
               personnel_daily_wage = 0;
@@ -4581,8 +4617,11 @@
               overtime_wage = 0;
             }
             
-            const total_personnel_payment = base_payment + overtime_wage + premium - deductions;
-            const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+            let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
+            if (coverWage > 0) {
+              total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+            }
+            
             const note = document.getElementById(`c-not-${rowId}`).value || "";
             const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
             const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
@@ -4680,10 +4719,15 @@
           const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
+          const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
+          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          
           let base_payment = 0;
           let overtime_wage = 0;
           if (wage_mode === "calculated") {
-            base_payment = (input_wage / 30) * work_days;
+            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            base_payment = (input_wage / 30) * calcDays;
             overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
@@ -4693,7 +4737,10 @@
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
-          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          if (coverWage > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
           const cardSumEl = document.getElementById(`card-sum-${rowId}`);
@@ -5934,10 +5981,16 @@
           const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
+          // Cover personnel calculations
+          const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
+          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          
           let base_payment = 0;
           let overtime_wage = 0;
           if (wage_mode === "calculated") {
-            base_payment = (input_wage / 30) * work_days;
+            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            base_payment = (input_wage / 30) * calcDays;
             overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
@@ -5947,7 +6000,10 @@
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
-          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          if (coverWage > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
           const cardSumEl = document.getElementById(`card-sum-${rowId}`);
@@ -6004,10 +6060,16 @@
           const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
+          // Cover personnel calculations
+          const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
+          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          
           let base_payment = 0;
           let overtime_wage = 0;
           if (wage_mode === "calculated") {
-            base_payment = (input_wage / 30) * work_days;
+            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            base_payment = (input_wage / 30) * calcDays;
             overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
@@ -6017,7 +6079,10 @@
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           if (otWageInput) otWageInput.value = Math.round(overtime_wage);
           
-          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          if (coverWage > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
           let card_com_payment = 0;
@@ -6118,6 +6183,10 @@
           const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
+          const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+
           let base_payment = 0;
           let personnel_monthly_wage = input_wage;
           let personnel_daily_wage = 0;
@@ -6125,7 +6194,8 @@
           
           if (wage_mode === "calculated") {
             personnel_daily_wage = input_wage / 30;
-            base_payment = personnel_daily_wage * work_days;
+            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            base_payment = personnel_daily_wage * calcDays;
             overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             personnel_daily_wage = 0;
@@ -6133,7 +6203,10 @@
             overtime_wage = 0;
           }
           
-          const total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          if (coverWage > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          }
           
           let total_company_payment = 0;
           if (paymentType === "toplu") {
@@ -6146,7 +6219,6 @@
             total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
           }
           
-          const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
           const sick_leave = 0;
           const missing_days = 0;
           const official_holiday = 0;
