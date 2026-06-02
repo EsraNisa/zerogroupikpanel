@@ -1580,7 +1580,7 @@
 
           <!-- AYLIK OPERASYON -->
           <div class="page" id="page-operasyon">
-            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569;">Dönem Seç:</span>
               <select id="op-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()"></select>
               <select id="op-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()">
@@ -1597,7 +1597,15 @@
                 <option value="10">Kasım</option>
                 <option value="11">Aralık</option>
               </select>
+              <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openKurumModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Yeni Kurum</button>
+              <button class="btn btn-sm btn-primary" id="btn-op-new-per" onclick="openPersonelModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">👤 Yeni Personel</button>
               <button class="btn btn-primary" id="btn-toggle-op-edit" onclick="toggleOpEditMode()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; margin-left: auto;">✍️ Bu Ayki Çalışmaları Gir</button>
+              <button class="btn" id="btn-op-approve" onclick="togglePeriodApproval()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"></button>
+            </div>
+            
+            <div id="op-approval-banner" class="alert alert-info" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; align-items: center; gap: 8px;">
+              <span>🟢</span>
+              <span>Bu döneme ait kayıtlar onaylanmıştır. Dönem üzerinde düzenleme yapılamaz.</span>
             </div>
             
             <div id="operasyon-cockpit-view">
@@ -2480,7 +2488,12 @@
                 type="date"
               />
             </div>
-            <div class="form-group"></div>
+            <div class="form-group" id="per-modal-company-group">
+              <label class="form-label">Kurum (Aylık Operasyona Dahil Et - İsteğe Bağlı)</label>
+              <select class="form-input" id="p-company-id">
+                <option value="">Seçiniz (Dahil etme)...</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -3117,6 +3130,7 @@
       let personnel = [],
         companies = [],
         work_records = [];
+      let approvedPeriods = [];
       let monthlyExpensesMap = {};
       let ikSettings = { renew_day: 1, payment_day: 5 };
       let editPId = null,
@@ -3231,6 +3245,12 @@
           year: parseInt(parts[0], 10),
           month: parseInt(parts[1], 10) - 1
         };
+      }
+      function isPeriodApproved(dateStr) {
+        if (!dateStr) return false;
+        const ym = getYearMonth(dateStr);
+        const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+        return approvedPeriods.includes(periodStr);
       }
       function parseSubstituteNote(noteStr) {
         if (!noteStr) return null;
@@ -3595,9 +3615,9 @@
       async function loadAll() {
         try {
           setDbStatus("loading");
-          let p, c, w, s, me;
+          let p, c, w, s, me, ap;
           try {
-            [p, c, w, s, me] = await Promise.all([
+            [p, c, w, s, me, ap] = await Promise.all([
               api.get("/personnel"),
               api.get("/companies"),
               api.get("/work_records"),
@@ -3607,6 +3627,10 @@
               }),
               api.get("/monthly-expenses").catch(err => {
                 console.warn("Monthly expenses fetch failed:", err);
+                return [];
+              }),
+              api.get("/work_records/approved-periods").catch(err => {
+                console.warn("Approved periods fetch failed:", err);
                 return [];
               })
             ]);
@@ -3624,6 +3648,7 @@
           personnel = p;
           companies = c;
           work_records = w;
+          approvedPeriods = ap || [];
           ikSettings = s || { renew_day: 1, payment_day: 5 };
           
           monthlyExpensesMap = {};
@@ -3770,16 +3795,26 @@
         const latestPairs = {};
         work_records.forEach(r => {
           if (!r.start_day) return;
+          // Exclude cover records
+          if (parseSubstituteNote(r.note)) return;
+          
           const key = `${r.personnel_id}-${r.company_id}`;
           const ym = getYearMonth(r.start_day);
           const rPeriodValue = ym.year * 12 + ym.month;
+          
           if (!latestPairs[key]) {
             latestPairs[key] = r;
           } else {
             const latestYM = getYearMonth(latestPairs[key].start_day);
             const latestPeriodValue = latestYM.year * 12 + latestYM.month;
+            
             if (rPeriodValue > latestPeriodValue) {
               latestPairs[key] = r;
+            } else if (rPeriodValue === latestPeriodValue) {
+              // Prefer the recurring one if periods are equal
+              if (r.is_recurring && !latestPairs[key].is_recurring) {
+                latestPairs[key] = r;
+              }
             }
           }
         });
@@ -3838,12 +3873,71 @@
         isGeneratingRecurring = false;
       }
 
+      async function togglePeriodApproval() {
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        const periodStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
+        
+        const isApproved = approvedPeriods.includes(periodStr);
+        const actionText = isApproved ? "onayını kaldırmak" : "onaylamak";
+        
+        const monthName = document.getElementById("op-ay").options[selMonth].text;
+        if (!confirm(`Bu dönemi (${selYear} ${monthName}) ${actionText} istediğinize emin misiniz?`)) {
+          return;
+        }
+        
+        try {
+          const res = await api.post("/work_records/approve", {
+            period: periodStr,
+            approved: !isApproved
+          });
+          
+          if (res.success) {
+            toast(isApproved ? "Onay kaldırıldı ✓" : "Dönem onaylandı ✓");
+            await loadAll();
+          }
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
       async function renderOperasyonCockpit() {
         const tbody = document.getElementById("operasyon-tbody");
         if (!tbody) return;
         
         const selYear = parseInt(document.getElementById("op-yil").value);
         const selMonth = parseInt(document.getElementById("op-ay").value);
+        const periodStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
+        const isApproved = approvedPeriods.includes(periodStr);
+        
+        const banner = document.getElementById("op-approval-banner");
+        const toggleBtn = document.getElementById("btn-toggle-op-edit");
+        const approveBtn = document.getElementById("btn-op-approve");
+        const newComBtn = document.getElementById("btn-op-new-com");
+        const newPerBtn = document.getElementById("btn-op-new-per");
+        
+        if (banner) banner.style.display = isApproved ? "flex" : "none";
+        if (toggleBtn) toggleBtn.style.display = isApproved ? "none" : "inline-flex";
+        if (newComBtn) newComBtn.style.display = isApproved ? "none" : "inline-flex";
+        if (newPerBtn) newPerBtn.style.display = isApproved ? "none" : "inline-flex";
+        
+        if (approveBtn) {
+          if (isApproved) {
+            approveBtn.textContent = "🔓 Onayı Kaldır";
+            approveBtn.className = "btn btn-secondary";
+            approveBtn.style.backgroundColor = "#cbd5e1";
+            approveBtn.style.color = "#1e293b";
+          } else {
+            approveBtn.textContent = "✅ Dönemi Onayla";
+            approveBtn.className = "btn btn-green";
+            approveBtn.style.backgroundColor = "#16a34a";
+            approveBtn.style.color = "#fff";
+          }
+        }
+        
+        if (isApproved && opEditModeActive) {
+          toggleOpEditMode(false);
+        }
         
         // Auto-generate missing recurring records for this period
         await ensureRecurringRecordsForPeriod(selYear, selMonth);
@@ -3864,33 +3958,27 @@
           
           return false;
         });
-        
-        if (activeList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için iş kaydı bulunamadı.</div></div></td></tr>`;
-          return;
-        }
 
-        // Group rows by company_id
+        // Group active rows by company_id
         const groups = {};
-        const groupOrder = [];
         activeList.forEach((r) => {
           if (!groups[r.company_id]) {
             groups[r.company_id] = [];
-            groupOrder.push(r.company_id);
           }
           groups[r.company_id].push(r);
         });
 
-        // Sort groups by company name
-        groupOrder.sort((a, b) => {
-          let cA = cName(a) || "";
-          let cB = cName(b) || "";
+        // Sort all companies alphabetically
+        const sortedCompanies = [...companies].sort((a, b) => {
+          let cA = a.company_name || "";
+          let cB = b.company_name || "";
           return cA.localeCompare(cB, 'tr');
         });
 
         let html = '';
-        groupOrder.forEach((cId) => {
-          const grRows = groups[cId];
+        sortedCompanies.forEach((c) => {
+          const cId = c.id;
+          const grRows = groups[cId] || [];
           
           // Separate parent and cover rows
           const parents = grRows.filter(r => r.is_recurring);
@@ -3908,88 +3996,102 @@
             <tr style="background: #e8f0fe;">
               <td colspan="7" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span>🏢 ${cName(cId)} — ${parents.length} personel</span>
-                  <button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>
+                  <span>🏢 ${c.company_name} — ${parents.length} personel</span>
+                  ${isApproved ? '' : `<button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>`}
                 </div>
               </td>
             </tr>
           `;
 
-          // Individual personnel rows under the company
-          parents.forEach((r) => {
-            const p = personnel.find(x => x.id == r.personnel_id);
-            const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
-            const pPos = p ? p.position : "—";
-            const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
-            const advance = parseFloat(r.advance_amount || 0);
-            const leaves = parseFloat(r.leave_days || 0);
-            const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
-            
-            const statusBadge = r.needs_review
-              ? `<span class="badge badge-amber">⚠️ Güncellenmedi</span>`
-              : `<span class="badge badge-green">✓ Güncellendi</span>`;
-
+          if (parents.length === 0 && covers.length === 0) {
             html += `
               <tr>
-                <td style="padding-left: 20px;">
-                  <div style="font-weight: 600; color: #475569;">${pNameStr}</div>
-                  <div style="font-size: 10px; color: #94a3b8;">${pPos}</div>
-                </td>
-                <td style="font-weight:700;color:#0f172a;">${fmt(monthlyWage)}</td>
-                <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
-                <td style="text-align:center;color:#475569;">${leaves > 0 ? leaves + " gün" : "—"}</td>
-                <td style="font-weight:700;color:#16a34a;">${fmt(netPer)}</td>
-                <td>${statusBadge}</td>
-                <td style="white-space:nowrap;">
-                  <button class="btn btn-sm btn-primary" onclick="openEditRecModal('${r.id}')">Düzenle</button>
-                  <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>
+                <td colspan="7" style="text-align: center; padding: 12px; color: #94a3b8; font-style: italic; font-size: 11px;">
+                  Henüz bu kuruma atanmış personel yok.
                 </td>
               </tr>
             `;
-            
-            // Find and render cover rows for this parent
-            const myCovers = covers.filter(c => {
-              const sub = parseSubstituteNote(c.note);
-              return sub && sub.substituteForId == r.personnel_id;
-            });
-            
-            myCovers.forEach((cRow) => {
-              const cp = personnel.find(x => x.id == cRow.personnel_id);
-              const cpNameStr = cp ? `${cp.first_name} ${cp.last_name}` : "Bilinmeyen Personel";
-              const cpPos = cp ? cp.position : "—";
-              const cWage = parseFloat(cRow.personnel_monthly_wage || 0);
-              const cAdvance = parseFloat(cRow.advance_amount || 0);
-              const cNet = parseFloat(cRow.total_personnel_payment || 0) - cAdvance;
-              const subInfo = parseSubstituteNote(cRow.note);
-              const coverNoteText = subInfo ? `${pName(subInfo.substituteForId)} yerine ${subInfo.days} gün gitti` : "";
+          } else {
+            // Individual personnel rows under the company
+            parents.forEach((r) => {
+              const p = personnel.find(x => x.id == r.personnel_id);
+              const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
+              const pPos = p ? p.position : "—";
+              const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
+              const advance = parseFloat(r.advance_amount || 0);
+              const leaves = parseFloat(r.leave_days || 0);
+              const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
               
-              const cStatusBadge = cRow.needs_review
+              const statusBadge = r.needs_review
                 ? `<span class="badge badge-amber">⚠️ Güncellenmedi</span>`
                 : `<span class="badge badge-green">✓ Güncellendi</span>`;
-                
+
               html += `
-                <tr style="background: #fdfdfd;">
-                  <td style="padding-left: 42px;">
-                    <div style="font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
-                      <span style="color: #3b82f6;">↪</span>
-                      <span>${cpNameStr}</span>
-                      <span style="font-size: 10px; color: #94a3b8; font-weight: normal; font-style: italic;">(${coverNoteText})</span>
-                    </div>
-                    <div style="font-size: 10px; color: #94a3b8; padding-left: 14px;">${cpPos}</div>
+                <tr>
+                  <td style="padding-left: 20px;">
+                    <div style="font-weight: 600; color: #475569;">${pNameStr}</div>
+                    <div style="font-size: 10px; color: #94a3b8;">${pPos}</div>
                   </td>
-                  <td style="font-weight:700;color:#0f172a;">${fmt(cWage)}</td>
-                  <td style="color:#dc2626;">${cAdvance > 0 ? fmt(cAdvance) : "—"}</td>
-                  <td style="text-align:center;color:#64748b;">—</td>
-                  <td style="font-weight:700;color:#16a34a;">${fmt(cNet)}</td>
-                  <td>${cStatusBadge}</td>
+                  <td style="font-weight:700;color:#0f172a;">${fmt(monthlyWage)}</td>
+                  <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
+                  <td style="text-align:center;color:#475569;">${leaves > 0 ? leaves + " gün" : "—"}</td>
+                  <td style="font-weight:700;color:#16a34a;">${fmt(netPer)}</td>
+                  <td>${statusBadge}</td>
                   <td style="white-space:nowrap;">
-                    <button class="btn btn-sm btn-primary" onclick="openEditRecModal('${cRow.id}')">Düzenle</button>
-                    <button class="btn btn-sm btn-danger" onclick="delRec('${cRow.id}')" style="margin-left:3px">Sil</button>
+                    ${isApproved ? `<span style="font-size: 11px; color: #94a3b8; font-style: italic;">🔒 Onaylı</span>` : `
+                      <button class="btn btn-sm btn-primary" onclick="openEditRecModal('${r.id}')">Düzenle</button>
+                      <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>
+                    `}
                   </td>
                 </tr>
               `;
+              
+              // Find and render cover rows for this parent
+              const myCovers = covers.filter(cRow => {
+                const sub = parseSubstituteNote(cRow.note);
+                return sub && sub.substituteForId == r.personnel_id;
+              });
+              
+              myCovers.forEach((cRow) => {
+                const cp = personnel.find(x => x.id == cRow.personnel_id);
+                const cpNameStr = cp ? `${cp.first_name} ${cp.last_name}` : "Bilinmeyen Personel";
+                const cpPos = cp ? cp.position : "—";
+                const cWage = parseFloat(cRow.personnel_monthly_wage || 0);
+                const cAdvance = parseFloat(cRow.advance_amount || 0);
+                const cNet = parseFloat(cRow.total_personnel_payment || 0) - cAdvance;
+                const subInfo = parseSubstituteNote(cRow.note);
+                const coverNoteText = subInfo ? `${pName(subInfo.substituteForId)} yerine ${subInfo.days} gün gitti` : "";
+                
+                const cStatusBadge = cRow.needs_review
+                  ? `<span class="badge badge-amber">⚠️ Güncellenmedi</span>`
+                  : `<span class="badge badge-green">✓ Güncellendi</span>`;
+                  
+                html += `
+                  <tr style="background: #fdfdfd;">
+                    <td style="padding-left: 42px;">
+                      <div style="font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
+                        <span style="color: #3b82f6;">↪</span>
+                        <span>${cpNameStr}</span>
+                        <span style="font-size: 10px; color: #94a3b8; font-weight: normal; font-style: italic;">(${coverNoteText})</span>
+                      </div>
+                      <div style="font-size: 10px; color: #94a3b8; padding-left: 14px;">${cpPos}</div>
+                    </td>
+                    <td style="font-weight:700;color:#0f172a;">${fmt(cWage)}</td>
+                    <td style="color:#dc2626;">${cAdvance > 0 ? fmt(cAdvance) : "—"}</td>
+                    <td style="text-align:center;color:#64748b;">—</td>
+                    <td style="font-weight:700;color:#16a34a;">${fmt(cNet)}</td>
+                    <td>${cStatusBadge}</td>
+                    <td style="white-space:nowrap;">
+                      ${isApproved ? `<span style="font-size: 11px; color: #94a3b8; font-style: italic;">🔒 Onaylı</span>` : `
+                        <button class="btn btn-sm btn-primary" onclick="openEditRecModal('${cRow.id}')">Düzenle</button>
+                        <button class="btn btn-sm btn-danger" onclick="delRec('${cRow.id}')" style="margin-left:3px">Sil</button>
+                      `}
+                    </td>
+                  </tr>
+                `;
+              });
             });
-          });
+          }
         });
 
         tbody.innerHTML = html;
@@ -4115,7 +4217,10 @@
           <div class="card" id="card-${rowId}" data-personnel-id="${r.personnel_id}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <div class="card-head" style="background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;">
               <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
-              <span id="card-sum-${rowId}" style="font-size: 11px; font-weight: 700; color: #16a34a;">Net: ${fmt(r.total_personnel_payment - r.advance_amount)}</span>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="card-sum-${rowId}" style="font-size: 11px; font-weight: 700; color: #16a34a;">Net: ${fmt(r.total_personnel_payment - r.advance_amount)}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="delRec('${rowId}')" style="padding: 2px 6px; font-size: 10px; font-weight: 700;">Sil</button>
+              </div>
             </div>
             <div class="card-body" id="card-body-${rowId}" style="padding: 14px; display: block;">
               
@@ -4554,6 +4659,26 @@
         document.getElementById("p-phone").value = p ? p.phone : "";
         document.getElementById("p-iban").value = p ? p.iban : "";
         document.getElementById("p-hire-date").value = p && p.hire_date ? p.hire_date.substring(0, 10) : "";
+
+        const companyGroup = document.getElementById("per-modal-company-group");
+        const companySelect = document.getElementById("p-company-id");
+        if (companyGroup && companySelect) {
+          if (editPId) {
+            companyGroup.style.display = "none";
+            companySelect.value = "";
+          } else {
+            companyGroup.style.display = "block";
+            companySelect.innerHTML = '<option value="">Seçiniz (Dahil etme)...</option>';
+            const sorted = [...companies].sort((a, b) => (a.company_name || "").localeCompare(b.company_name || "", "tr"));
+            sorted.forEach(c => {
+              const o = document.createElement("option");
+              o.value = c.id;
+              o.text = c.company_name;
+              companySelect.appendChild(o);
+            });
+          }
+        }
+
         openM("modal-per");
       }
       async function savePer() {
@@ -4596,16 +4721,47 @@
             toast("Personel güncellendi ✓");
           } else {
             const res = await api.post("/admin/personnel", d);
-            personnel.push(
-              Array.isArray(res) && res[0]
-                ? res[0]
-                : { ...d, id: "tmp" + Date.now() },
-            );
+            const np = Array.isArray(res) && res[0] ? res[0] : { ...d, id: "tmp" + Date.now() };
+            personnel.push(np);
             toast("Personel eklendi ✓");
+
+            // Check if we should automatically add to Aylık Operasyon
+            const compId = document.getElementById("p-company-id").value;
+            if (compId) {
+              const selYear = parseInt(document.getElementById("op-yil").value) || new Date().getFullYear();
+              const selMonth = parseInt(document.getElementById("op-ay").value) || new Date().getMonth();
+              const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+              const monthStr = String(selMonth + 1).padStart(2, '0');
+              const targetStartStr = `${selYear}-${monthStr}-01`;
+              const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+              
+              const monthlyWage = parseFloat(np.daily_wage) || 0;
+              const opRecord = {
+                personnel_id: parseInt(np.id),
+                company_id: parseInt(compId),
+                start_day: targetStartStr,
+                end_date: targetEndStr,
+                work_days: lastDay,
+                personnel_monthly_wage: monthlyWage,
+                personnel_daily_wage: monthlyWage / 30,
+                total_personnel_payment: monthlyWage,
+                total_company_payment: 0,
+                is_recurring: true,
+                needs_review: true,
+                wage_mode: "calculated",
+                note: ""
+              };
+              await api.post("/admin/work_records", [opRecord]);
+            }
           }
           closeM("modal-per");
+          await loadAll();
           renderPersonnel();
           renderDashboard();
+          const curPage = localStorage.getItem("active_page") || "dashboard";
+          if (curPage === "operasyon") {
+            renderOperasyonCockpit();
+          }
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
@@ -4649,7 +4805,13 @@
         tbody.innerHTML = personnel
           .map((p, i) => {
             let tg = work_records
-              .filter((r) => r.personnel_id === p.id)
+              .filter((r) => {
+                if (r.personnel_id !== p.id) return false;
+                if (!r.start_day) return false;
+                const ym = getYearMonth(r.start_day);
+                const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+                return approvedPeriods.includes(periodStr);
+              })
               .reduce((s, r) => s + (r.work_days || 0), 0);
             return `<tr>
       <td>
@@ -4722,8 +4884,13 @@
             toast("Kurum eklendi ✓");
           }
           closeM("modal-com");
+          await loadAll();
           renderCompanies();
           renderDashboard();
+          const curPage = localStorage.getItem("active_page") || "dashboard";
+          if (curPage === "operasyon") {
+            renderOperasyonCockpit();
+          }
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
@@ -5478,6 +5645,10 @@
       function openEditRecModal(id) {
         let r = work_records.find((x) => x.id == id);
         if (!r) return;
+        if (isPeriodApproved(r.start_day)) {
+          toast("Bu döneme ait kayıtlar onaylandığı için düzenleme yapılamaz!", "err");
+          return;
+        }
         resetCForm();
         editRecId = id;
         document.getElementById("modal-calisma-title").textContent = "Kaydı Düzenle";
@@ -6225,6 +6396,11 @@
         }
       }
       async function delRec(id) {
+        let r = work_records.find((x) => x.id == id);
+        if (r && isPeriodApproved(r.start_day)) {
+          toast("Bu döneme ait kayıtlar onaylandığı için silme işlemi yapılamaz!", "err");
+          return;
+        }
         if (!confirm("Kaydı silmek istiyor musunuz?")) return;
         try {
           await api.delete(`/admin/work_records/${id}`);
@@ -6235,12 +6411,20 @@
           renderDashboard();
           updateSidebarBadge();
           await loadAll();
+          if (opEditModeActive) {
+            renderOperasyonEditMode();
+          }
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
       }
       async function onDeleteFromModal() {
         if (!editRecId) return;
+        let r = work_records.find((x) => x.id == editRecId);
+        if (r && isPeriodApproved(r.start_day)) {
+          toast("Bu döneme ait kayıtlar onaylandığı için silme işlemi yapılamaz!", "err");
+          return;
+        }
         if (!confirm("Bu çalışma kaydını silmek istediğinize emin misiniz?")) return;
         try {
           await api.delete(`/admin/work_records/${editRecId}`);
@@ -7152,7 +7336,10 @@
         // Filter work records for this personnel, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.personnel_id != id) return false;
-          return r.start_day ? true : false;
+          if (!r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+          return approvedPeriods.includes(periodStr);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
