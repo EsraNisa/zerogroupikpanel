@@ -3241,6 +3241,13 @@
       }
       function getYearMonth(dateStr) {
         if (!dateStr) return { year: 0, month: 0 };
+        if (dateStr.length >= 10 && dateStr.charAt(4) === '-' && dateStr.charAt(7) === '-') {
+          const parts = dateStr.substring(0, 10).split('-');
+          return {
+            year: parseInt(parts[0], 10),
+            month: parseInt(parts[1], 10) - 1
+          };
+        }
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) {
           const parts = dateStr.substring(0, 10).split('-');
@@ -3253,6 +3260,13 @@
           year: d.getFullYear(),
           month: d.getMonth()
         };
+      }
+      const MONTHS_TR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+      function getPeriodText(dateStr) {
+        if (!dateStr) return "—";
+        const ym = getYearMonth(dateStr);
+        if (ym.year === 0) return "—";
+        return MONTHS_TR[ym.month] + " " + ym.year;
       }
       function isPeriodApproved(dateStr) {
         if (!dateStr) return false;
@@ -3270,6 +3284,9 @@
       }
       function toLocalYYYYMMDD(dateStr) {
         if (!dateStr) return "";
+        if (dateStr.length >= 10 && dateStr.charAt(4) === '-' && dateStr.charAt(7) === '-') {
+          return dateStr.substring(0, 10);
+        }
         const d = new Date(dateStr);
         if (isNaN(d.getTime())) return dateStr.substring(0, 10);
         return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
@@ -6799,8 +6816,8 @@
         // Get all records of the current month
         let ayRows = work_records.filter(r => { 
           if (!r.start_day) return false; 
-          let d = new Date(r.start_day); 
-          return d.getMonth() === ay && d.getFullYear() === yil; 
+          let ym = getYearMonth(r.start_day); 
+          return ym.month === ay && ym.year === yil; 
         });
         
         // Calculate statistics for this month (excluding archived)
@@ -7653,8 +7670,8 @@
         // Detaylı işlem bildirimleri (Bu ayki eksikler)
         const currentMonthRecords = work_records.filter(r => {
           if (!r.start_day) return false;
-          const d = new Date(r.start_day);
-          return d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear && !r.archived;
+          const ym = getYearMonth(r.start_day);
+          return ym.month + 1 === currentMonth && ym.year === currentYear && !r.archived;
         });
         
         currentMonthRecords.forEach(r => {
@@ -7754,7 +7771,7 @@
         records.sort((a, b) => {
           if (!a.start_day) return 1;
           if (!b.start_day) return -1;
-          return new Date(b.start_day) - new Date(a.start_day);
+          return b.start_day.localeCompare(a.start_day);
         });
 
         let now = new Date(), curM = now.getMonth(), curY = now.getFullYear();
@@ -7764,8 +7781,8 @@
         records.forEach(r => {
           let pay = parseFloat(r.total_company_payment) || 0;
           if (r.start_day) {
-            let d = new Date(r.start_day);
-            if (d.getMonth() === curM && d.getFullYear() === curY && !r.archived) {
+            let ym = getYearMonth(r.start_day);
+            if (ym.month === curM && ym.year === curY && !r.archived) {
               curMonthTotal += pay;
             }
           }
@@ -7782,8 +7799,7 @@
           tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:#94a3b8">Bu kuruma ait geçmiş çalışma kaydı bulunamadı.</td></tr>`;
         } else {
           tbody.innerHTML = records.map(r => {
-            let start = r.start_day ? new Date(r.start_day) : null;
-            let periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+            let periodText = getPeriodText(r.start_day);
             let p = personnel.find(x => x.id == r.personnel_id);
             let pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
             let days = r.work_days || 0;
@@ -8028,8 +8044,8 @@
         // Aktif kayıtları seçilen ay/yıl için filtrele
         const filtered = work_records.filter(r => {
           if (!r.start_day) return false;
-          const d = new Date(r.start_day);
-          const isMonthMatch = d.getMonth() === selMonth && d.getFullYear() === selYear && !r.archived;
+          const ym = getYearMonth(r.start_day);
+          const isMonthMatch = ym.month === selMonth && ym.year === selYear && !r.archived;
           return isMonthMatch && isRecordVisibleInHistory(r);
         });
         
