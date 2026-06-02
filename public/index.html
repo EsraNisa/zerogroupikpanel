@@ -1758,6 +1758,22 @@
               <button class="btn btn-primary" onclick="openCalismaModal()">
                 + Yeni Kayıt
               </button>
+              <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569; margin-left: 8px;">Dönem Seç:</span>
+              <select id="cal-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()"></select>
+              <select id="cal-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()">
+                <option value="0">Ocak</option>
+                <option value="1">Şubat</option>
+                <option value="2">Mart</option>
+                <option value="3">Nisan</option>
+                <option value="4">Mayıs</option>
+                <option value="5">Haziran</option>
+                <option value="6">Temmuz</option>
+                <option value="7">Ağustos</option>
+                <option value="8">Eylül</option>
+                <option value="9">Ekim</option>
+                <option value="10">Kasım</option>
+                <option value="11">Aralık</option>
+              </select>
               <button
                 class="btn"
                 onclick="toggleFilter()"
@@ -1962,113 +1978,55 @@
 
           <!-- ÖDEMELER -->
           <div class="page" id="page-odemeler">
-            <div class="tab-bar">
-              <div class="tab active" onclick="switchOTab('per', this)">
-                Personel Ödemeleri
-              </div>
-              <div class="tab" onclick="switchOTab('com', this)">
-                Kurum Ödemeleri
-              </div>
+            <!-- Toolbar -->
+            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569;">Dönem Seç:</span>
+              <select id="pay-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderPayments()"></select>
+              <select id="pay-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderPayments()">
+                <option value="0">Ocak</option>
+                <option value="1">Şubat</option>
+                <option value="2">Mart</option>
+                <option value="3">Nisan</option>
+                <option value="4">Mayıs</option>
+                <option value="5">Haziran</option>
+                <option value="6">Temmuz</option>
+                <option value="7">Ağustos</option>
+                <option value="8">Eylül</option>
+                <option value="9">Ekim</option>
+                <option value="10">Kasım</option>
+                <option value="11">Aralık</option>
+              </select>
+              <input
+                class="form-input"
+                style="flex: 1; min-width: 140px; margin-left: 8px;"
+                id="pay-search"
+                placeholder="Personel veya kurum ara..."
+                oninput="renderPayments()"
+              />
             </div>
-            <div id="otab-per">
-              <div class="toolbar">
-                <select
-                  class="form-input"
-                  style="flex: 1"
-                  id="op-p"
-                  onchange="renderPerOd()"
-                >
-                  <option value="">Tüm Personel</option>
-                </select>
-                <select
-                  class="form-input"
-                  style="width: 120px"
-                  id="op-s"
-                  onchange="renderPerOd()"
-                >
-                  <option value="">Tümü</option>
-                  <option value="bekliyor">Bekliyor</option>
-                  <option value="odendi">Ödendi</option>
-                </select>
-                <input
-                  class="form-input"
-                  style="flex: 1; min-width: 140px; margin-left: 8px;"
-                  placeholder="Personel veya kurum ara..."
-                  oninput="filterTable('per-od-tbody', this.value)"
-                />
+            
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Ödeme Takibi & Onay Listesi</span>
               </div>
-              <div class="card">
-                <div class="card-head">
-                  <span class="card-title">Personel Ödemeleri</span>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Personel</th>
-                        <th>IBAN</th>
-                        <th>Kurum</th>
-                        <th>Dönem</th>
-                        <th>Gün</th>
-                        <th>Brüt</th>
-                        <th>Avans</th>
-                        <th>Net</th>
-                        <th>Durum</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="per-od-tbody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div id="otab-com" style="display: none">
-              <div class="toolbar">
-                <select
-                  class="form-input"
-                  style="flex: 1"
-                  id="oc-k"
-                  onchange="renderComOd()"
-                >
-                  <option value="">Tüm Kurum</option>
-                </select>
-                <select
-                  class="form-input"
-                  style="width: 120px"
-                  id="oc-s"
-                  onchange="renderComOd()"
-                >
-                  <option value="">Tümü</option>
-                  <option value="bekliyor">Bekliyor</option>
-                  <option value="odendi">Ödendi</option>
-                </select>
-                <input
-                  class="form-input"
-                  style="flex: 1; min-width: 140px; margin-left: 8px;"
-                  placeholder="Kurum veya personel ara..."
-                  oninput="filterTable('com-od-tbody', this.value)"
-                />
-              </div>
-              <div class="card">
-                <div class="card-head">
-                  <span class="card-title">Kurum Ödemeleri</span>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Kurum</th>
-                        <th>Personel</th>
-                        <th>Dönem</th>
-                        <th>Gün</th>
-                        <th>Fatura</th>
-                        <th>Durum</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="com-od-tbody"></tbody>
-                  </table>
-                </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="padding-left: 20px;">Personel</th>
+                      <th>IBAN</th>
+                      <th>Dönem / Tarih</th>
+                      <th>Çalışma Günü</th>
+                      <th>Net Hakediş</th>
+                      <th>Fatura (Kurum)</th>
+                      <th>Durum</th>
+                      <th>İşlem</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pay-tbody">
+                    <tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">Yükleniyor...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -3571,15 +3529,18 @@
         closeSidebar();
         localStorage.setItem("active_page", id);
 
-        if (id === "calismalar") initCSelects();
+        if (id === "calismalar") {
+          initCSelects();
+          initCalSelects();
+          renderRecords();
+        }
         if (id === "operasyon") {
           initOpSelects();
           renderOperasyonCockpit();
         }
         if (id === "odemeler") {
-          initOSelects();
-          renderPerOd();
-          renderComOd();
+          initPaySelects();
+          renderPayments();
         }
         if (id === "raporlar") initRSelects();
         if (id === "hatirlatici") renderHatirlatici();
@@ -3724,6 +3685,8 @@
                 month: "long",
                 year: "numeric",
               }));
+          initCalSelects();
+          initPaySelects();
           renderDashboard();
           renderPersonnel();
           renderCompanies();
@@ -3747,6 +3710,42 @@
       function generateDetailedAlertsHtml(records) {
         let alertsHtml = '';
         const todayDay = new Date().getDate();
+        
+        let pastUnpaidHtml = "";
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth(); // 0-indexed
+
+        work_records.forEach(r => {
+          if (r.archived || !r.start_day) return;
+          const ym = getYearMonth(r.start_day);
+          const isStrictlyPrevious = ym.year < currentYear || (ym.year === currentYear && ym.month < currentMonth);
+          if (!isStrictlyPrevious) return;
+
+          if (r.personnel_payment_status !== 'odendi') {
+            const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+            if (netPay > 0) {
+              const p = personnel.find(x => x.id == r.personnel_id);
+              const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
+              const monthText = MONTHS_TR[ym.month];
+              const periodLabel = `${monthText} ${ym.year}`;
+              
+              pastUnpaidHtml += `
+                <div class="alert-item danger" style="margin-bottom: 8px; background: #fff5f5; border-left: 4px solid #dc2626; border-color: #fecaca; color: #991b1b;">
+                  <div style="font-size: 16px; margin-top: 2px;">⚠️</div>
+                  <div style="flex: 1;">
+                    <div class="alert-item-title" style="font-weight: 700; color: #991b1b;">Geçmiş Dönem Ödeme Uyarısı</div>
+                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${periodLabel}</b> ayından <b>${pName}</b> personeline ödeme yapılmadı! (Net: ${fmt(netPay)})</div>
+                  </div>
+                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #dc2626; color: #fff;" onclick="openEditRecModal('${r.id}')">Öde</button>
+                </div>
+              `;
+            }
+          }
+        });
+        
+        alertsHtml = pastUnpaidHtml + alertsHtml;
+
         records.forEach(r => {
           const p = personnel.find(x => x.id == r.personnel_id);
           const c = companies.find(x => x.id == r.company_id);
@@ -5641,6 +5640,17 @@
         let today = new Date().toISOString().split("T")[0];
         document.getElementById("c-start").value = today;
         document.getElementById("c-end").value = today;
+
+        const curPage = localStorage.getItem("active_page") || "dashboard";
+        const recCb = document.getElementById("c-is-recurring");
+        if (recCb) {
+          if (curPage === "calismalar") {
+            recCb.checked = false;
+            recCb.closest('.form-grid').style.display = "none";
+          } else {
+            recCb.closest('.form-grid').style.display = "block";
+          }
+        }
         openM("modal-calisma");
       }
 
@@ -5802,6 +5812,17 @@
         document.getElementById("c-start").value = r.start_day ? r.start_day.split("T")[0] : "";
         document.getElementById("c-end").value = r.end_date ? r.end_date.split("T")[0] : "";
         document.getElementById("c-is-recurring").checked = !!r.is_recurring;
+        
+        const curPage = localStorage.getItem("active_page") || "dashboard";
+        const recCb = document.getElementById("c-is-recurring");
+        if (recCb) {
+          if (curPage === "calismalar") {
+            recCb.checked = false;
+            recCb.closest('.form-grid').style.display = "none";
+          } else {
+            recCb.closest('.form-grid').style.display = "block";
+          }
+        }
         
         const rBtn = document.querySelector('input[name="c-payment-type"][value="bireysel"]');
         if (rBtn) rBtn.checked = true;
@@ -6254,7 +6275,8 @@
               reminder_at = orig.reminder_at || null;
             }
           }
-          const is_recurring = document.getElementById("c-is-recurring").checked;
+          const curPage = localStorage.getItem("active_page") || "dashboard";
+          const is_recurring = curPage === "calismalar" ? false : document.getElementById("c-is-recurring").checked;
           
           let com_kdv = false;
           let com_tevkifat = false;
@@ -6470,9 +6492,18 @@
         if (data !== undefined) {
           rows = data;
         } else {
+          const calYilEl = document.getElementById("cal-yil");
+          const calAyEl = document.getElementById("cal-ay");
+          const selectedYear = calYilEl ? parseInt(calYilEl.value, 10) : new Date().getFullYear();
+          const selectedMonth = calAyEl ? parseInt(calAyEl.value, 10) : new Date().getMonth();
+
           rows = work_records.filter((r) => {
             const arch = arsivMode ? r.archived === true : !r.archived;
-            return arch && isRecordVisibleInHistory(r);
+            if (!arch) return false;
+            if (!r.start_day) return false;
+            const ym = getYearMonth(r.start_day);
+            const isMonthMatch = ym.year === selectedYear && ym.month === selectedMonth;
+            return isMonthMatch && isRecordVisibleInHistory(r);
           });
         }
         rows = [...rows].sort((a, b) => {
@@ -6677,130 +6708,193 @@
       // ============================================================
       // ÖDEMELER — backend /admin/work_records kullanır
       // ============================================================
-      function initOSelects() {
-        let sp = document.getElementById("op-p");
-        let f = sp.options[0];
-        sp.innerHTML = "";
-        sp.appendChild(f);
-        personnel.forEach((p) => {
-          let o = document.createElement("option");
-          o.value = p.id;
-          o.text = p.first_name + " " + p.last_name;
-          sp.appendChild(o);
-        });
-        let sk = document.getElementById("oc-k");
-        let fk = sk.options[0];
-        sk.innerHTML = "";
-        sk.appendChild(fk);
-        companies.forEach((c) => {
-          let o = document.createElement("option");
-          o.value = c.id;
-          o.text = c.company_name;
-          sk.appendChild(o);
-        });
+      function initPaySelects() {
+        let ys = document.getElementById("pay-yil");
+        let d = new Date();
+        if (ys && ys.options.length === 0) {
+          ys.innerHTML = "";
+          for (let y = d.getFullYear(); y >= 2022; y--) {
+            let o = document.createElement("option");
+            o.value = y;
+            o.text = y;
+            ys.appendChild(o);
+          }
+          document.getElementById("pay-ay").value = d.getMonth();
+        }
       }
-      function switchOTab(t, el) {
-        document.getElementById("otab-per").style.display =
-          t === "per" ? "block" : "none";
-        document.getElementById("otab-com").style.display =
-          t === "com" ? "block" : "none";
-        document
-          .querySelectorAll("#page-odemeler .tab")
-          .forEach((x) => x.classList.remove("active"));
-        el.classList.add("active");
-      }
-      function renderPerOd() {
-        let fp = document.getElementById("op-p").value,
-          fs = document.getElementById("op-s").value;
-        let rows = work_records.filter((r) => {
-          if (fp && r.personnel_id !== fp) return false;
-          if (fs && r.personnel_payment_status !== fs) return false;
+
+      function renderPayments() {
+        const payYilEl = document.getElementById("pay-yil");
+        const payAyEl = document.getElementById("pay-ay");
+        if (!payYilEl || !payAyEl) return;
+        const selectedYear = parseInt(payYilEl.value, 10);
+        const selectedMonth = parseInt(payAyEl.value, 10);
+        const searchInput = document.getElementById("pay-search");
+        const searchVal = searchInput ? searchInput.value.trim().toLowerCase('tr') : "";
+
+        // Filter active records for the selected month and year
+        let filtered = work_records.filter(r => {
+          if (r.archived) return false;
+          if (!r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          const isMonthMatch = ym.year === selectedYear && ym.month === selectedMonth;
+          if (!isMonthMatch) return false;
+
+          if (searchVal) {
+            const pNameStr = (pName(r.personnel_id) || "").toLowerCase('tr');
+            const cNameStr = (cName(r.company_id) || "").toLowerCase('tr');
+            if (!pNameStr.includes(searchVal) && !cNameStr.includes(searchVal)) {
+              return false;
+            }
+          }
           return true;
         });
-        let tbody = document.getElementById("per-od-tbody");
-        if (!rows.length) {
-          tbody.innerHTML =
-            '<tr><td colspan="10" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>';
+
+        // Group by company_id
+        let groups = {};
+        filtered.forEach(r => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+          }
+          groups[r.company_id].push(r);
+        });
+
+        const tbody = document.getElementById("pay-tbody");
+        if (!tbody) return;
+
+        if (Object.keys(groups).length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">Bu ay için ödeme kaydı bulunmuyor.</td></tr>`;
           return;
         }
-        tbody.innerHTML = rows
-          .map((r) => {
-            let net =
-              (r.total_personnel_payment || 0) - (r.advance_amount || 0);
-            let badge =
-              r.personnel_payment_status === "odendi"
-                ? "badge-green"
-                : "badge-amber";
-            return `<tr>
-      <td style="font-weight:700">${pName(r.personnel_id)}</td>
-      <td style="font-size:10px;font-family:monospace;color:#64748b;max-width:100px;overflow:hidden;text-overflow:ellipsis">${pIban(r.personnel_id)}</td>
-      <td>${cName(r.company_id)}</td>
-      <td style="font-size:11px;color:#64748b;white-space:nowrap">${fmtDate(r.start_day)} → ${fmtDate(r.end_date)}</td>
-      <td style="text-align:center">${r.work_days || 0}</td>
-      <td>${fmt(r.total_personnel_payment)}</td>
-      <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
-      <td style="font-weight:700;color:#16a34a">${fmt(net)}</td>
-      <td><span class="badge ${badge}">${r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
-      <td>${r.personnel_payment_status === "bekliyor" ? `<button class="btn btn-sm btn-green" onclick="markPer('${r.id}')">Ödendi ✓</button>` : "—"}</td>
-    </tr>`;
-          })
-          .join("");
-      }
-      async function markPer(id) {
-        try {
-          await api.patch(`/admin/work_records/${id}`, {
-            personnel_payment_status: "odendi",
+
+        let html = "";
+        // Sort companies alphabetically
+        const companyIds = Object.keys(groups).sort((a, b) => {
+          return cName(a).localeCompare(cName(b), 'tr');
+        });
+
+        companyIds.forEach(cId => {
+          const records = groups[cId];
+          const allCompanyPaid = records.every(r => r.company_payment_status === "odendi");
+          
+          const companyBtn = allCompanyPaid
+            ? `<button class="btn btn-sm" onclick="toggleCompanyPaymentGroup('${cId}', 'bekliyor')" style="color:#d97706; border-color:#fcd34d; background-color:#fffbeb; font-size:11px; padding:4px 8px;">🔓 Geri Al</button>`
+            : `<button class="btn btn-sm btn-primary" onclick="toggleCompanyPaymentGroup('${cId}', 'odendi')" style="font-size:11px; padding:4px 8px;">💵 Kurum Ödemesi Alındı</button>`;
+
+          const totalCompanyFatura = records.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
+
+          html += `
+            <tr style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
+              <td colspan="5" style="font-weight: 800; font-size: 13px; color: #1e3a5f; padding: 12px 20px;">
+                🏢 ${cName(cId)} (${records.length} Personel)
+              </td>
+              <td style="font-weight: 800; font-size: 13px; color: #1e3a5f;">
+                ${fmt(totalCompanyFatura)}
+              </td>
+              <td style="font-weight: 800; font-size: 13px;">
+                <span class="badge ${allCompanyPaid ? 'badge-green' : 'badge-amber'}">
+                  ${allCompanyPaid ? 'Ödendi' : 'Bekliyor'}
+                </span>
+              </td>
+              <td style="padding: 8px 10px;">
+                ${companyBtn}
+              </td>
+            </tr>
+          `;
+
+          // Sort records inside company by personnel name
+          records.sort((a, b) => pName(a.personnel_id).localeCompare(pName(b.personnel_id), 'tr'));
+
+          records.forEach(r => {
+            const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+            const isPerPaid = r.personnel_payment_status === "odendi";
+            
+            const perBtn = isPerPaid
+              ? `<button class="btn btn-sm" onclick="togglePersonnelPayment('${r.id}', 'bekliyor')" style="color:#dc2626; border-color:#fecaca; background-color:#fef2f2; font-size:11px; padding:4px 8px;">🔓 Geri Al</button>`
+              : `<button class="btn btn-sm" onclick="togglePersonnelPayment('${r.id}', 'odendi')" style="color:#16a34a; border-color:#bbf7d0; background-color:#f0fdf4; font-size:11px; padding:4px 8px;">💸 Ödeme Yapıldı</button>`;
+
+            const perBadge = isPerPaid
+              ? `<span class="badge badge-green">Ödendi</span>`
+              : `<span class="badge badge-amber">Bekliyor</span>`;
+
+            html += `
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding-left: 35px; font-weight: 600; color: #475569;">
+                  👤 ${pName(r.personnel_id)}
+                </td>
+                <td style="color:#64748b; font-family: monospace; font-size: 11px;">
+                  ${pIban(r.personnel_id)}
+                </td>
+                <td style="color:#64748b;">
+                  ${fmtDate(r.start_day)} - ${fmtDate(r.end_date)}
+                </td>
+                <td style="text-align:center; font-weight: 600;">
+                  ${r.work_days || 0}
+                </td>
+                <td style="font-weight: 700; color: #0f172a;">
+                  ${fmt(netPay)}
+                </td>
+                <td style="color:#64748b;">
+                  ${fmt(r.total_company_payment)}
+                </td>
+                <td>
+                  ${perBadge}
+                </td>
+                <td style="white-space: nowrap;">
+                  ${perBtn}
+                </td>
+              </tr>
+            `;
           });
+        });
+
+        tbody.innerHTML = html;
+      }
+
+      async function togglePersonnelPayment(id, newStatus) {
+        try {
+          await api.patch(`/admin/work_records/${id}`, { personnel_payment_status: newStatus });
           let r = work_records.find((x) => x.id == id);
-          if (r) r.personnel_payment_status = "odendi";
-          renderPerOd();
+          if (r) r.personnel_payment_status = newStatus;
+          renderPayments();
           renderDashboard();
-          toast("Ödeme işaretlendi ✓");
+          toast(newStatus === "odendi" ? "Ödeme yapıldı olarak işaretlendi ✓" : "Ödeme iptal edildi 🔓");
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
       }
-      function renderComOd() {
-        let fc = document.getElementById("oc-k").value,
-          fs = document.getElementById("oc-s").value;
-        let rows = work_records.filter((r) => {
-          if (fc && r.company_id !== fc) return false;
-          if (fs && r.company_payment_status !== fs) return false;
-          return true;
+
+      async function toggleCompanyPaymentGroup(companyId, newStatus) {
+        const payYilEl = document.getElementById("pay-yil");
+        const payAyEl = document.getElementById("pay-ay");
+        if (!payYilEl || !payAyEl) return;
+        const selectedYear = parseInt(payYilEl.value, 10);
+        const selectedMonth = parseInt(payAyEl.value, 10);
+
+        const companyRecords = work_records.filter(r => {
+          if (r.archived || r.company_id != companyId) return false;
+          if (!r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.year === selectedYear && ym.month === selectedMonth;
         });
-        let tbody = document.getElementById("com-od-tbody");
-        if (!rows.length) {
-          tbody.innerHTML =
-            '<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">Kayıt bulunamadı</td></tr>';
+
+        if (companyRecords.length === 0) {
+          toast("Bu döneme ait kayıt bulunamadı!", "err");
           return;
         }
-        tbody.innerHTML = rows
-          .map((r) => {
-            let badge =
-              r.company_payment_status === "odendi"
-                ? "badge-green"
-                : "badge-amber";
-            return `<tr>
-      <td style="font-weight:700">${cName(r.company_id)}</td>
-      <td>${pName(r.personnel_id)}</td>
-      <td style="font-size:11px;color:#64748b;white-space:nowrap">${fmtDate(r.start_day)} → ${fmtDate(r.end_date)}</td>
-      <td style="text-align:center">${r.work_days || 0}</td>
-      <td style="font-weight:700">${fmt(r.total_company_payment)}</td>
-      <td><span class="badge ${badge}">${r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
-      <td>${r.company_payment_status === "bekliyor" ? `<button class="btn btn-sm btn-green" onclick="markCom('${r.id}')">Ödendi ✓</button>` : "—"}</td>
-    </tr>`;
-          })
-          .join("");
-      }
-      async function markCom(id) {
+
         try {
-          await api.patch(`/admin/work_records/${id}`, {
-            company_payment_status: "odendi",
+          await Promise.all(companyRecords.map(r => 
+            api.patch(`/admin/work_records/${r.id}`, { company_payment_status: newStatus })
+          ));
+
+          companyRecords.forEach(r => {
+            r.company_payment_status = newStatus;
           });
-          let r = work_records.find((x) => x.id == id);
-          if (r) r.company_payment_status = "odendi";
-          renderComOd();
-          toast("Ödeme işaretlendi ✓");
+
+          renderPayments();
+          renderDashboard();
+          toast(newStatus === "odendi" ? "Kurum ödemesi alındı olarak işaretlendi ✓" : "Kurum ödemesi iptal edildi 🔓");
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
@@ -8025,7 +8119,7 @@
       function initKSelects() {
         let ys = document.getElementById("kon-yil");
         let d = new Date();
-        if (ys.options.length === 0) {
+        if (ys && ys.options.length === 0) {
           ys.innerHTML = "";
           for (let y = d.getFullYear(); y >= 2022; y--) {
             let o = document.createElement("option");
@@ -8034,6 +8128,36 @@
             ys.appendChild(o);
           }
           document.getElementById("kon-ay").value = d.getMonth();
+        }
+      }
+
+      function initCalSelects() {
+        let ys = document.getElementById("cal-yil");
+        let d = new Date();
+        if (ys && ys.options.length === 0) {
+          ys.innerHTML = "";
+          for (let y = d.getFullYear(); y >= 2022; y--) {
+            let o = document.createElement("option");
+            o.value = y;
+            o.text = y;
+            ys.appendChild(o);
+          }
+          document.getElementById("cal-ay").value = d.getMonth();
+        }
+      }
+
+      function initPaySelects() {
+        let ys = document.getElementById("pay-yil");
+        let d = new Date();
+        if (ys && ys.options.length === 0) {
+          ys.innerHTML = "";
+          for (let y = d.getFullYear(); y >= 2022; y--) {
+            let o = document.createElement("option");
+            o.value = y;
+            o.text = y;
+            ys.appendChild(o);
+          }
+          document.getElementById("pay-ay").value = d.getMonth();
         }
       }
 
@@ -8098,49 +8222,81 @@
           </div>
         `;
         
-        // Tablo satırlarını oluştur
-        tbody.innerHTML = filtered.map(r => {
-          const perNet = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-          const comTotal = parseFloat(r.total_company_payment) || 0;
-          const profit = comTotal - (parseFloat(r.total_personnel_payment) || 0);
-          
-          const isToplu = isTopluRecord(r, filtered);
-          const comPaymentDisp = isToplu ? "—" : fmt(comTotal);
-          const profitDisp = isToplu ? "—" : fmt(profit);
-          const profitColor = isToplu ? "#64748b" : (profit >= 0 ? '#16a34a' : '#dc2626');
+        // Group filtered records by company_id
+        let groups = {};
+        filtered.forEach(r => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+          }
+          groups[r.company_id].push(r);
+        });
 
-          const pBadge = r.personnel_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
-          const cBadge = r.company_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
-          
-          const pStatusText = r.personnel_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor';
-          const cStatusText = r.company_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor';
-          
-          // Not detaylarını topla
-          let noteDetails = [];
-          if (r.reminder_note) noteDetails.push(`Hatırlatma: ${r.reminder_note}`);
-          if (r.note) noteDetails.push(`Not: ${r.note}`);
-          const noteText = noteDetails.join(" | ") || "—";
-          
-          return `
-            <tr>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 700; color: #1e293b;">${cName(r.company_id)}</td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${pName(r.personnel_id)}</td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #475569;">
-                ${fmt(r.total_personnel_payment)}
-                <div style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px;">Net: ${fmt(perNet)} (Avans: ${fmt(r.advance_amount)})</div>
+        let html = "";
+        const companyIds = Object.keys(groups).sort((a, b) => {
+          return cName(a).localeCompare(cName(b), 'tr');
+        });
+
+        companyIds.forEach(cId => {
+          const records = groups[cId];
+          const groupPerTotal = records.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+          const groupComTotal = records.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
+          const groupProfit = groupComTotal - groupPerTotal;
+
+          html += `
+            <tr style="background: #e8f0fe; font-weight: 800; color: #1e40af;">
+              <td colspan="8" style="padding: 10px 8px; font-size: 12px; font-weight: 800; color: #1e40af;">
+                🏢 ${cName(cId)} — (${records.length} kayıt | Pers. Öd: ${fmt(groupPerTotal)} | Kurum Geliri: ${fmt(groupComTotal)} | Kar: <span style="color:${groupProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(groupProfit)}</span>)
               </td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e3a5f;">${comPaymentDisp}</td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: ${profitColor};">${profitDisp}</td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-                <span class="badge ${pBadge}" style="cursor: pointer; user-select: none;" onclick="toggleRecordStatus('${r.id}', 'personnel')">${pStatusText}</span>
-              </td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-                <span class="badge ${cBadge}" style="cursor: pointer; user-select: none;" onclick="toggleRecordStatus('${r.id}', 'company')">${cStatusText}</span>
-              </td>
-              <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${noteText}">${noteText}</td>
             </tr>
           `;
-        }).join("");
+
+          // Sort records alphabetically inside group by personnel name
+          records.sort((a, b) => pName(a.personnel_id).localeCompare(pName(b.personnel_id), 'tr'));
+
+          records.forEach(r => {
+            const perNet = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+            const comTotal = parseFloat(r.total_company_payment) || 0;
+            const profit = comTotal - (parseFloat(r.total_personnel_payment) || 0);
+            
+            const isToplu = isTopluRecord(r, filtered);
+            const comPaymentDisp = isToplu ? "—" : fmt(comTotal);
+            const profitDisp = isToplu ? "—" : fmt(profit);
+            const profitColor = isToplu ? "#64748b" : (profit >= 0 ? '#16a34a' : '#dc2626');
+
+            const pBadge = r.personnel_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+            const cBadge = r.company_payment_status === 'odendi' ? 'badge-green' : 'badge-amber';
+            
+            const pStatusText = r.personnel_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor';
+            const cStatusText = r.company_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor';
+            
+            let noteDetails = [];
+            if (r.reminder_note) noteDetails.push(`Hatırlatma: ${r.reminder_note}`);
+            if (r.note) noteDetails.push(`Not: ${r.note}`);
+            const noteText = noteDetails.join(" | ") || "—";
+
+            html += `
+              <tr>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #94a3b8; padding-left: 20px;">⤷</td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${pName(r.personnel_id)}</td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #475569;">
+                  ${fmt(r.total_personnel_payment)}
+                  <div style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px;">Net: ${fmt(perNet)} (Avans: ${fmt(r.advance_amount)})</div>
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e3a5f;">${comPaymentDisp}</td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: ${profitColor};">${profitDisp}</td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+                  <span class="badge ${pBadge}" style="cursor: pointer; user-select: none;" onclick="toggleRecordStatus('${r.id}', 'personnel')">${pStatusText}</span>
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+                  <span class="badge ${cBadge}" style="cursor: pointer; user-select: none;" onclick="toggleRecordStatus('${r.id}', 'company')">${cStatusText}</span>
+                </td>
+                <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 10px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${noteText}">${noteText}</td>
+              </tr>
+            `;
+          });
+        });
+
+        tbody.innerHTML = html;
       }
       
       async function toggleRecordStatus(recId, type) {
