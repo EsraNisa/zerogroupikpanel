@@ -2583,6 +2583,15 @@
               </div>
             </div>
 
+            <div class="form-grid g1" style="margin-top: 10px; margin-bottom: 10px;">
+              <div class="form-group">
+                <div style="display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="c-is-recurring" style="width: 16px; height: 16px; cursor: pointer;" />
+                  <label for="c-is-recurring" style="font-weight: 700; font-size: 12px; color: #1e3a5f; cursor: pointer; margin-bottom: 0;">Aylık Operasyona Dahil Et (Tekrarlayan İş)</label>
+                </div>
+              </div>
+            </div>
+
             <div class="form-grid g1">
               <div class="form-group" id="toplu-payment-group">
                 <label class="form-label">Toplam Kurum Ödemesi (Fatura Tutarı) (₺)</label>
@@ -3215,6 +3224,27 @@
         let p = personnel.find((x) => x.id === id);
         return p ? p.iban || "—" : "—";
       }
+      function getYearMonth(dateStr) {
+        if (!dateStr) return { year: 0, month: 0 };
+        const parts = dateStr.substring(0, 10).split('-');
+        return {
+          year: parseInt(parts[0], 10),
+          month: parseInt(parts[1], 10) - 1
+        };
+      }
+      function parseSubstituteNote(noteStr) {
+        if (!noteStr) return null;
+        const match = noteStr.match(/^__SUB_FOR_PID:(\d+):DAYS:([\d.]+):WAGE:([\d.]+)__(.*)/);
+        if (match) {
+          return {
+            substituteForId: parseInt(match[1], 10),
+            days: parseFloat(match[2]),
+            wage: parseFloat(match[3]),
+            textNote: match[4].trim()
+          };
+        }
+        return null;
+      }
       function getPersonnelMonthlyWage(personnelId) {
         let p = personnel.find((x) => x.id === personnelId);
         return p ? parseFloat(p.daily_wage) || 0 : 0;
@@ -3741,9 +3771,16 @@
         work_records.forEach(r => {
           if (!r.start_day) return;
           const key = `${r.personnel_id}-${r.company_id}`;
-          const rDate = new Date(r.start_day);
-          if (!latestPairs[key] || new Date(latestPairs[key].start_day) < rDate) {
+          const ym = getYearMonth(r.start_day);
+          const rPeriodValue = ym.year * 12 + ym.month;
+          if (!latestPairs[key]) {
             latestPairs[key] = r;
+          } else {
+            const latestYM = getYearMonth(latestPairs[key].start_day);
+            const latestPeriodValue = latestYM.year * 12 + latestYM.month;
+            if (rPeriodValue > latestPeriodValue) {
+              latestPairs[key] = r;
+            }
           }
         });
 
@@ -3754,17 +3791,19 @@
 
         Object.values(latestPairs).forEach(rec => {
           if (rec.is_recurring && !rec.archived) {
-            const recDate = new Date(rec.start_day);
-            const recPeriodValue = recDate.getFullYear() * 12 + recDate.getMonth();
+            const ym = getYearMonth(rec.start_day);
+            const recPeriodValue = ym.year * 12 + ym.month;
             const targetPeriodValue = selYear * 12 + selMonth;
             
             if (targetPeriodValue > recPeriodValue) {
-              const exists = work_records.some(r => 
-                r.personnel_id == rec.personnel_id && 
-                r.company_id == rec.company_id && 
-                new Date(r.start_day).getMonth() === selMonth && 
-                new Date(r.start_day).getFullYear() === selYear
-              );
+              const exists = work_records.some(r => {
+                if (!r.start_day) return false;
+                const rYM = getYearMonth(r.start_day);
+                return r.personnel_id == rec.personnel_id && 
+                       r.company_id == rec.company_id && 
+                       rYM.month === selMonth && 
+                       rYM.year === selYear;
+              });
               
               if (!exists) {
                 missingRecords.push({
@@ -3773,14 +3812,14 @@
                   start_day: targetStartStr,
                   end_date: targetEndStr,
                   work_days: lastDay,
-                  personnel_monthly_wage: rec.personnel_monthly_wage,
-                  personnel_daily_wage: rec.personnel_monthly_wage / 30,
-                  total_personnel_payment: rec.personnel_monthly_wage,
-                  total_company_payment: rec.total_company_payment || 0,
+                  personnel_monthly_wage: 0,
+                  personnel_daily_wage: 0,
+                  total_personnel_payment: 0,
+                  total_company_payment: 0,
                   is_recurring: true,
                   needs_review: true,
-                  wage_mode: rec.wage_mode || "calculated",
-                  note: rec.note || ""
+                  wage_mode: "calculated",
+                  note: ""
                 });
               }
             }
@@ -3809,22 +3848,32 @@
         // Auto-generate missing recurring records for this period
         await ensureRecurringRecordsForPeriod(selYear, selMonth);
         
-        // Filter records that are recurring and belong to the selected month & year
-        const recurringList = work_records.filter(r => {
-          if (!r.is_recurring || r.archived || !r.start_day) return false;
-          const d = new Date(r.start_day);
-          return d.getMonth() === selMonth && d.getFullYear() === selYear;
+        // Filter records that are recurring OR cover records of the current period
+        const activeList = work_records.filter(r => {
+          if (r.archived || !r.start_day) return false;
+          
+          const ym = getYearMonth(r.start_day);
+          const isCurrentPeriod = (ym.month === selMonth && ym.year === selYear);
+          if (!isCurrentPeriod) return false;
+          
+          if (r.is_recurring) return true;
+          
+          // Check if it's a cover record
+          const subInfo = parseSubstituteNote(r.note);
+          if (subInfo) return true;
+          
+          return false;
         });
         
-        if (recurringList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div></td></tr>`;
+        if (activeList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔄</div><div class="empty-text">Seçilen dönem için iş kaydı bulunamadı.</div></div></td></tr>`;
           return;
         }
 
         // Group rows by company_id
         const groups = {};
         const groupOrder = [];
-        recurringList.forEach((r) => {
+        activeList.forEach((r) => {
           if (!groups[r.company_id]) {
             groups[r.company_id] = [];
             groupOrder.push(r.company_id);
@@ -3843,8 +3892,12 @@
         groupOrder.forEach((cId) => {
           const grRows = groups[cId];
           
-          // Sort rows inside the group by personnel name
-          grRows.sort((a, b) => {
+          // Separate parent and cover rows
+          const parents = grRows.filter(r => r.is_recurring);
+          const covers = grRows.filter(r => !r.is_recurring);
+          
+          // Sort parent rows inside the group by personnel name
+          parents.sort((a, b) => {
             let pA = pName(a.personnel_id) || "";
             let pB = pName(b.personnel_id) || "";
             return pA.localeCompare(pB, 'tr');
@@ -3855,7 +3908,7 @@
             <tr style="background: #e8f0fe;">
               <td colspan="7" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
-                  <span>🏢 ${cName(cId)} — ${grRows.length} personel</span>
+                  <span>🏢 ${cName(cId)} — ${parents.length} personel</span>
                   <button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>
                 </div>
               </td>
@@ -3863,9 +3916,9 @@
           `;
 
           // Individual personnel rows under the company
-          grRows.forEach((r) => {
+          parents.forEach((r) => {
             const p = personnel.find(x => x.id == r.personnel_id);
-            const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
+            const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
             const pPos = p ? p.position : "—";
             const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
             const advance = parseFloat(r.advance_amount || 0);
@@ -3879,7 +3932,7 @@
             html += `
               <tr>
                 <td style="padding-left: 20px;">
-                  <div style="font-weight: 600; color: #475569;">${pName}</div>
+                  <div style="font-weight: 600; color: #475569;">${pNameStr}</div>
                   <div style="font-size: 10px; color: #94a3b8;">${pPos}</div>
                 </td>
                 <td style="font-weight:700;color:#0f172a;">${fmt(monthlyWage)}</td>
@@ -3893,6 +3946,49 @@
                 </td>
               </tr>
             `;
+            
+            // Find and render cover rows for this parent
+            const myCovers = covers.filter(c => {
+              const sub = parseSubstituteNote(c.note);
+              return sub && sub.substituteForId == r.personnel_id;
+            });
+            
+            myCovers.forEach((cRow) => {
+              const cp = personnel.find(x => x.id == cRow.personnel_id);
+              const cpNameStr = cp ? `${cp.first_name} ${cp.last_name}` : "Bilinmeyen Personel";
+              const cpPos = cp ? cp.position : "—";
+              const cWage = parseFloat(cRow.personnel_monthly_wage || 0);
+              const cAdvance = parseFloat(cRow.advance_amount || 0);
+              const cNet = parseFloat(cRow.total_personnel_payment || 0) - cAdvance;
+              const subInfo = parseSubstituteNote(cRow.note);
+              const coverNoteText = subInfo ? `${pName(subInfo.substituteForId)} yerine ${subInfo.days} gün gitti` : "";
+              
+              const cStatusBadge = cRow.needs_review
+                ? `<span class="badge badge-amber">⚠️ Güncellenmedi</span>`
+                : `<span class="badge badge-green">✓ Güncellendi</span>`;
+                
+              html += `
+                <tr style="background: #fdfdfd;">
+                  <td style="padding-left: 42px;">
+                    <div style="font-weight: 600; color: #475569; display: flex; align-items: center; gap: 6px;">
+                      <span style="color: #3b82f6;">↪</span>
+                      <span>${cpNameStr}</span>
+                      <span style="font-size: 10px; color: #94a3b8; font-weight: normal; font-style: italic;">(${coverNoteText})</span>
+                    </div>
+                    <div style="font-size: 10px; color: #94a3b8; padding-left: 14px;">${cpPos}</div>
+                  </td>
+                  <td style="font-weight:700;color:#0f172a;">${fmt(cWage)}</td>
+                  <td style="color:#dc2626;">${cAdvance > 0 ? fmt(cAdvance) : "—"}</td>
+                  <td style="text-align:center;color:#64748b;">—</td>
+                  <td style="font-weight:700;color:#16a34a;">${fmt(cNet)}</td>
+                  <td>${cStatusBadge}</td>
+                  <td style="white-space:nowrap;">
+                    <button class="btn btn-sm btn-primary" onclick="openEditRecModal('${cRow.id}')">Düzenle</button>
+                    <button class="btn btn-sm btn-danger" onclick="delRec('${cRow.id}')" style="margin-left:3px">Sil</button>
+                  </td>
+                </tr>
+              `;
+            });
           });
         });
 
@@ -3908,7 +4004,11 @@
           const selMonth = parseInt(document.getElementById("op-ay").value);
           
           const existingPids = work_records
-            .filter(r => r.company_id == companyId && new Date(r.start_day).getMonth() === selMonth && new Date(r.start_day).getFullYear() === selYear && !r.archived)
+            .filter(r => {
+              if (r.company_id != companyId || r.archived || !r.start_day) return false;
+              const ym = getYearMonth(r.start_day);
+              return ym.month === selMonth && ym.year === selYear;
+            })
             .map(r => r.personnel_id);
             
           personnel.forEach(p => {
@@ -4118,13 +4218,72 @@
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
                 <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'izinler')">
                   <span>🌴 İzin Bilgileri</span>
-                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg); ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'transform: rotate(90deg);' : ''}">▶</span>
                 </div>
-                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: none; background: #fff;">
+                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'block' : 'none'}; background: #fff;">
                   <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">İzin Günü (Gün)</label>
                       <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.annual_leave || 0}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                    </div>
+                  </div>
+                  
+                  <!-- Cover Personnel Wrapper -->
+                  <div id="c-sub-wrapper-${rowId}" style="margin-top: 12px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; display: ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'block' : 'none'};">
+                    <div style="font-weight: 700; color: #1e3a5f; font-size: 11px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                      <span>Cover Personnel (Yerine Yollanan Personel)</span>
+                      <button type="button" class="btn btn-sm btn-secondary" onclick="toggleQuickAddCover('${rowId}')" style="font-size: 9px; padding: 2px 6px;">+ Hızlı Personel Ekle</button>
+                    </div>
+                    
+                    <!-- Cover Quick Add Personnel Form (Hidden by default) -->
+                    <div id="quick-add-cover-${rowId}" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                      <div class="form-grid g2" style="margin-bottom: 4px;">
+                        <input class="form-input" id="qp-cover-first-${rowId}" placeholder="Ad" style="font-size: 11px; padding: 4px 6px;" />
+                        <input class="form-input" id="qp-cover-last-${rowId}" placeholder="Soyad" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div class="form-grid g2" style="margin-bottom: 4px;">
+                        <input class="form-input" id="qp-cover-pos-${rowId}" placeholder="Pozisyon" style="font-size: 11px; padding: 4px 6px;" />
+                        <input class="form-input" id="qp-cover-wage-${rowId}" placeholder="Günlük Maaş" type="text" inputmode="numeric" oninput="onlyNum(this)" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div style="display: flex; gap: 4px; margin-top: 6px;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="quickSaveCoverPersonnel('${rowId}')" style="font-size: 10px; padding: 3px 6px;">Kaydet ve Seç</button>
+                        <button type="button" class="btn btn-sm" onclick="toggleQuickAddCover('${rowId}', false)" style="font-size: 10px; padding: 3px 6px;">İptal</button>
+                      </div>
+                    </div>
+
+                    <div class="form-grid g3" style="margin-bottom: 6px;">
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Personel</label>
+                        <select class="form-input" id="c-sub-pid-${rowId}" onchange="onCoverPersonnelChange('${rowId}')" style="font-size: 11px; padding: 4px 6px;">
+                          <option value="">Seçin...</option>
+                          ${personnel.map(p => `<option value="${p.id}" ${(() => {
+                            const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
+                            return cov && cov.personnel_id == p.id;
+                          })() ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Gün Sayısı</label>
+                        <input class="form-input" id="c-sub-days-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this); onCoverDaysChange('${rowId}')" placeholder="0" value="${(() => {
+                          const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
+                          if (cov) {
+                            const subInfo = parseSubstituteNote(cov.note);
+                            return subInfo ? subInfo.days : '';
+                          }
+                          return '';
+                        })()}" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Hak Ediş Ücreti (₺)</label>
+                        <input class="form-input" id="c-sub-wage-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this)" placeholder="0" value="${(() => {
+                          const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
+                          if (cov) {
+                            const subInfo = parseSubstituteNote(cov.note);
+                            return subInfo ? subInfo.wage : '';
+                          }
+                          return '';
+                        })()}" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4160,8 +4319,8 @@
         
         const recurringList = work_records.filter(r => {
           if (!r.is_recurring || r.archived || !r.start_day) return false;
-          const d = new Date(r.start_day);
-          return d.getMonth() === selMonth && d.getFullYear() === selYear;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
         });
         
         if (recurringList.length === 0) {
@@ -4273,6 +4432,37 @@
               note,
               needs_review: false
             });
+
+            // Also handle cover personnel record saving/updating
+            const coverPidEl = document.getElementById(`c-sub-pid-${rowId}`);
+            if (coverPidEl) {
+              const coverPid = coverPidEl.value;
+              const coverDays = parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0;
+              const coverWage = parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0;
+              
+              const parentDbRecord = work_records.find(x => x.id == rowId);
+              if (parentDbRecord) {
+                const parentWithDates = { ...parentDbRecord,
+                  work_days,
+                  wage_mode,
+                  personnel_monthly_wage: input_wage,
+                  personnel_daily_wage,
+                  total_personnel_payment,
+                  total_company_payment,
+                  advance_amount,
+                  premium,
+                  deductions,
+                  overtime_hours,
+                  overtime_days,
+                  overtime_wage,
+                  annual_leave,
+                  leave_days: annual_leave,
+                  note,
+                  needs_review: false
+                };
+                await saveOrUpdateCoverRecord(parentWithDates, coverPid, coverDays, coverWage);
+              }
+            }
           }
           
           toast("Tüm operasyon kayıtları güncellendi ✓");
@@ -4833,6 +5023,28 @@
           defaultDays = totalDays(s, e);
         }
         
+        let existingCover = null;
+        let subInfo = null;
+        if (editRecId) {
+          const r = work_records.find(x => x.id == editRecId);
+          if (r) {
+            existingCover = work_records.find(x => 
+              x.company_id == r.company_id && 
+              x.start_day && r.start_day &&
+              x.start_day.substring(0, 10) === r.start_day.substring(0, 10) && 
+              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+              !x.archived
+            );
+            if (existingCover) {
+              subInfo = parseSubstituteNote(existingCover.note);
+            }
+          }
+        }
+        const hasCover = !!subInfo;
+        const coverPid = existingCover ? existingCover.personnel_id : "";
+        const coverDays = subInfo ? subInfo.days : "";
+        const coverWage = subInfo ? subInfo.wage : "";
+        
         const cardHtml = `
           <div class="card" id="card-${rowId}" data-personnel-id="${pId}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <div class="card-head" style="cursor: pointer; background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;" onclick="togglePersonnelCard('${rowId}')">
@@ -4943,13 +5155,55 @@
               <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
                 <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'izinler')">
                   <span>🌴 İzin Bilgileri</span>
-                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
+                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg); ${hasCover ? 'transform: rotate(90deg);' : ''}">▶</span>
                 </div>
-                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: none; background: #fff;">
+                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: ${hasCover ? 'block' : 'none'}; background: #fff;">
                   <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">İzin Günü (Gün)</label>
                       <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                    </div>
+                  </div>
+                  
+                  <!-- Cover Personnel Wrapper -->
+                  <div id="c-sub-wrapper-${rowId}" style="margin-top: 12px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; display: ${hasCover ? 'block' : 'none'};">
+                    <div style="font-weight: 700; color: #1e3a5f; font-size: 11px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                      <span>Cover Personnel (Yerine Yollanan Personel)</span>
+                      <button type="button" class="btn btn-sm btn-secondary" onclick="toggleQuickAddCover('${rowId}')" style="font-size: 9px; padding: 2px 6px;">+ Hızlı Personel Ekle</button>
+                    </div>
+                    
+                    <!-- Cover Quick Add Personnel Form (Hidden by default) -->
+                    <div id="quick-add-cover-${rowId}" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                      <div class="form-grid g2" style="margin-bottom: 4px;">
+                        <input class="form-input" id="qp-cover-first-${rowId}" placeholder="Ad" style="font-size: 11px; padding: 4px 6px;" />
+                        <input class="form-input" id="qp-cover-last-${rowId}" placeholder="Soyad" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div class="form-grid g2" style="margin-bottom: 4px;">
+                        <input class="form-input" id="qp-cover-pos-${rowId}" placeholder="Pozisyon" style="font-size: 11px; padding: 4px 6px;" />
+                        <input class="form-input" id="qp-cover-wage-${rowId}" placeholder="Günlük Maaş" type="text" inputmode="numeric" oninput="onlyNum(this)" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div style="display: flex; gap: 4px; margin-top: 6px;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="quickSaveCoverPersonnel('${rowId}')" style="font-size: 10px; padding: 3px 6px;">Kaydet ve Seç</button>
+                        <button type="button" class="btn btn-sm" onclick="toggleQuickAddCover('${rowId}', false)" style="font-size: 10px; padding: 3px 6px;">İptal</button>
+                      </div>
+                    </div>
+
+                    <div class="form-grid g3" style="margin-bottom: 6px;">
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Personel</label>
+                        <select class="form-input" id="c-sub-pid-${rowId}" onchange="onCoverPersonnelChange('${rowId}')" style="font-size: 11px; padding: 4px 6px;">
+                          <option value="">Seçin...</option>
+                          ${personnel.map(p => `<option value="${p.id}" ${p.id == coverPid ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`).join('')}
+                        </select>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Gün Sayısı</label>
+                        <input class="form-input" id="c-sub-days-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this); onCoverDaysChange('${rowId}')" placeholder="0" value="${coverDays}" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" style="font-size: 10px;">Hak Ediş Ücreti (₺)</label>
+                        <input class="form-input" id="c-sub-wage-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this)" placeholder="0" value="${coverWage}" style="font-size: 11px; padding: 4px 6px;" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -5005,18 +5259,35 @@
       }
 
       function onLeaveChange(rowId) {
-        const daysInput = document.getElementById(`c-days-${rowId}`);
-        if (daysInput && daysInput.dataset.manual === 'true') return;
-
-        let s = document.getElementById("c-start").value;
-        let e = document.getElementById("c-end").value;
-        if (!s || !e || new Date(s) > new Date(e)) return;
-        
         let leaveDays = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+        
+        let s = document.getElementById("c-start") ? document.getElementById("c-start").value : "";
+        let e = document.getElementById("c-end") ? document.getElementById("c-end").value : "";
+        if (s && e && new Date(s) <= new Date(e)) {
+          const daysInput = document.getElementById(`c-days-${rowId}`);
+          if (daysInput && daysInput.dataset.manual !== 'true') {
+            let baseDays = totalDays(s, e);
+            let total = Math.max(0, baseDays - leaveDays);
+            daysInput.value = total;
+          }
+        }
 
-        let baseDays = totalDays(s, e);
-        let total = Math.max(0, baseDays - leaveDays);
-        if (daysInput) daysInput.value = total;
+        const wrapper = document.getElementById(`c-sub-wrapper-${rowId}`);
+        if (wrapper) {
+          if (leaveDays > 0) {
+            wrapper.style.display = "block";
+            const currentVal = document.getElementById(`c-sub-pid-${rowId}`).value;
+            populateCoverPersonnelSelect(rowId, currentVal);
+          } else {
+            wrapper.style.display = "none";
+            const cPid = document.getElementById(`c-sub-pid-${rowId}`);
+            const cDays = document.getElementById(`c-sub-days-${rowId}`);
+            const cWage = document.getElementById(`c-sub-wage-${rowId}`);
+            if (cPid) cPid.value = "";
+            if (cDays) cDays.value = "";
+            if (cWage) cWage.value = "";
+          }
+        }
       }
 
       function onGlobalDateChange() {
@@ -5062,6 +5333,148 @@
         openM("modal-calisma");
       }
 
+      function toggleQuickAddCover(rowId, show) {
+        const form = document.getElementById(`quick-add-cover-${rowId}`);
+        if (!form) return;
+        if (show === undefined) {
+          form.style.display = form.style.display === "none" ? "block" : "none";
+        } else {
+          form.style.display = show ? "block" : "none";
+        }
+      }
+
+      async function quickSaveCoverPersonnel(rowId) {
+        const first = document.getElementById(`qp-cover-first-${rowId}`).value.trim();
+        const last = document.getElementById(`qp-cover-last-${rowId}`).value.trim();
+        const pos = document.getElementById(`qp-cover-pos-${rowId}`).value.trim();
+        const wage = parseFloat(document.getElementById(`qp-cover-wage-${rowId}`).value) || 0;
+        
+        if (!first) {
+          toast("Lütfen isim girin!", "err");
+          return;
+        }
+        
+        const fullName = (first + " " + last).toLowerCase('tr');
+        const dup = personnel.find(p => (p.first_name + " " + (p.last_name || "")).toLowerCase('tr') === fullName);
+        if (dup) {
+          if (!confirm(`Bu isimde bir personel zaten kayıtlı. Yine de yeni kayıt oluşturmak istiyor musunuz?`)) {
+            return;
+          }
+        }
+        
+        try {
+          const newP = await api.post("/admin/personnel", {
+            first_name: first,
+            last_name: last,
+            position: pos,
+            daily_wage: wage,
+            iban: "",
+            phone: ""
+          });
+          toast("Yeni personel eklendi ✓");
+          const res = await api.get("/personnel");
+          personnel = res;
+          
+          populateCoverPersonnelSelect(rowId, newP.id);
+          if (typeof initSelects === "function") initSelects();
+          
+          toggleQuickAddCover(rowId, false);
+          document.getElementById(`qp-cover-first-${rowId}`).value = "";
+          document.getElementById(`qp-cover-last-${rowId}`).value = "";
+          document.getElementById(`qp-cover-pos-${rowId}`).value = "";
+          document.getElementById(`qp-cover-wage-${rowId}`).value = "";
+          
+          onCoverPersonnelChange(rowId);
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      function populateCoverPersonnelSelect(rowId, selectedValue = "") {
+        const select = document.getElementById(`c-sub-pid-${rowId}`);
+        if (!select) return;
+        select.innerHTML = '<option value="">Seçin...</option>';
+        personnel.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p.id;
+          opt.textContent = `${p.first_name} ${p.last_name}`;
+          if (p.id == selectedValue) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      }
+
+      function onCoverPersonnelChange(rowId) {
+        recalcCoverWage(rowId);
+        onInputChanged();
+      }
+
+      function onCoverDaysChange(rowId) {
+        recalcCoverWage(rowId);
+        onInputChanged();
+      }
+
+      function recalcCoverWage(rowId) {
+        const monthlyWageInput = document.getElementById(`c-per-wage-${rowId}`);
+        const subDaysInput = document.getElementById(`c-sub-days-${rowId}`);
+        const subWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+        if (!monthlyWageInput || !subDaysInput || !subWageInput) return;
+        
+        const originalMonthlyWage = parseFloat(monthlyWageInput.value) || 0;
+        const originalDailyWage = originalMonthlyWage / 30;
+        const coverDays = parseFloat(subDaysInput.value) || 0;
+        
+        subWageInput.value = Math.round(originalDailyWage * coverDays);
+      }
+
+      async function saveOrUpdateCoverRecord(parentRecord, coverPid, coverDays, coverWage) {
+        const existingCover = work_records.find(x => 
+          x.company_id == parentRecord.company_id && 
+          x.start_day && parentRecord.start_day &&
+          x.start_day.substring(0, 10) === parentRecord.start_day.substring(0, 10) && 
+          x.note && x.note.includes("__SUB_FOR_PID:" + parentRecord.personnel_id + ":") &&
+          !x.archived
+        );
+        
+        const coverNote = `__SUB_FOR_PID:${parentRecord.personnel_id}:DAYS:${coverDays}:WAGE:${coverWage}__ ${pName(parentRecord.personnel_id)} yerine ${coverDays} gün gitti`;
+        
+        if (existingCover) {
+          if (coverPid && coverDays > 0) {
+            await api.patch(`/admin/work_records/${existingCover.id}`, {
+              personnel_id: parseInt(coverPid),
+              work_days: coverDays,
+              personnel_monthly_wage: coverWage,
+              total_personnel_payment: coverWage,
+              note: coverNote,
+              is_recurring: false,
+              needs_review: false,
+              wage_mode: "direct"
+            });
+          } else {
+            await api.delete(`/admin/work_records/${existingCover.id}`);
+          }
+        } else {
+          if (coverPid && coverDays > 0) {
+            const startStr = parentRecord.start_day ? parentRecord.start_day.substring(0, 10) : "";
+            const endStr = parentRecord.end_date ? parentRecord.end_date.substring(0, 10) : "";
+            await api.post("/admin/work_records", [{
+              personnel_id: parseInt(coverPid),
+              company_id: parentRecord.company_id,
+              start_day: startStr,
+              end_date: endStr,
+              work_days: coverDays,
+              personnel_monthly_wage: coverWage,
+              total_personnel_payment: coverWage,
+              note: coverNote,
+              is_recurring: false,
+              needs_review: false,
+              wage_mode: "direct"
+            }]);
+          }
+        }
+      }
+
       function openEditRecModal(id) {
         let r = work_records.find((x) => x.id == id);
         if (!r) return;
@@ -5072,6 +5485,7 @@
         document.getElementById("c-kurum").value = r.company_id || "";
         document.getElementById("c-start").value = r.start_day ? r.start_day.split("T")[0] : "";
         document.getElementById("c-end").value = r.end_date ? r.end_date.split("T")[0] : "";
+        document.getElementById("c-is-recurring").checked = !!r.is_recurring;
         
         const rBtn = document.querySelector('input[name="c-payment-type"][value="bireysel"]');
         if (rBtn) rBtn.checked = true;
@@ -5190,6 +5604,7 @@
         document.getElementById("c-kurum").value = "";
         document.getElementById("c-start").value = "";
         document.getElementById("c-end").value = "";
+        document.getElementById("c-is-recurring").checked = false;
         document.getElementById("c-com-total").value = "";
         
         const kdvCb = document.getElementById("c-com-kdv");
@@ -5489,9 +5904,8 @@
           const leave_days = annual_leave;
           
           const note = document.getElementById(`c-not-${rowId}`).value || "";
-          const reminder_note = "";
           const reminder_at = null;
-          const is_recurring = false;
+          const is_recurring = document.getElementById("c-is-recurring").checked;
           
           records.push({
             personnel_id: pId,
@@ -5532,6 +5946,42 @@
             reminder_at,
             wage_mode
           });
+
+          if (!editRecId && annual_leave > 0) {
+            const coverPid = document.getElementById(`c-sub-pid-${rowId}`) ? document.getElementById(`c-sub-pid-${rowId}`).value : "";
+            const coverDays = document.getElementById(`c-sub-days-${rowId}`) ? parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0 : 0;
+            const coverWage = document.getElementById(`c-sub-wage-${rowId}`) ? parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0 : 0;
+            
+            if (coverPid && coverDays > 0) {
+              const coverNote = `__SUB_FOR_PID:${pId}:DAYS:${coverDays}:WAGE:${coverWage}__ ${pName(pId)} yerine ${coverDays} gün gitti`;
+              records.push({
+                personnel_id: parseInt(coverPid),
+                company_id: parseInt(companyId),
+                start_day: startDay,
+                end_date: endDate,
+                work_days: coverDays,
+                personnel_daily_wage: coverWage / coverDays,
+                personnel_monthly_wage: coverWage,
+                total_personnel_payment: coverWage,
+                total_company_payment: 0,
+                advance_amount: 0,
+                expenses: 0,
+                personnel_payment_status: "bekliyor",
+                company_payment_status: "bekliyor",
+                note: coverNote,
+                archived: false,
+                leave_days: 0,
+                is_recurring: false,
+                needs_review: false,
+                overtime_hours: 0,
+                overtime_type: "hourly",
+                overtime_days: 0,
+                overtime_wage: 0,
+                job_type: "",
+                additional_payment: 0
+              });
+            }
+          }
         });
 
         const saveBtn = document.getElementById("btn-save-rec");
@@ -5544,6 +5994,17 @@
           if (editRecId) {
             await api.patch(`/admin/work_records/${editRecId}`, records[0]);
             toast("Kayıt başarıyla güncellendi ✓");
+            
+            const parentRow = activeRows[0];
+            if (parentRow) {
+              const rowId = parentRow.id;
+              const coverPid = document.getElementById(`c-sub-pid-${rowId}`) ? document.getElementById(`c-sub-pid-${rowId}`).value : "";
+              const coverDays = document.getElementById(`c-sub-days-${rowId}`) ? parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0 : 0;
+              const coverWage = document.getElementById(`c-sub-wage-${rowId}`) ? parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0 : 0;
+              
+              const parentRecord = { id: editRecId, ...records[0] };
+              await saveOrUpdateCoverRecord(parentRecord, coverPid, coverDays, coverWage);
+            }
           } else {
             await api.post("/admin/work_records", records);
             toast("Kayıtlar başarıyla eklendi ✓");
