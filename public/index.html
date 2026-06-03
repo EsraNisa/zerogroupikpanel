@@ -3185,16 +3185,16 @@
         return `${day}.${month}.${year}`;
       }
       function pName(id) {
-        let p = personnel.find((x) => x.id === id);
+        let p = personnel.find((x) => x.id == id);
         return p ? p.first_name + " " + p.last_name : "—";
       }
 
       function cName(id) {
-        let c = companies.find((x) => x.id === id);
+        let c = companies.find((x) => x.id == id);
         return c ? c.company_name : "—";
       }
       function pIban(id) {
-        let p = personnel.find((x) => x.id === id);
+        let p = personnel.find((x) => x.id == id);
         return p ? p.iban || "—" : "—";
       }
       function getYearMonth(dateStr) {
@@ -4785,7 +4785,7 @@
       // ============================================================
       function openPersonelModal(id) {
         editPId = id || null;
-        let p = id ? personnel.find((x) => x.id === id) : null;
+        let p = id ? personnel.find((x) => x.id == id) : null;
         document.getElementById("modal-per-title").textContent = p
           ? "Personel Düzenle"
           : "Personel Ekle";
@@ -4941,12 +4941,19 @@
         }
         tbody.innerHTML = personnel
           .map((p, i) => {
+            const now = new Date();
+            const curY = now.getFullYear();
+            const curM = now.getMonth(); // 0-indexed
             let tg = work_records
               .filter((r) => {
-                if (r.personnel_id !== p.id) return false;
-                return isRecordVisibleInHistory(r);
+                if (r.personnel_id != p.id) return false;
+                if (r.archived) return false;
+                if (!r.start_day) return false;
+                const ym = getYearMonth(r.start_day);
+                return ym.year === curY && ym.month === curM;
               })
-              .reduce((s, r) => s + (r.work_days || 0), 0);
+              .reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
+            tg = Math.round(tg * 100) / 100;
             return `<tr>
       <td>
         <div class="person-cell" onclick="viewPersonnelHistory('${p.id}')" style="cursor:pointer;" title="İş geçmişini görüntüle">
@@ -4974,7 +4981,7 @@
       // ============================================================
       function openKurumModal(id) {
         editCId = id || null;
-        let c = id ? companies.find((x) => x.id === id) : null;
+        let c = id ? companies.find((x) => x.id == id) : null;
         document.getElementById("modal-com-title").textContent = c
           ? "Kurum Düzenle"
           : "Kurum Ekle";
@@ -5064,12 +5071,21 @@
     return; 
   }
   tbody.innerHTML = companies.map(c => {
-    // Daha önce konuştuğumuz ID tipi uyuşmazlığı için === yerine == kullanıyoruz
-    let recs = work_records.filter(r => r.company_id == c.id);
+    const now = new Date();
+    const curY = now.getFullYear();
+    const curM = now.getMonth(); // 0-indexed
+
+    let recs = work_records.filter(r => {
+      if (r.company_id != c.id) return false;
+      if (r.archived) return false;
+      if (!r.start_day) return false;
+      const ym = getYearMonth(r.start_day);
+      return ym.year === curY && ym.month === curM;
+    });
     
-    // Toplama işleminde metin birleşmesini önlemek için parseFloat ekledik
     let ciro = recs.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
     let tg = recs.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
+    tg = Math.round(tg * 100) / 100;
     
     return `<tr>
       <td>
