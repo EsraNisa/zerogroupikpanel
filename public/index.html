@@ -7842,7 +7842,7 @@
         // Filter work records for this personnel, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.personnel_id != id) return false;
-          return isRecordVisibleInHistory(r);
+          return isPeriodApproved(r.start_day);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
@@ -7896,7 +7896,7 @@
         // Filter work records for this company, sorted by date DESC
         let records = work_records.filter(r => {
           if (r.company_id != id) return false;
-          return isRecordVisibleInHistory(r);
+          return isPeriodApproved(r.start_day);
         });
         records.sort((a, b) => {
           if (!a.start_day) return 1;
