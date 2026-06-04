@@ -3549,6 +3549,12 @@
           renderKontrol();
         }
         if (id === "ayarlar") loadSettingsForm();
+        if (id === "personeller") {
+          renderPersonnel();
+        }
+        if (id === "kurumlar") {
+          renderCompanies();
+        }
       }
       function goPageMobile(id, bnEl) {
         goPage(id, null);
@@ -4941,16 +4947,22 @@
         }
         tbody.innerHTML = personnel
           .map((p, i) => {
-            const now = new Date();
-            const curY = now.getFullYear();
-            const curM = now.getMonth(); // 0-indexed
+            const opYilEl = document.getElementById("op-yil");
+            const opAyEl = document.getElementById("op-ay");
+            const selectedYear = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+            const selectedMonth = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
+
             let tg = work_records
               .filter((r) => {
                 if (r.personnel_id != p.id) return false;
                 if (r.archived) return false;
                 if (!r.start_day) return false;
                 const ym = getYearMonth(r.start_day);
-                return ym.year === curY && ym.month === curM;
+                const isPeriodMatch = ym.year === selectedYear && ym.month === selectedMonth;
+                if (!isPeriodMatch) return false;
+
+                const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+                return approvedPeriods.includes(periodStr);
               })
               .reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
             tg = Math.round(tg * 100) / 100;
@@ -5071,16 +5083,21 @@
     return; 
   }
   tbody.innerHTML = companies.map(c => {
-    const now = new Date();
-    const curY = now.getFullYear();
-    const curM = now.getMonth(); // 0-indexed
+    const opYilEl = document.getElementById("op-yil");
+    const opAyEl = document.getElementById("op-ay");
+    const selectedYear = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+    const selectedMonth = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
 
     let recs = work_records.filter(r => {
       if (r.company_id != c.id) return false;
       if (r.archived) return false;
       if (!r.start_day) return false;
       const ym = getYearMonth(r.start_day);
-      return ym.year === curY && ym.month === curM;
+      const isPeriodMatch = ym.year === selectedYear && ym.month === selectedMonth;
+      if (!isPeriodMatch) return false;
+
+      const periodStr = `${ym.year}-${String(ym.month + 1).padStart(2, '0')}`;
+      return approvedPeriods.includes(periodStr);
     });
     
     let ciro = recs.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
