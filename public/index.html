@@ -4368,7 +4368,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label" id="c-per-wage-label-${rowId}">${labelText}</label>
-                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                 </div>
               </div>
 
@@ -4379,7 +4379,7 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || ''}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
                         <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
@@ -4402,15 +4402,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
                     <div class="form-group">
                       <label class="form-label">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_hours || 0}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_hours || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_days || 0}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_days || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" value="${r.overtime_wage || 0}" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_wage || ''}" oninput="onlyNum(this); onInputChanged();" style="background: #fff;" />
                     </div>
                   </div>
                 </div>
@@ -4426,15 +4426,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">Avans (₺)</label>
-                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.advance_amount || 0}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.advance_amount || ''}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Prim (₺)</label>
-                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.premium || 0}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.premium || ''}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Kesinti (₺)</label>
-                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.deductions || 0}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.deductions || ''}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                   </div>
                 </div>
@@ -4450,7 +4450,7 @@
                   <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">İzin Günü (Gün)</label>
-                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.annual_leave || 0}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.annual_leave || ''}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
                     </div>
                   </div>
                   
@@ -4627,18 +4627,18 @@
 
             let base_payment = 0;
             let personnel_daily_wage = 0;
-            let overtime_wage = 0;
             
             if (wage_mode === "calculated") {
               personnel_daily_wage = input_wage / 30;
               const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
               base_payment = personnel_daily_wage * calcDays;
-              overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
             } else {
               personnel_daily_wage = 0;
               base_payment = input_wage;
-              overtime_wage = 0;
             }
+            
+            const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
+            const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
             
             let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
             if (coverWage > 0) {
@@ -4746,19 +4746,16 @@
           const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
           const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
           
-          let base_payment = 0;
-          let overtime_wage = 0;
+           let base_payment = 0;
           if (wage_mode === "calculated") {
             const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
-            overtime_wage = 0;
           }
           
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
-          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           if (coverWage > 0) {
@@ -5421,7 +5418,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label" id="c-per-wage-label-${rowId}">Aylık Ücret (₺)</label>
-                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onInputChanged();" />
+                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                 </div>
               </div>
 
@@ -5432,7 +5429,7 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || 0}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || ''}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
                         <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
@@ -5455,15 +5452,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
                     <div class="form-group">
                       <label class="form-label">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" value="0" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onInputChanged();" style="background: #fff;" />
                     </div>
                   </div>
                 </div>
@@ -5479,15 +5476,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">Avans (₺)</label>
-                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Prim (₺)</label>
-                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Kesinti (₺)</label>
-                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                   </div>
                 </div>
@@ -5503,7 +5500,7 @@
                   <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">İzin Günü (Gün)</label>
-                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="0" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
                     </div>
                   </div>
                   
@@ -5782,6 +5779,27 @@
         subWageInput.value = Math.round(originalDailyWage * coverDays);
       }
 
+      function onOvertimeParamsChange(rowId) {
+        const hoursInput = document.getElementById(`c-overtime-hours-${rowId}`);
+        const daysInput = document.getElementById(`c-overtime-days-${rowId}`);
+        const wageInput = document.getElementById(`c-per-wage-${rowId}`);
+        const wageModeEl = document.getElementById(`c-wage-mode-${rowId}`);
+        const wageMode = wageModeEl ? wageModeEl.value : "calculated";
+        
+        if (wageMode === "calculated" && hoursInput && daysInput && wageInput) {
+          const overtime_hours = parseFloat(hoursInput.value) || 0;
+          const overtime_days = parseFloat(daysInput.value) || 0;
+          const input_wage = parseFloat(wageInput.value) || 0;
+          const overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          
+          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
+          if (otWageInput) {
+            otWageInput.value = overtime_wage > 0 ? Math.round(overtime_wage) : "";
+          }
+        }
+        onInputChanged();
+      }
+
       async function saveOrUpdateCoverRecord(parentRecord, coverPid, coverDays, coverWage) {
         const existingCover = work_records.find(x => 
           x.company_id == parentRecord.company_id && 
@@ -5925,34 +5943,34 @@
           document.getElementById(`c-per-wage-${rowId}`).value = r.personnel_monthly_wage || "";
         }
         if (document.getElementById(`c-avans-${rowId}`)) {
-          document.getElementById(`c-avans-${rowId}`).value = r.advance_amount || 0;
+          document.getElementById(`c-avans-${rowId}`).value = r.advance_amount || "";
         }
         
         const comTotalEl = document.getElementById(`c-com-total-${rowId}`);
         if (comTotalEl) {
-          comTotalEl.value = r.total_company_payment || 0;
-          comTotalEl.dataset.baseVal = r.total_company_payment || 0;
+          comTotalEl.value = r.total_company_payment || "";
+          comTotalEl.dataset.baseVal = r.total_company_payment || "";
         }
         
         if (document.getElementById(`c-premium-${rowId}`)) {
-          document.getElementById(`c-premium-${rowId}`).value = r.premium || 0;
+          document.getElementById(`c-premium-${rowId}`).value = r.premium || "";
         }
         if (document.getElementById(`c-deductions-${rowId}`)) {
-          document.getElementById(`c-deductions-${rowId}`).value = r.deductions || 0;
+          document.getElementById(`c-deductions-${rowId}`).value = r.deductions || "";
         }
         
         if (document.getElementById(`c-overtime-hours-${rowId}`)) {
-          document.getElementById(`c-overtime-hours-${rowId}`).value = r.overtime_hours || 0;
+          document.getElementById(`c-overtime-hours-${rowId}`).value = r.overtime_hours || "";
         }
         if (document.getElementById(`c-overtime-days-${rowId}`)) {
-          document.getElementById(`c-overtime-days-${rowId}`).value = r.overtime_days || 0;
+          document.getElementById(`c-overtime-days-${rowId}`).value = r.overtime_days || "";
         }
         if (document.getElementById(`c-overtime-wage-${rowId}`)) {
-          document.getElementById(`c-overtime-wage-${rowId}`).value = r.overtime_wage || 0;
+          document.getElementById(`c-overtime-wage-${rowId}`).value = r.overtime_wage || "";
         }
         
         if (document.getElementById(`c-annual-leave-${rowId}`)) {
-          document.getElementById(`c-annual-leave-${rowId}`).value = r.annual_leave || 0;
+          document.getElementById(`c-annual-leave-${rowId}`).value = r.annual_leave || "";
         }
         
         if (document.getElementById(`c-not-${rowId}`)) {
@@ -6061,18 +6079,15 @@
           const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
           
           let base_payment = 0;
-          let overtime_wage = 0;
           if (wage_mode === "calculated") {
             const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
-            overtime_wage = 0;
           }
           
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
-          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           if (coverWage > 0) {
@@ -6140,18 +6155,15 @@
           const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
           
           let base_payment = 0;
-          let overtime_wage = 0;
           if (wage_mode === "calculated") {
             const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             base_payment = input_wage;
-            overtime_wage = 0;
           }
           
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
-          if (otWageInput) otWageInput.value = Math.round(overtime_wage);
+          const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           if (coverWage > 0) {
@@ -6264,18 +6276,18 @@
           let base_payment = 0;
           let personnel_monthly_wage = input_wage;
           let personnel_daily_wage = 0;
-          let overtime_wage = 0;
           
           if (wage_mode === "calculated") {
             personnel_daily_wage = input_wage / 30;
             const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
             base_payment = personnel_daily_wage * calcDays;
-            overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
           } else {
             personnel_daily_wage = 0;
             base_payment = input_wage;
-            overtime_wage = 0;
           }
+          
+          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
+          const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
           if (coverWage > 0) {
@@ -6973,7 +6985,7 @@
         const grossProfit = activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0)), 0);
         const netProfit = grossProfit - currentExpense;
         
-        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0));
+        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0)), 0));
         document.getElementById('s-kar').textContent = fmt(netProfit);
         document.getElementById('s-kar').style.color = netProfit >= 0 ? "#16a34a" : "#dc2626";
         
@@ -8223,19 +8235,21 @@
         }
         
         // İstatistikleri hesapla
-        const totalPer = filtered.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+        const totalPerGross = filtered.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+        const totalPerAdvance = filtered.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
+        const totalPerNet = totalPerGross - totalPerAdvance;
         const totalCom = filtered.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
         const monthKey = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
         const monthlyGenExpense = monthlyExpensesMap[monthKey] || 0;
-        const totalProfit = totalCom - totalPer - monthlyGenExpense;
+        const totalProfit = totalCom - totalPerGross - monthlyGenExpense;
         
         // İstatistik kartlarını çiz
         statsContainer.innerHTML = `
           <div class="stat-grid">
             <div class="stat">
               <div class="stat-label">Toplam Personel Ödemesi</div>
-              <div class="stat-val" style="color: #475569;">${fmt(totalPer)}</div>
-              <div class="stat-sub">Maaş + Mesai + Ek Ödemeler</div>
+              <div class="stat-val" style="color: #475569;">${fmt(totalPerNet)}</div>
+              <div class="stat-sub">Ay Sonu Kalan (Net Ödenecek)</div>
             </div>
             <div class="stat">
               <div class="stat-label">Toplam Kurum Ödemesi</div>
@@ -8271,14 +8285,16 @@
 
         companyIds.forEach(cId => {
           const records = groups[cId];
-          const groupPerTotal = records.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+          const groupPerGross = records.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+          const groupAdvance = records.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
+          const groupPerNet = groupPerGross - groupAdvance;
           const groupComTotal = records.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
-          const groupProfit = groupComTotal - groupPerTotal;
+          const groupProfit = groupComTotal - groupPerGross;
 
           html += `
             <tr style="background: #e8f0fe; font-weight: 800; color: #1e40af;">
               <td colspan="8" style="padding: 10px 8px; font-size: 12px; font-weight: 800; color: #1e40af;">
-                🏢 ${cName(cId)} — (${records.length} kayıt | Pers. Öd: ${fmt(groupPerTotal)} | Kurum Geliri: ${fmt(groupComTotal)} | Kar: <span style="color:${groupProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(groupProfit)}</span>)
+                🏢 ${cName(cId)} — (${records.length} kayıt | Ay Sonu Pers. Net Öd: ${fmt(groupPerNet)} | Kurum Geliri: ${fmt(groupComTotal)} | Kar: <span style="color:${groupProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(groupProfit)}</span>)
               </td>
             </tr>
           `;
@@ -8312,8 +8328,8 @@
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; color: #94a3b8; padding-left: 20px;">⤷</td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${pName(r.personnel_id)}</td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #475569;">
-                  ${fmt(r.total_personnel_payment)}
-                  <div style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px;">Net: ${fmt(perNet)} (Avans: ${fmt(r.advance_amount)})</div>
+                  ${fmt(perNet)}
+                  <div style="font-size: 9px; color: #94a3b8; font-weight: normal; margin-top: 2px;">Brüt: ${fmt(r.total_personnel_payment)} (Avans: ${fmt(r.advance_amount)})</div>
                 </td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: #1e3a5f;">${comPaymentDisp}</td>
                 <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: 700; color: ${profitColor};">${profitDisp}</td>
