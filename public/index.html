@@ -4592,6 +4592,46 @@
         });
         
         container.innerHTML = html;
+        
+        // Populating cover personnel rows for each card in operasyon edit mode
+        const cards = container.querySelectorAll('.card');
+        cards.forEach(card => {
+          const rowId = card.id.replace('card-', '');
+          const r = work_records.find(x => x.id == rowId);
+          if (r) {
+            // Find all cover records for this parent record
+            const covers = work_records.filter(x => 
+              x.company_id == r.company_id && 
+              x.start_day && r.start_day &&
+              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
+              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+              !x.archived
+            );
+            
+            const subWrapper = document.getElementById(`c-sub-wrapper-${rowId}`);
+            const subContainer = document.getElementById(`c-sub-rows-container-${rowId}`);
+            if (subContainer) {
+              subContainer.innerHTML = "";
+              if (covers.length > 0) {
+                covers.forEach(cov => {
+                  const sInfo = parseSubstituteNote(cov.note);
+                  if (sInfo) {
+                    addCoverPersonnelRow(rowId, cov.personnel_id, sInfo.days, sInfo.wage);
+                  }
+                });
+                if (subWrapper) subWrapper.style.display = "block";
+              } else {
+                if (r.annual_leave > 0) {
+                  addCoverPersonnelRow(rowId);
+                  if (subWrapper) subWrapper.style.display = "block";
+                } else {
+                  if (subWrapper) subWrapper.style.display = "none";
+                }
+              }
+            }
+          }
+        });
+
         onInputChanged();
       }
 
@@ -4622,15 +4662,15 @@
             const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
             
             const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
-            const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
-            const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+            const coversList = getCoversList(rowId);
+            const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
 
             let base_payment = 0;
             let personnel_daily_wage = 0;
             
             if (wage_mode === "calculated") {
               personnel_daily_wage = input_wage / 30;
-              const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+              const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
               base_payment = personnel_daily_wage * calcDays;
             } else {
               personnel_daily_wage = 0;
@@ -4641,8 +4681,8 @@
             const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
             
             let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
-            if (coverWage > 0) {
-              total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+            if (coverWageSum > 0) {
+              total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
             }
             
             const note = document.getElementById(`c-not-${rowId}`).value || "";
@@ -4674,34 +4714,27 @@
             });
 
             // Also handle cover personnel record saving/updating
-            const coverPidEl = document.getElementById(`c-sub-pid-${rowId}`);
-            if (coverPidEl) {
-              const coverPid = coverPidEl.value;
-              const coverDays = parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0;
-              const coverWage = parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0;
-              
-              const parentDbRecord = work_records.find(x => x.id == rowId);
-              if (parentDbRecord) {
-                const parentWithDates = { ...parentDbRecord,
-                  work_days,
-                  wage_mode,
-                  personnel_monthly_wage: input_wage,
-                  personnel_daily_wage,
-                  total_personnel_payment,
-                  total_company_payment,
-                  advance_amount,
-                  premium,
-                  deductions,
-                  overtime_hours,
-                  overtime_days,
-                  overtime_wage,
-                  annual_leave,
-                  leave_days: annual_leave,
-                  note,
-                  needs_review: false
-                };
-                await saveOrUpdateCoverRecord(parentWithDates, coverPid, coverDays, coverWage);
-              }
+            const parentDbRecord = work_records.find(x => x.id == rowId);
+            if (parentDbRecord) {
+              const parentWithDates = { ...parentDbRecord,
+                work_days,
+                wage_mode,
+                personnel_monthly_wage: input_wage,
+                personnel_daily_wage,
+                total_personnel_payment,
+                total_company_payment,
+                advance_amount,
+                premium,
+                deductions,
+                overtime_hours,
+                overtime_days,
+                overtime_wage,
+                annual_leave,
+                leave_days: annual_leave,
+                note,
+                needs_review: false
+              };
+              await saveOrUpdateCoverRecords(parentWithDates, coversList);
             }
           }
           
@@ -4743,12 +4776,12 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
-          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
-          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          const coversList = getCoversList(rowId);
+          const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
           
-           let base_payment = 0;
+          let base_payment = 0;
           if (wage_mode === "calculated") {
-            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
           } else {
             base_payment = input_wage;
@@ -4758,8 +4791,8 @@
           const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
-          if (coverWage > 0) {
-            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          if (coverWageSum > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
           }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
@@ -5615,16 +5648,16 @@
         if (wrapper) {
           if (leaveDays > 0) {
             wrapper.style.display = "block";
-            const currentVal = document.getElementById(`c-sub-pid-${rowId}`).value;
-            populateCoverPersonnelSelect(rowId, currentVal);
+            const container = document.getElementById(`c-sub-rows-container-${rowId}`);
+            if (container && container.children.length === 0) {
+              addCoverPersonnelRow(rowId);
+            }
           } else {
             wrapper.style.display = "none";
-            const cPid = document.getElementById(`c-sub-pid-${rowId}`);
-            const cDays = document.getElementById(`c-sub-days-${rowId}`);
-            const cWage = document.getElementById(`c-sub-wage-${rowId}`);
-            if (cPid) cPid.value = "";
-            if (cDays) cDays.value = "";
-            if (cWage) cWage.value = "";
+            const container = document.getElementById(`c-sub-rows-container-${rowId}`);
+            if (container) {
+              container.innerHTML = "";
+            }
           }
         }
       }
@@ -5726,7 +5759,7 @@
           const res = await api.get("/personnel");
           personnel = res;
           
-          populateCoverPersonnelSelect(rowId, newP.id);
+          refreshAllCoverSelects(rowId);
           if (typeof initSelects === "function") initSelects();
           
           toggleQuickAddCover(rowId, false);
@@ -5735,41 +5768,117 @@
           document.getElementById(`qp-cover-pos-${rowId}`).value = "";
           document.getElementById(`qp-cover-wage-${rowId}`).value = "";
           
-          onCoverPersonnelChange(rowId);
+          const emptySelect = Array.from(document.querySelectorAll(`[id^="c-sub-pid-${rowId}-"]`))
+                                    .find(sel => sel.value === "");
+          if (emptySelect) {
+            emptySelect.value = newP.id;
+            const subIndex = emptySelect.id.replace(`c-sub-pid-${rowId}-`, '');
+            onCoverPersonnelChange(rowId, subIndex);
+          } else {
+            addCoverPersonnelRow(rowId, newP.id);
+          }
         } catch (e) {
           toast("Hata: " + e.message, "err");
         }
       }
 
-      function populateCoverPersonnelSelect(rowId, selectedValue = "") {
-        const select = document.getElementById(`c-sub-pid-${rowId}`);
-        if (!select) return;
-        select.innerHTML = '<option value="">Seçin...</option>';
+      function addCoverPersonnelRow(rowId, selectedPid = "", days = "", wage = "") {
+        const container = document.getElementById(`c-sub-rows-container-${rowId}`);
+        if (!container) return;
+        
+        const subIndex = Math.random().toString(36).substring(2, 9);
+        
+        let selectOptions = '<option value="">Seçin...</option>';
         personnel.forEach(p => {
-          const opt = document.createElement("option");
-          opt.value = p.id;
-          opt.textContent = `${p.first_name} ${p.last_name}`;
-          if (p.id == selectedValue) {
-            opt.selected = true;
-          }
-          select.appendChild(opt);
+          selectOptions += `<option value="${p.id}" ${p.id == selectedPid ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`;
+        });
+        
+        const rowHtml = `
+          <div class="form-grid g3 sub-cover-row-${rowId}" id="c-sub-row-${rowId}-${subIndex}" style="margin-bottom: 8px; align-items: flex-end;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px;">Personel</label>
+              <select class="form-input" id="c-sub-pid-${rowId}-${subIndex}" onchange="onCoverPersonnelChange('${rowId}', '${subIndex}')" style="font-size: 11px; padding: 4px 6px;">
+                ${selectOptions}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px;">Gün Sayısı</label>
+              <input class="form-input" id="c-sub-days-${rowId}-${subIndex}" type="text" inputmode="numeric" oninput="onlyNum(this); onCoverDaysChange('${rowId}', '${subIndex}')" placeholder="0" value="${days}" style="font-size: 11px; padding: 4px 6px;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px;">Hak Ediş Ücreti (₺)</label>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <input class="form-input" id="c-sub-wage-${rowId}-${subIndex}" type="text" inputmode="numeric" oninput="onlyNum(this); onInputChanged();" placeholder="0" value="${wage}" style="font-size: 11px; padding: 4px 6px; flex: 1;" />
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeCoverPersonnelRow('${rowId}', '${subIndex}')" style="padding: 4px 8px; font-size: 12px; line-height: 1; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">&times;</button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', rowHtml);
+      }
+
+      function removeCoverPersonnelRow(rowId, subIndex) {
+        const row = document.getElementById(`c-sub-row-${rowId}-${subIndex}`);
+        if (row) {
+          row.remove();
+        }
+        onInputChanged();
+      }
+
+      function refreshAllCoverSelects(rowId) {
+        const selects = document.querySelectorAll(`[id^="c-sub-pid-${rowId}-"]`);
+        selects.forEach(select => {
+          const currentVal = select.value;
+          select.innerHTML = '<option value="">Seçin...</option>';
+          personnel.forEach(p => {
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.textContent = `${p.first_name} ${p.last_name}`;
+            if (p.id == currentVal) {
+              opt.selected = true;
+            }
+            select.appendChild(opt);
+          });
         });
       }
 
-      function onCoverPersonnelChange(rowId) {
-        recalcCoverWage(rowId);
+      function getCoversList(rowId) {
+        const covers = [];
+        const selects = document.querySelectorAll(`[id^="c-sub-pid-${rowId}-"]`);
+        selects.forEach(select => {
+          const subIndex = select.id.replace(`c-sub-pid-${rowId}-`, '');
+          const coverPid = select.value;
+          const daysInput = document.getElementById(`c-sub-days-${rowId}-${subIndex}`);
+          const wageInput = document.getElementById(`c-sub-wage-${rowId}-${subIndex}`);
+          const coverDays = daysInput ? (parseFloat(daysInput.value) || 0) : 0;
+          const coverWage = wageInput ? (parseFloat(wageInput.value) || 0) : 0;
+          
+          if (coverPid && coverDays > 0) {
+            covers.push({
+              coverPid,
+              coverDays,
+              coverWage
+            });
+          }
+        });
+        return covers;
+      }
+
+      function onCoverPersonnelChange(rowId, subIndex) {
+        recalcSubCoverWage(rowId, subIndex);
         onInputChanged();
       }
 
-      function onCoverDaysChange(rowId) {
-        recalcCoverWage(rowId);
+      function onCoverDaysChange(rowId, subIndex) {
+        recalcSubCoverWage(rowId, subIndex);
         onInputChanged();
       }
 
-      function recalcCoverWage(rowId) {
+      function recalcSubCoverWage(rowId, subIndex) {
         const monthlyWageInput = document.getElementById(`c-per-wage-${rowId}`);
-        const subDaysInput = document.getElementById(`c-sub-days-${rowId}`);
-        const subWageInput = document.getElementById(`c-sub-wage-${rowId}`);
+        const subDaysInput = document.getElementById(`c-sub-days-${rowId}-${subIndex}`);
+        const subWageInput = document.getElementById(`c-sub-wage-${rowId}-${subIndex}`);
         if (!monthlyWageInput || !subDaysInput || !subWageInput) return;
         
         const originalMonthlyWage = parseFloat(monthlyWageInput.value) || 0;
@@ -5797,52 +5906,69 @@
             otWageInput.value = overtime_wage > 0 ? Math.round(overtime_wage) : "";
           }
         }
+        
+        // Recalculate all cover wages when monthly wage changes
+        const coverRows = document.querySelectorAll(`[id^="c-sub-days-${rowId}-"]`);
+        coverRows.forEach(daysInput => {
+          const subIndex = daysInput.id.replace(`c-sub-days-${rowId}-`, '');
+          recalcSubCoverWage(rowId, subIndex);
+        });
+
         onInputChanged();
       }
 
-      async function saveOrUpdateCoverRecord(parentRecord, coverPid, coverDays, coverWage) {
-        const existingCover = work_records.find(x => 
+      async function saveOrUpdateCoverRecords(parentRecord, coversList) {
+        const existingCovers = work_records.filter(x => 
           x.company_id == parentRecord.company_id && 
           x.start_day && parentRecord.start_day &&
           toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(parentRecord.start_day) && 
           x.note && x.note.includes("__SUB_FOR_PID:" + parentRecord.personnel_id + ":") &&
           !x.archived
         );
-        
-        const coverNote = `__SUB_FOR_PID:${parentRecord.personnel_id}:DAYS:${coverDays}:WAGE:${coverWage}__ ${pName(parentRecord.personnel_id)} yerine ${coverDays} gün gitti`;
-        
-        if (existingCover) {
-          if (coverPid && coverDays > 0) {
-            await api.patch(`/admin/work_records/${existingCover.id}`, {
-              personnel_id: parseInt(coverPid),
-              work_days: coverDays,
-              personnel_monthly_wage: coverWage,
-              total_personnel_payment: coverWage,
-              note: coverNote,
-              is_recurring: false,
-              needs_review: false,
-              wage_mode: "direct"
-            });
-          } else {
-            await api.delete(`/admin/work_records/${existingCover.id}`);
-          }
-        } else {
-          if (coverPid && coverDays > 0) {
-            const startStr = parentRecord.start_day ? toLocalYYYYMMDD(parentRecord.start_day) : "";
-            const endStr = parentRecord.end_date ? toLocalYYYYMMDD(parentRecord.end_date) : "";
-            await api.post("/admin/work_records", [{
-              personnel_id: parseInt(coverPid),
+
+        const maxLen = Math.max(existingCovers.length, coversList.length);
+        for (let i = 0; i < maxLen; i++) {
+          const existing = existingCovers[i];
+          const newCover = coversList[i];
+
+          if (newCover) {
+            const coverNote = `__SUB_FOR_PID:${parentRecord.personnel_id}:DAYS:${newCover.coverDays}:WAGE:${newCover.coverWage}__ ${pName(parentRecord.personnel_id)} yerine ${newCover.coverDays} gün gitti`;
+            const payload = {
+              personnel_id: parseInt(newCover.coverPid),
               company_id: parentRecord.company_id,
-              start_day: startStr,
-              end_date: endStr,
-              work_days: coverDays,
-              personnel_monthly_wage: coverWage,
-              total_personnel_payment: coverWage,
+              start_day: parentRecord.start_day ? toLocalYYYYMMDD(parentRecord.start_day) : "",
+              end_date: parentRecord.end_date ? toLocalYYYYMMDD(parentRecord.end_date) : "",
+              work_days: newCover.coverDays,
+              personnel_daily_wage: newCover.coverDays > 0 ? (newCover.coverWage / newCover.coverDays) : 0,
+              personnel_monthly_wage: newCover.coverWage,
+              total_personnel_payment: newCover.coverWage,
+              total_company_payment: 0,
+              advance_amount: 0,
+              expenses: 0,
+              personnel_payment_status: "bekliyor",
+              company_payment_status: "bekliyor",
               note: coverNote,
+              archived: false,
+              leave_days: 0,
               is_recurring: false,
               needs_review: false,
-              wage_mode: "direct"
-            }]);
+              overtime_hours: 0,
+              overtime_type: "hourly",
+              overtime_days: 0,
+              overtime_wage: 0,
+              job_type: "",
+              additional_payment: 0
+            };
+
+            if (existing) {
+              await api.patch(`/admin/work_records/${existing.id}`, payload);
+            } else {
+              await api.post("/admin/work_records", [payload]);
+            }
+          } else {
+            if (existing) {
+              await api.delete(`/admin/work_records/${existing.id}`);
+            }
           }
         }
       }
@@ -6075,12 +6201,12 @@
           
           // Cover personnel calculations
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
-          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
-          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          const coversList = getCoversList(rowId);
+          const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
           
           let base_payment = 0;
           if (wage_mode === "calculated") {
-            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
           } else {
             base_payment = input_wage;
@@ -6090,8 +6216,8 @@
           const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
-          if (coverWage > 0) {
-            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          if (coverWageSum > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
           }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
@@ -6101,7 +6227,7 @@
           }
         });
       }
-
+ 
       function calcPreview() {
         const rows = Array.from(document.querySelectorAll('.personnel-select-row'));
         const activeRows = rows.filter(row => row.querySelector('.bulk-personnel-select').value !== "");
@@ -6118,10 +6244,10 @@
           if (cfb) cfb.style.display = "none";
           return;
         }
-
+ 
         const paymentType = document.querySelector('input[name="c-payment-type"]:checked').value;
         const globalComTotal = parseFloat(document.getElementById("c-com-total").value) || 0;
-
+ 
         let totalStaff = activeRows.length;
         let totalDaysSum = 0;
         let totalPerPaymentSum = 0;
@@ -6130,7 +6256,7 @@
         let totalComInvoiceSum = 0;
         
         let confirmSummaryHtml = "";
-
+ 
         activeRows.forEach((row) => {
           const rowId = row.id;
           const pId = row.querySelector('.bulk-personnel-select').value;
@@ -6151,12 +6277,12 @@
           
           // Cover personnel calculations
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
-          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
-          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          const coversList = getCoversList(rowId);
+          const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
           
           let base_payment = 0;
           if (wage_mode === "calculated") {
-            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
             base_payment = (input_wage / 30) * calcDays;
           } else {
             base_payment = input_wage;
@@ -6166,8 +6292,8 @@
           const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
-          if (coverWage > 0) {
-            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          if (coverWageSum > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
           }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
@@ -6180,7 +6306,7 @@
           if (cardSumEl) {
             cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
           }
-
+ 
           totalDaysSum += work_days;
           totalPerPaymentSum += total_personnel_payment;
           totalPerAdvanceSum += advance_amount;
@@ -6189,18 +6315,18 @@
           if (paymentType === "bireysel") {
             totalComInvoiceSum += card_com_payment;
           }
-
+ 
           confirmSummaryHtml += `• <strong>${pName}</strong>: ${work_days} gün | Maaş Hakediş: ${fmt(total_personnel_payment)} | Avans: ${fmt(advance_amount)} | Net: ${fmt(net_personnel_payment)}`;
           if (paymentType === "bireysel") {
             confirmSummaryHtml += ` | Fatura (Bireysel): ${fmt(card_com_payment)}`;
           }
           confirmSummaryHtml += "<br/>";
         });
-
+ 
         if (paymentType === "toplu") {
           totalComInvoiceSum = globalComTotal;
         }
-
+ 
         const totalNetProfit = totalComInvoiceSum - totalPerPaymentSum;
 
         document.getElementById("r-total-staff").textContent = `${totalStaff} kişi`;
@@ -6270,8 +6396,8 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
-          const coverWageInput = document.getElementById(`c-sub-wage-${rowId}`);
-          const coverWage = coverWageInput ? (parseFloat(coverWageInput.value) || 0) : 0;
+          const coversList = getCoversList(rowId);
+          const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
 
           let base_payment = 0;
           let personnel_monthly_wage = input_wage;
@@ -6279,7 +6405,7 @@
           
           if (wage_mode === "calculated") {
             personnel_daily_wage = input_wage / 30;
-            const calcDays = (coverWage > 0) ? (work_days + annual_leave) : work_days;
+            const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
             base_payment = personnel_daily_wage * calcDays;
           } else {
             personnel_daily_wage = 0;
@@ -6290,8 +6416,8 @@
           const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
-          if (coverWage > 0) {
-            total_personnel_payment = Math.max(0, total_personnel_payment - coverWage);
+          if (coverWageSum > 0) {
+            total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
           }
           
           let total_company_payment = 0;
@@ -6380,39 +6506,37 @@
           });
 
           if (!editRecId && annual_leave > 0) {
-            const coverPid = document.getElementById(`c-sub-pid-${rowId}`) ? document.getElementById(`c-sub-pid-${rowId}`).value : "";
-            const coverDays = document.getElementById(`c-sub-days-${rowId}`) ? parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0 : 0;
-            const coverWage = document.getElementById(`c-sub-wage-${rowId}`) ? parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0 : 0;
-            
-            if (coverPid && coverDays > 0) {
-              const coverNote = `__SUB_FOR_PID:${pId}:DAYS:${coverDays}:WAGE:${coverWage}__ ${pName(pId)} yerine ${coverDays} gün gitti`;
-              records.push({
-                personnel_id: parseInt(coverPid),
-                company_id: parseInt(companyId),
-                start_day: startDay,
-                end_date: endDate,
-                work_days: coverDays,
-                personnel_daily_wage: coverWage / coverDays,
-                personnel_monthly_wage: coverWage,
-                total_personnel_payment: coverWage,
-                total_company_payment: 0,
-                advance_amount: 0,
-                expenses: 0,
-                personnel_payment_status: "bekliyor",
-                company_payment_status: "bekliyor",
-                note: coverNote,
-                archived: false,
-                leave_days: 0,
-                is_recurring: false,
-                needs_review: false,
-                overtime_hours: 0,
-                overtime_type: "hourly",
-                overtime_days: 0,
-                overtime_wage: 0,
-                job_type: "",
-                additional_payment: 0
-              });
-            }
+            coversList.forEach(item => {
+              if (item.coverPid && item.coverDays > 0) {
+                const coverNote = `__SUB_FOR_PID:${pId}:DAYS:${item.coverDays}:WAGE:${item.coverWage}__ ${pName(pId)} yerine ${item.coverDays} gün gitti`;
+                records.push({
+                  personnel_id: parseInt(item.coverPid),
+                  company_id: parseInt(companyId),
+                  start_day: startDay,
+                  end_date: endDate,
+                  work_days: item.coverDays,
+                  personnel_daily_wage: item.coverDays > 0 ? (item.coverWage / item.coverDays) : 0,
+                  personnel_monthly_wage: item.coverWage,
+                  total_personnel_payment: item.coverWage,
+                  total_company_payment: 0,
+                  advance_amount: 0,
+                  expenses: 0,
+                  personnel_payment_status: "bekliyor",
+                  company_payment_status: "bekliyor",
+                  note: coverNote,
+                  archived: false,
+                  leave_days: 0,
+                  is_recurring: false,
+                  needs_review: false,
+                  overtime_hours: 0,
+                  overtime_type: "hourly",
+                  overtime_days: 0,
+                  overtime_wage: 0,
+                  job_type: "",
+                  additional_payment: 0
+                });
+              }
+            });
           }
         });
 
@@ -6430,12 +6554,9 @@
             const parentRow = activeRows[0];
             if (parentRow) {
               const rowId = parentRow.id;
-              const coverPid = document.getElementById(`c-sub-pid-${rowId}`) ? document.getElementById(`c-sub-pid-${rowId}`).value : "";
-              const coverDays = document.getElementById(`c-sub-days-${rowId}`) ? parseFloat(document.getElementById(`c-sub-days-${rowId}`).value) || 0 : 0;
-              const coverWage = document.getElementById(`c-sub-wage-${rowId}`) ? parseFloat(document.getElementById(`c-sub-wage-${rowId}`).value) || 0 : 0;
-              
+              const covers = getCoversList(rowId);
               const parentRecord = { id: editRecId, ...records[0] };
-              await saveOrUpdateCoverRecord(parentRecord, coverPid, coverDays, coverWage);
+              await saveOrUpdateCoverRecords(parentRecord, covers);
             }
           } else {
             await api.post("/admin/work_records", records);
