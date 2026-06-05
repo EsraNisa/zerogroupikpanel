@@ -4477,40 +4477,8 @@
                       </div>
                     </div>
 
-                    <div class="form-grid g3" style="margin-bottom: 6px;">
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Personel</label>
-                        <select class="form-input" id="c-sub-pid-${rowId}" onchange="onCoverPersonnelChange('${rowId}')" style="font-size: 11px; padding: 4px 6px;">
-                          <option value="">Seçin...</option>
-                          ${personnel.map(p => `<option value="${p.id}" ${(() => {
-                            const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
-                            return cov && cov.personnel_id == p.id;
-                          })() ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`).join('')}
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Gün Sayısı</label>
-                        <input class="form-input" id="c-sub-days-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this); onCoverDaysChange('${rowId}')" placeholder="0" value="${(() => {
-                          const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
-                          if (cov) {
-                            const subInfo = parseSubstituteNote(cov.note);
-                            return subInfo ? subInfo.days : '';
-                          }
-                          return '';
-                        })()}" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Hak Ediş Ücreti (₺)</label>
-                        <input class="form-input" id="c-sub-wage-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this)" placeholder="0" value="${(() => {
-                          const cov = work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived);
-                          if (cov) {
-                            const subInfo = parseSubstituteNote(cov.note);
-                            return subInfo ? subInfo.wage : '';
-                          }
-                          return '';
-                        })()}" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                    </div>
+                    <div id="c-sub-rows-container-${rowId}"></div>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="addCoverPersonnelRow('${rowId}')" style="font-size: 11px; padding: 6px 12px; margin-top: 8px; width: 100%;">➕ Yerine Gelen Personel Ekle</button>
                   </div>
                 </div>
               </div>
@@ -5560,23 +5528,8 @@
                       </div>
                     </div>
 
-                    <div class="form-grid g3" style="margin-bottom: 6px;">
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Personel</label>
-                        <select class="form-input" id="c-sub-pid-${rowId}" onchange="onCoverPersonnelChange('${rowId}')" style="font-size: 11px; padding: 4px 6px;">
-                          <option value="">Seçin...</option>
-                          ${personnel.map(p => `<option value="${p.id}" ${p.id == coverPid ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`).join('')}
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Gün Sayısı</label>
-                        <input class="form-input" id="c-sub-days-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this); onCoverDaysChange('${rowId}')" placeholder="0" value="${coverDays}" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                      <div class="form-group">
-                        <label class="form-label" style="font-size: 10px;">Hak Ediş Ücreti (₺)</label>
-                        <input class="form-input" id="c-sub-wage-${rowId}" type="text" inputmode="numeric" oninput="onlyNum(this)" placeholder="0" value="${coverWage}" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                    </div>
+                    <div id="c-sub-rows-container-${rowId}"></div>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="addCoverPersonnelRow('${rowId}')" style="font-size: 11px; padding: 6px 12px; margin-top: 8px; width: 100%;">➕ Yerine Gelen Personel Ekle</button>
                   </div>
                 </div>
               </div>
