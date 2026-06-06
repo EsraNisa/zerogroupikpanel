@@ -1371,9 +1371,9 @@
                 <div class="stat-sub">Anlaşmalı</div>
               </div>
               <div class="stat">
-                <div class="stat-label">Bu Ay Pers. Gideri (Brüt)</div>
+                <div class="stat-label">Bu Ay Pers. Ödemesi (Net)</div>
                 <div class="stat-val" id="s-odeme">₺0</div>
-                <div class="stat-sub">Toplam Personel Hakedişi</div>
+                <div class="stat-sub">Ay Sonu Kalan (Net Ödenecek)</div>
               </div>
               <div class="stat">
                 <div class="stat-label">Bu Ay Kar</div>
@@ -6280,7 +6280,7 @@
           totalComInvoiceSum = globalComTotal;
         }
  
-        const totalNetProfit = totalComInvoiceSum - totalPerPaymentSum;
+        const totalNetProfit = totalComInvoiceSum - totalPerNetSum;
 
         document.getElementById("r-total-staff").textContent = `${totalStaff} kişi`;
         document.getElementById("r-total-days").textContent = `${totalDaysSum} gün`;
@@ -6663,10 +6663,9 @@
           let grTG = grRows.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
           let grTP = grRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
           let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
-          let grKar = grTC - grTP;
-
           let grTA = grRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
           let grNet = grTP - grTA;
+          let grKar = grTC - grNet;
 
           // Header row for the company (Institution)
           html += `
@@ -6685,7 +6684,7 @@
           // Individual personnel rows under the company
           grRows.forEach((r, i) => {
             let netPer = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-            let profit = (parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0);
+            let profit = (parseFloat(r.total_company_payment) || 0) - netPer;
             let pB = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
             let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
             let rowStyle = r.archived ? "opacity:0.7;background:#fafafa;" : "";
@@ -7061,10 +7060,10 @@
           expenseInput.value = currentExpense || "";
         }
         
-        const grossProfit = activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0)), 0);
+        const grossProfit = activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_company_payment) || 0) - ((parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0))), 0);
         const netProfit = grossProfit - currentExpense;
         
-        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0));
+        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0)), 0));
         document.getElementById('s-kar').textContent = fmt(netProfit);
         document.getElementById('s-kar').style.color = netProfit >= 0 ? "#16a34a" : "#dc2626";
         
@@ -7091,7 +7090,7 @@
           ? '<tr><td colspan="9" style="text-align:center;padding:20px;color:#94a3b8">Bu ay için henüz çalışma kaydı yok</td></tr>' 
           : activeAyRows.map((r, i) => {
               let netPer = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-              let profit = (parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.expenses) || 0);
+              let profit = (parseFloat(r.total_company_payment) || 0) - netPer - (parseFloat(r.expenses) || 0);
               let reviewBadge = r.needs_review 
                 ? `<span class="badge badge-amber" style="margin-left: 6px; font-size: 8px; padding: 1px 4px;">⚠️ Kontrol Edin</span>` 
                 : "";
@@ -7186,11 +7185,11 @@
     let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
     let grTA = grRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
     let grNet = grTP - grTA;
-    let grKar = grTC - grTP;
+    let grKar = grTC - grNet;
     html += `<tr style="background:#e8f0fe"><td colspan="11" style="font-weight:800;font-size:12px;padding:8px 12px;color:#1e40af">🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | Fatura: ${fmt(grTC)} | Pers. Öd (Brüt): ${fmt(grTP)} | Avans: ${fmt(grTA)} | Net Öd: ${fmt(grNet)} | Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span></td></tr>`;
     grRows.forEach(r => {
       let net = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-      let kar = (parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0);
+      let kar = (parseFloat(r.total_company_payment) || 0) - net;
       let wage = parseFloat(r.personnel_daily_wage) > 0 ? fmt(r.personnel_daily_wage) + '/gün (hes.)' : '—';
       html += `<tr>
         <td style="padding-left:20px;font-weight:600">${pName(r.personnel_id)}</td>
@@ -7219,7 +7218,7 @@
   const monthKey = `${yil}-${String(ay + 1).padStart(2, '0')}`;
   const monthlyGenExpense = monthlyExpensesMap[monthKey] || 0;
   let tE = monthlyGenExpense;
-  let tK = tC - tP - tE;
+  let tK = tC - (tP - tA) - tE;
   let tL = rows.reduce((s, r) => s + (parseFloat(r.leave_days) || 0), 0);
        lastReport = { type: 'aylik', data: { ay, yil, rows, tG, tP, tC, tA, tE, tK, tL } };
         const aylar = [
@@ -7396,11 +7395,10 @@
         let tG = rows.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0),
     tC = rows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0),
     tP = rows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0),
+    tA = rows.reduce((s, r) => s + (r.advance_amount || 0), 0),
     tE = 0,
-          tK = tC - tP;
-        // FIX: tA eklendi — Excel export'ta undefined hatasını önler
-        let tA = rows.reduce((s, r) => s + (r.advance_amount || 0), 0),
-          tL = rows.reduce((s, r) => s + (parseFloat(r.leave_days) || 0), 0);
+    tK = tC - (tP - tA);
+        let tL = rows.reduce((s, r) => s + (parseFloat(r.leave_days) || 0), 0);
         lastReport = {
           type: "kurum",
           data: { c, rows, tG, tC, tP, tE, tK, tA, tL, cId },
@@ -7418,8 +7416,7 @@
                   let net =
                     (r.total_personnel_payment || 0) - (r.advance_amount || 0);
                   let kar =
-                    (r.total_company_payment || 0) -
-                    (r.total_personnel_payment || 0);
+                    (r.total_company_payment || 0) - net;
                   let wage =
                     r.personnel_daily_wage > 0
                       ? fmt(r.personnel_daily_wage) + "/gün (hes.)"
@@ -7521,7 +7518,8 @@
             let tG = grRows.reduce((s, rw) => s + (parseFloat(rw.work_days) || 0), 0);
             let tP = grRows.reduce((s, rw) => s + (parseFloat(rw.total_personnel_payment) || 0), 0);
             let tC = grRows.reduce((s, rw) => s + (parseFloat(rw.total_company_payment) || 0), 0);
-            let tK = tC - tP;
+            let tA = grRows.reduce((s, rw) => s + (parseFloat(rw.advance_amount) || 0), 0);
+            let tK = tC - (tP - tA);
             let header = new Array(cols.length).fill("");
             header[0] = "◆ " + cn;
             
@@ -7568,7 +7566,7 @@
 
         function mapRow(row) {
           let net = (parseFloat(row.total_personnel_payment) || 0) - (parseFloat(row.advance_amount) || 0);
-          let kar = (parseFloat(row.total_company_payment) || 0) - (parseFloat(row.total_personnel_payment) || 0);
+          let kar = (parseFloat(row.total_company_payment) || 0) - net;
           let leaveSum = (parseFloat(row.annual_leave) || 0) + (parseFloat(row.sick_leave) || 0) + (parseFloat(row.missing_days) || 0) + (parseFloat(row.official_holiday) || 0);
           
           let isToplu = isTopluRecord(row, sortedRows);
@@ -8328,7 +8326,7 @@
         const totalCom = filtered.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
         const monthKey = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
         const monthlyGenExpense = monthlyExpensesMap[monthKey] || 0;
-        const totalProfit = totalCom - totalPerGross - monthlyGenExpense;
+        const totalProfit = totalCom - totalPerNet - monthlyGenExpense;
         
         // İstatistik kartlarını çiz
         statsContainer.innerHTML = `
@@ -8361,7 +8359,7 @@
             <div class="stat">
               <div class="stat-label">Dönem Net Kârı</div>
               <div class="stat-val" style="color: ${totalProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(totalProfit)}</div>
-              <div class="stat-sub">Kurum Geliri - Pers. Brüt - Genel Gider</div>
+              <div class="stat-sub">Kurum Geliri - Pers. Net - Genel Gider</div>
             </div>
           </div>
         `;
@@ -8386,7 +8384,7 @@
           const groupAdvance = records.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
           const groupPerNet = groupPerGross - groupAdvance;
           const groupComTotal = records.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
-          const groupProfit = groupComTotal - groupPerGross;
+          const groupProfit = groupComTotal - groupPerNet;
 
           html += `
             <tr style="background: #e8f0fe; font-weight: 800; color: #1e40af;">
@@ -8402,7 +8400,7 @@
           records.forEach(r => {
             const perNet = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
             const comTotal = parseFloat(r.total_company_payment) || 0;
-            const profit = comTotal - (parseFloat(r.total_personnel_payment) || 0);
+            const profit = comTotal - perNet;
             
             const isToplu = isTopluRecord(r, filtered);
             const comPaymentDisp = isToplu ? "—" : fmt(comTotal);
