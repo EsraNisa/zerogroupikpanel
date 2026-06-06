@@ -8452,6 +8452,20 @@
         const selMonthSelect = document.getElementById("kon-ay");
         const selMonthText = selMonthSelect.options[selMonthSelect.selectedIndex].text;
         
+        // Copy summary stats into the print container so they appear in the PDF
+        let statsPlaceholder = document.getElementById("kontrol-print-stats-placeholder");
+        if (!statsPlaceholder) {
+          statsPlaceholder = document.createElement("div");
+          statsPlaceholder.id = "kontrol-print-stats-placeholder";
+          statsPlaceholder.style.marginTop = "15px";
+          statsPlaceholder.style.marginBottom = "15px";
+          printHeader.appendChild(statsPlaceholder);
+        }
+        const originalStats = document.getElementById("kontrol-stats");
+        if (originalStats) {
+          statsPlaceholder.innerHTML = originalStats.innerHTML;
+        }
+
         // Yazdırma başlığını göster
         printHeader.style.display = "block";
         subheader.textContent = `Toplu Kontrol Tablosu — ${selMonthText} ${selYear}`;
@@ -8490,10 +8504,12 @@
             
             // Başlığı tekrar gizle
             printHeader.style.display = "none";
+            if (statsPlaceholder) statsPlaceholder.innerHTML = "";
             toast("PDF başarıyla indirildi ✓");
           }).catch(err => {
             console.error("PDF kaydetme hatası:", err);
             printHeader.style.display = "none";
+            if (statsPlaceholder) statsPlaceholder.innerHTML = "";
             toast("PDF kaydedilirken hata oluştu: " + err.message, "err");
           });
         }, 100);
