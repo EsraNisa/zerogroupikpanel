@@ -3403,6 +3403,12 @@
         }
       }
 
+      function cleanVal(val) {
+        if (val === undefined || val === null) return "";
+        const num = parseFloat(val);
+        if (isNaN(num) || num === 0) return "";
+        return num.toString();
+      }
       function onlyNum(el) {
         let v = el.value.replace(",", ".").replace(/[^0-9.]/g, "");
         let p = v.split(".");
@@ -4321,7 +4327,7 @@
         const p = personnel.find(x => x.id == r.personnel_id);
         const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
         const rowId = r.id; 
-        const pWage = r.personnel_monthly_wage || 0;
+        const pWage = cleanVal(r.personnel_monthly_wage);
         
         const wageMode = r.wage_mode || "calculated";
         const isDirect = (wageMode === "direct");
@@ -4350,7 +4356,7 @@
                 <div class="form-group">
                   <label class="form-label">Çalışılan Gün</label>
                   <div style="display: flex; gap: 4px; align-items: center;">
-                    <input class="form-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${r.work_days}" oninput="onlyNum(this); onDaysInput('${rowId}'); onInputChanged();" style="flex: 1;" />
+                    <input class="form-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}'); onInputChanged();" style="flex: 1;" />
                     <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${rowId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
                   </div>
                 </div>
@@ -4368,7 +4374,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label" id="c-per-wage-label-${rowId}">${labelText}</label>
-                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
+                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                 </div>
               </div>
 
@@ -4379,7 +4385,7 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || ''}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
                         <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
@@ -4402,15 +4408,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
                     <div class="form-group">
                       <label class="form-label">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_hours || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
+                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_days || ''}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
+                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.overtime_wage || ''}" oninput="onlyNum(this); onInputChanged();" style="background: #fff;" />
+                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" style="background: #fff;" />
                     </div>
                   </div>
                 </div>
@@ -4426,15 +4432,15 @@
                   <div class="form-grid g3" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">Avans (₺)</label>
-                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.advance_amount || ''}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.advance_amount)}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Prim (₺)</label>
-                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.premium || ''}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.premium)}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                     <div class="form-group">
                       <label class="form-label">Kesinti (₺)</label>
-                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.deductions || ''}" oninput="onlyNum(this); onInputChanged();" />
+                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.deductions)}" oninput="onlyNum(this); onInputChanged();" />
                     </div>
                   </div>
                 </div>
@@ -4450,7 +4456,7 @@
                   <div class="form-grid g1" style="margin-bottom: 0;">
                     <div class="form-group">
                       <label class="form-label">İzin Günü (Gün)</label>
-                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.annual_leave || ''}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
+                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
                     </div>
                   </div>
                   
@@ -4796,7 +4802,7 @@
         document.getElementById("p-first").value = p ? p.first_name : "";
         document.getElementById("p-last").value = p ? p.last_name : "";
         document.getElementById("p-pos").value = p ? p.position : "";
-        document.getElementById("p-wage").value = p ? p.daily_wage : "";
+        document.getElementById("p-wage").value = p ? cleanVal(p.daily_wage) : "";
         document.getElementById("p-phone").value = p ? p.phone : "";
         document.getElementById("p-iban").value = p ? p.iban : "";
         document.getElementById("p-hire-date").value = p && p.hire_date ? p.hire_date.substring(0, 10) : "";
@@ -5430,7 +5436,7 @@
                     Kurum Ödemesi (₺)
                   </label>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${r.total_company_payment || ''}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
+                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                       <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
                         <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
@@ -5993,7 +5999,7 @@
         syncPersonnelCards();
         
         if (document.getElementById(`c-days-${rowId}`)) {
-          document.getElementById(`c-days-${rowId}`).value = r.work_days || "";
+          document.getElementById(`c-days-${rowId}`).value = cleanVal(r.work_days);
         }
         
         const wageMode = r.wage_mode || "calculated";
@@ -6019,37 +6025,37 @@
         onWageModeCardChange(rowId);
         
         if (document.getElementById(`c-per-wage-${rowId}`)) {
-          document.getElementById(`c-per-wage-${rowId}`).value = r.personnel_monthly_wage || "";
+          document.getElementById(`c-per-wage-${rowId}`).value = cleanVal(r.personnel_monthly_wage);
         }
         if (document.getElementById(`c-avans-${rowId}`)) {
-          document.getElementById(`c-avans-${rowId}`).value = r.advance_amount || "";
+          document.getElementById(`c-avans-${rowId}`).value = cleanVal(r.advance_amount);
         }
         
         const comTotalEl = document.getElementById(`c-com-total-${rowId}`);
         if (comTotalEl) {
-          comTotalEl.value = r.total_company_payment || "";
-          comTotalEl.dataset.baseVal = r.total_company_payment || "";
+          comTotalEl.value = cleanVal(r.total_company_payment);
+          comTotalEl.dataset.baseVal = cleanVal(r.total_company_payment);
         }
         
         if (document.getElementById(`c-premium-${rowId}`)) {
-          document.getElementById(`c-premium-${rowId}`).value = r.premium || "";
+          document.getElementById(`c-premium-${rowId}`).value = cleanVal(r.premium);
         }
         if (document.getElementById(`c-deductions-${rowId}`)) {
-          document.getElementById(`c-deductions-${rowId}`).value = r.deductions || "";
+          document.getElementById(`c-deductions-${rowId}`).value = cleanVal(r.deductions);
         }
         
         if (document.getElementById(`c-overtime-hours-${rowId}`)) {
-          document.getElementById(`c-overtime-hours-${rowId}`).value = r.overtime_hours || "";
+          document.getElementById(`c-overtime-hours-${rowId}`).value = cleanVal(r.overtime_hours);
         }
         if (document.getElementById(`c-overtime-days-${rowId}`)) {
-          document.getElementById(`c-overtime-days-${rowId}`).value = r.overtime_days || "";
+          document.getElementById(`c-overtime-days-${rowId}`).value = cleanVal(r.overtime_days);
         }
         if (document.getElementById(`c-overtime-wage-${rowId}`)) {
-          document.getElementById(`c-overtime-wage-${rowId}`).value = r.overtime_wage || "";
+          document.getElementById(`c-overtime-wage-${rowId}`).value = cleanVal(r.overtime_wage);
         }
         
         if (document.getElementById(`c-annual-leave-${rowId}`)) {
-          document.getElementById(`c-annual-leave-${rowId}`).value = r.annual_leave || "";
+          document.getElementById(`c-annual-leave-${rowId}`).value = cleanVal(r.annual_leave);
         }
         
         if (document.getElementById(`c-not-${rowId}`)) {
