@@ -1371,9 +1371,9 @@
                 <div class="stat-sub">Anlaşmalı</div>
               </div>
               <div class="stat">
-                <div class="stat-label">Bu Ay Öd.</div>
+                <div class="stat-label">Bu Ay Pers. Gideri (Brüt)</div>
                 <div class="stat-val" id="s-odeme">₺0</div>
-                <div class="stat-sub">Gider</div>
+                <div class="stat-sub">Toplam Personel Hakedişi</div>
               </div>
               <div class="stat">
                 <div class="stat-label">Bu Ay Kar</div>
@@ -6665,13 +6665,18 @@
           let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
           let grKar = grTC - grTP;
 
+          let grTA = grRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
+          let grNet = grTP - grTA;
+
           // Header row for the company (Institution)
           html += `
             <tr style="background: #e8f0fe;">
               <td colspan="15" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
                 🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | 
                 Fatura: <span style="color:#0f172a">${fmt(grTC)}</span> | 
-                Personel Öd: <span style="color:#0f172a">${fmt(grTP)}</span> | 
+                Pers. Öd (Brüt): <span style="color:#0f172a">${fmt(grTP)}</span> | 
+                Avans: <span style="color:#dc2626">${fmt(grTA)}</span> | 
+                Net Öd: <span style="color:#16a34a">${fmt(grNet)}</span> | 
                 Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span>
               </td>
             </tr>
@@ -7059,7 +7064,7 @@
         const grossProfit = activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0)), 0);
         const netProfit = grossProfit - currentExpense;
         
-        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + ((parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0)), 0));
+        document.getElementById('s-odeme').textContent = fmt(activeAyRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0));
         document.getElementById('s-kar').textContent = fmt(netProfit);
         document.getElementById('s-kar').style.color = netProfit >= 0 ? "#16a34a" : "#dc2626";
         
@@ -7179,8 +7184,10 @@
     let grTG = grRows.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
     let grTP = grRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
     let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
+    let grTA = grRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
+    let grNet = grTP - grTA;
     let grKar = grTC - grTP;
-    html += `<tr style="background:#e8f0fe"><td colspan="11" style="font-weight:800;font-size:12px;padding:8px 12px;color:#1e40af">🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | Fatura: ${fmt(grTC)} | Personel Öd: ${fmt(grTP)} | Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span></td></tr>`;
+    html += `<tr style="background:#e8f0fe"><td colspan="11" style="font-weight:800;font-size:12px;padding:8px 12px;color:#1e40af">🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | Fatura: ${fmt(grTC)} | Pers. Öd (Brüt): ${fmt(grTP)} | Avans: ${fmt(grTA)} | Net Öd: ${fmt(grNet)} | Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span></td></tr>`;
     grRows.forEach(r => {
       let net = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
       let kar = (parseFloat(r.total_company_payment) || 0) - (parseFloat(r.total_personnel_payment) || 0);
@@ -7233,8 +7240,10 @@
         document.getElementById("r-ay-res").innerHTML =
           statGrid([
             ["Toplam Gün", tG],
-            ["Pers.Ödemeleri", fmt(tP)],
-            ["Kur.Gelirleri", fmt(tC)],
+            ["Pers. Ödemeleri (Brüt)", fmt(tP)],
+            ["Toplam Avans", fmt(tA), "color:#dc2626"],
+            ["Net Ödenecek", fmt(tP - tA), "color:#16a34a"],
+            ["Kur. Gelirleri", fmt(tC)],
             ["Genel Gider", fmt(tE), "color:#b91c1c"],
             ["Net Kar", fmt(tK), "color:#16a34a"],
           ]) +
@@ -7438,7 +7447,9 @@
             statGrid([
               ["Toplam Gün", tG],
               ["Kur.Geliri", fmt(tC)],
-              ["Pers.Maliyeti", fmt(tP)],
+              ["Pers.Maliyeti (Brüt)", fmt(tP)],
+              ["Toplam Avans", fmt(tA), "color:#dc2626"],
+              ["Net Ödenecek", fmt(tP - tA), "color:#16a34a"],
               ["Net Kar", fmt(tK), "color:#16a34a"],
             ]) +
             `<div class="card"><div class="card-head"><span class="card-title">${title}</span></div>` +
@@ -7461,7 +7472,9 @@
             statGrid([
               ["Toplam Gün", tG],
               ["Toplam Kur.Geliri", fmt(tC)],
-              ["Toplam Pers.Maliyeti", fmt(tP)],
+              ["Toplam Pers.Maliyeti (Brüt)", fmt(tP)],
+              ["Toplam Avans", fmt(tA), "color:#dc2626"],
+              ["Net Ödenecek", fmt(tP - tA), "color:#16a34a"],
               ["Net Kar", fmt(tK), "color:#16a34a"],
             ]) +
             `<div class="card"><div class="card-head"><span class="card-title">Tüm Kurumlar — Karşılaştırma</span></div>` +
@@ -8321,24 +8334,34 @@
         statsContainer.innerHTML = `
           <div class="stat-grid">
             <div class="stat">
-              <div class="stat-label">Toplam Personel Ödemesi</div>
-              <div class="stat-val" style="color: #475569;">${fmt(totalPerNet)}</div>
-              <div class="stat-sub">Ay Sonu Kalan (Net Ödenecek)</div>
+              <div class="stat-label">Pers. Ödemesi (Brüt)</div>
+              <div class="stat-val" style="color: #475569;">${fmt(totalPerGross)}</div>
+              <div class="stat-sub">Toplam Personel Hakedişi</div>
             </div>
             <div class="stat">
-              <div class="stat-label">Toplam Kurum Ödemesi</div>
+              <div class="stat-label">Toplam Avans</div>
+              <div class="stat-val" style="color: #dc2626;">${fmt(totalPerAdvance)}</div>
+              <div class="stat-sub">Dönem İçi Ödenen Avanslar</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Net Ödenecek Maaş</div>
+              <div class="stat-val" style="color: #16a34a;">${fmt(totalPerNet)}</div>
+              <div class="stat-sub">Ay Sonu Kalan Net Tutar</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Toplam Kurum Geliri</div>
               <div class="stat-val" style="color: #1e3a5f;">${fmt(totalCom)}</div>
               <div class="stat-sub">Fatura Edilen Toplam Tutar</div>
             </div>
             <div class="stat">
               <div class="stat-label">Aylık Genel Gider</div>
               <div class="stat-val" style="color: #b91c1c;">${fmt(monthlyGenExpense)}</div>
-              <div class="stat-sub">Seçilen Ayın Tanımlı Genel Gideri</div>
+              <div class="stat-sub">Tanımlı Genel Gider / Masraf</div>
             </div>
             <div class="stat">
               <div class="stat-label">Dönem Net Kârı</div>
               <div class="stat-val" style="color: ${totalProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(totalProfit)}</div>
-              <div class="stat-sub">Gelir - Gider - Genel Gider</div>
+              <div class="stat-sub">Kurum Geliri - Pers. Brüt - Genel Gider</div>
             </div>
           </div>
         `;
@@ -8368,7 +8391,7 @@
           html += `
             <tr style="background: #e8f0fe; font-weight: 800; color: #1e40af;">
               <td colspan="8" style="padding: 10px 8px; font-size: 12px; font-weight: 800; color: #1e40af;">
-                🏢 ${cName(cId)} — (${records.length} kayıt | Ay Sonu Pers. Net Öd: ${fmt(groupPerNet)} | Kurum Geliri: ${fmt(groupComTotal)} | Kar: <span style="color:${groupProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(groupProfit)}</span>)
+                🏢 ${cName(cId)} — (${records.length} kayıt | Pers. Öd (Brüt): ${fmt(groupPerGross)} | Avans: ${fmt(groupAdvance)} | Net Öd: ${fmt(groupPerNet)} | Kurum Geliri: ${fmt(groupComTotal)} | Kar: <span style="color:${groupProfit >= 0 ? '#16a34a' : '#dc2626'}">${fmt(groupProfit)}</span>)
               </td>
             </tr>
           `;
