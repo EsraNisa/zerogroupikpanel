@@ -1754,15 +1754,26 @@
 
           <!-- ÇALIŞMALAR -->
           <div class="page" id="page-calismalar">
-            <!-- Toolbar -->
-            <div class="toolbar">
-              <button class="btn btn-primary" onclick="openCalismaModal()">
-                + Yeni Kayıt
-              </button>
-              <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569; margin-left: 8px;">Dönem Seç:</span>
-              <select id="cal-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()"></select>
-              <select id="cal-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()">
-                <option value="0">Ocak</option>
+            <div class="tab-bar" style="margin-bottom: 14px;">
+              <div class="tab active" id="tab-cal-records" onclick="switchCalTab('cal-records')">
+                Çalışma Kayıtları
+              </div>
+              <div class="tab" id="tab-cal-extras" onclick="switchCalTab('cal-extras')">
+                Diğer Gelir / Giderler
+              </div>
+            </div>
+
+            <!-- TAB 1: Çalışma Kayıtları -->
+            <div id="cal-records-container">
+              <!-- Toolbar -->
+              <div class="toolbar">
+                <button class="btn btn-primary" onclick="openCalismaModal()">
+                  + Yeni Kayıt
+                </button>
+                <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569; margin-left: 8px;">Dönem Seç:</span>
+                <select id="cal-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()"></select>
+                <select id="cal-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()">
+                  <option value="0">Ocak</option>
                 <option value="1">Şubat</option>
                 <option value="2">Mart</option>
                 <option value="3">Nisan</option>
@@ -1973,6 +1984,60 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+            </div> <!-- Close cal-records-container -->
+
+            <!-- TAB 2: Diğer Gelir / Giderler -->
+            <div id="cal-extras-container" style="display: none;">
+              <div class="toolbar">
+                <button class="btn btn-primary" onclick="openExtraTransactionModal()">
+                  ➕ Yeni Ekle
+                </button>
+                <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569; margin-left: 8px;">Dönem Seç:</span>
+                <select id="ext-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderExtraTransactions()"></select>
+                <select id="ext-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderExtraTransactions()">
+                  <option value="0">Ocak</option>
+                  <option value="1">Şubat</option>
+                  <option value="2">Mart</option>
+                  <option value="3">Nisan</option>
+                  <option value="4">Mayıs</option>
+                  <option value="5">Haziran</option>
+                  <option value="6">Temmuz</option>
+                  <option value="7">Ağustos</option>
+                  <option value="8">Eylül</option>
+                  <option value="9">Ekim</option>
+                  <option value="10">Kasım</option>
+                  <option value="11">Aralık</option>
+                </select>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-title">Diğer Gelir ve Giderler</span>
+                  <span id="ext-count" style="font-size: 10px; color: #94a3b8"></span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Açıklama</th>
+                        <th>Tür</th>
+                        <th>Tutar</th>
+                        <th>Tarih</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="cal-extras-tbody">
+                      <tr class="loading-row">
+                        <td colspan="5"><div class="spinner"></div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="card-foot" id="cal-extras-foot" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 14px; font-weight: 700; font-size: 12px; display: flex; justify-content: flex-end; gap: 16px;">
+                  <!-- Toplam summary -->
+                </div>
               </div>
             </div>
           </div>
@@ -2841,6 +2906,47 @@
       </div>
     </div>
 
+    <!-- MODAL: Diğer Gelir/Gider Ekle -->
+    <div
+      class="modal-backdrop"
+      id="modal-extra-transaction"
+      style="display: none"
+      onclick="closeMBD(event, 'modal-extra-transaction')"
+    >
+      <div class="modal" style="max-width: 450px; width: 95%;">
+        <div class="modal-handle"></div>
+        <div class="modal-head">
+          <span class="modal-title">Diğer Gelir / Gider Ekle</span>
+          <button class="modal-close" onclick="closeM('modal-extra-transaction')">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Açıklama *</label>
+            <input type="text" class="form-input" id="ext-desc" placeholder="Gider veya gelir açıklaması girin..." />
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">İşlem Türü *</label>
+            <select class="form-input" id="ext-type">
+              <option value="gider">Gider</option>
+              <option value="gelir">Gelir</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Tutar (₺) *</label>
+            <input type="text" inputmode="numeric" class="form-input" id="ext-amount" oninput="onlyNum(this)" placeholder="0.00" />
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Tarih *</label>
+            <input type="date" class="form-input" id="ext-date" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeM('modal-extra-transaction')">İptal</button>
+          <button class="btn btn-primary" onclick="submitExtraTransaction()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -3096,6 +3202,7 @@
       let personnel = [],
         companies = [],
         work_records = [];
+      let extra_transactions = [];
       let approvedPeriods = [];
       let monthlyExpensesMap = {};
       let ikSettings = { renew_day: 1, payment_day: 5 };
@@ -3545,7 +3652,8 @@
         if (id === "calismalar") {
           initCSelects();
           initCalSelects();
-          renderRecords();
+          initExtSelects();
+          switchCalTab("cal-records");
         }
         if (id === "operasyon") {
           initOpSelects();
@@ -3634,9 +3742,9 @@
       async function loadAll() {
         try {
           setDbStatus("loading");
-          let p, c, w, s, me, ap;
+          let p, c, w, s, me, ap, ext;
           try {
-            [p, c, w, s, me, ap] = await Promise.all([
+            [p, c, w, s, me, ap, ext] = await Promise.all([
               api.get("/personnel"),
               api.get("/companies"),
               api.get("/work_records"),
@@ -3651,6 +3759,10 @@
               api.get("/work_records/approved-periods").catch(err => {
                 console.warn("Approved periods fetch failed:", err);
                 return [];
+              }),
+              api.get("/extra-transactions").catch(err => {
+                console.warn("Extra transactions fetch failed:", err);
+                return [];
               })
             ]);
           } catch (apiErr) {
@@ -3664,9 +3776,18 @@
             }
             throw apiErr;
           }
-          personnel = p;
-          companies = c;
+          personnel = (p || []).sort((a, b) => {
+            const nameA = `${a.first_name || ""} ${a.last_name || ""}`.trim();
+            const nameB = `${b.first_name || ""} ${b.last_name || ""}`.trim();
+            return nameA.localeCompare(nameB, 'tr');
+          });
+          companies = (c || []).sort((a, b) => {
+            const nameA = (a.company_name || "").trim();
+            const nameB = (b.company_name || "").trim();
+            return nameA.localeCompare(nameB, 'tr');
+          });
           work_records = w;
+          extra_transactions = ext || [];
           approvedPeriods = ap || [];
           ikSettings = s || { renew_day: 1, payment_day: 5 };
           
@@ -4116,13 +4237,18 @@
             return pA.localeCompare(pB, 'tr');
           });
 
-          // Header row for the company (Institution) with "+ Personel Ekle" button
+          // Header row for the company (Institution) with "+ Personel Ekle" and "Kurumu Dönemden Kaldır" buttons
           html += `
             <tr style="background: #e8f0fe;">
               <td colspan="7" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <span>🏢 ${c.company_name} — ${parents.length} personel</span>
-                  ${isApproved ? '' : `<button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>`}
+                  <div style="display: flex; gap: 6px;">
+                    ${isApproved ? '' : `
+                      <button class="btn btn-sm btn-primary" onclick="openAddPersonnelToOpModal('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700;">+ Personel Ekle</button>
+                      <button class="btn btn-sm btn-danger" onclick="removeCompanyFromPeriod('${cId}')" style="font-size: 10px; padding: 3px 8px; font-weight: 700; background: #dc2626; border-color: #dc2626; color: #fff;">Kurumu Dönemden Kaldır</button>
+                    `}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -7316,7 +7442,13 @@
   const monthKey = `${yil}-${String(ay + 1).padStart(2, '0')}`;
   const monthlyGenExpense = monthlyExpensesMap[monthKey] || 0;
   let tE = monthlyGenExpense;
-  let tK = tC - (tP - tA) - tE;
+  
+  // Calculate extra transactions summary for this month
+  const curPeriodExtras = (extra_transactions || []).filter(t => t.transaction_date && t.transaction_date.substring(0, 7) === monthKey);
+  const extraIncomeSum = curPeriodExtras.filter(t => t.type === 'gelir').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  const extraExpenseSum = curPeriodExtras.filter(t => t.type === 'gider').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+  
+  let tK = tC - (tP - tA) - tE + extraIncomeSum - extraExpenseSum;
   let tL = rows.reduce((s, r) => s + (parseFloat(r.leave_days) || 0), 0);
        lastReport = { type: 'aylik', data: { ay, yil, rows, tG, tP, tC, tA, tE, tK, tL } };
         const aylar = [
@@ -7342,6 +7474,8 @@
             ["Net Ödenecek", fmt(tP - tA), "color:#16a34a"],
             ["Kur. Gelirleri", fmt(tC)],
             ["Genel Gider", fmt(tE), "color:#b91c1c"],
+            ["Diğer Gelirler", fmt(extraIncomeSum), "color:#16a34a"],
+            ["Diğer Giderler", fmt(extraExpenseSum), "color:#b91c1c"],
             ["Net Kar", fmt(tK), "color:#16a34a"],
           ]) +
           `<div class="card"><div class="card-head"><span class="card-title">${aylar[ay]} ${yil} — Kuruma Göre</span></div>` +
@@ -7358,7 +7492,34 @@
             "Kar",
             "Not",
           ]) +
-          "</div>";
+          "</div>" +
+          (curPeriodExtras.length === 0 ? '' : `
+            <div class="card" style="margin-top: 14px;">
+              <div class="card-head"><span class="card-title">Diğer Gelir / Giderler</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Açıklama</th>
+                      <th>Tür</th>
+                      <th>Tutar</th>
+                      <th>Tarih</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${curPeriodExtras.map(ex => `
+                      <tr>
+                        <td style="font-weight: 600;">${ex.description}</td>
+                        <td><span class="badge ${ex.type === 'gelir' ? 'badge-green' : 'badge-amber'}">${ex.type === 'gelir' ? 'Gelir' : 'Gider'}</span></td>
+                        <td style="font-weight: 700; color: ${ex.type === 'gelir' ? '#16a34a' : '#dc2626'}">${fmt(ex.amount)}</td>
+                        <td>${toLocalYYYYMMDD(ex.transaction_date)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `);
       }
 
      function genPer() {
@@ -8356,6 +8517,195 @@
             ys.appendChild(o);
           }
           document.getElementById("kon-ay").value = d.getMonth();
+        }
+      }
+
+      async function removeCompanyFromPeriod(companyId) {
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        const monthName = document.getElementById("op-ay").options[selMonth].text;
+        
+        const comp = companies.find(x => x.id == companyId);
+        const compName = comp ? comp.company_name : "Bu kurum";
+        
+        if (!confirm(`"${compName}" kurumuna ait ${selYear} ${monthName} dönemindeki TÜM çalışma kayıtlarını silmek istediğinize emin misiniz?`)) {
+          return;
+        }
+        
+        const targetRecords = work_records.filter(r => {
+          if (r.company_id != companyId || r.archived || !r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
+        });
+        
+        try {
+          for (let r of targetRecords) {
+            await api.delete(`/admin/work_records/${r.id}`);
+          }
+          toast("Kuruma ait bu dönemdeki tüm kayıtlar silindi ✓");
+          await loadAll();
+          renderOperasyonCockpit();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      function switchCalTab(tabName) {
+        const tabRec = document.getElementById("tab-cal-records");
+        const tabExt = document.getElementById("tab-cal-extras");
+        if (tabRec) tabRec.classList.toggle("active", tabName === "cal-records");
+        if (tabExt) tabExt.classList.toggle("active", tabName === "cal-extras");
+        
+        const recContainer = document.getElementById("cal-records-container");
+        const extContainer = document.getElementById("cal-extras-container");
+        if (recContainer) recContainer.style.display = tabName === "cal-records" ? "block" : "none";
+        if (extContainer) extContainer.style.display = tabName === "cal-extras" ? "block" : "none";
+        
+        if (tabName === "cal-extras") {
+          initExtSelects();
+          renderExtraTransactions();
+        } else {
+          renderRecords();
+        }
+      }
+
+      function initExtSelects() {
+        let ys = document.getElementById("ext-yil");
+        let d = new Date();
+        if (ys && ys.options.length === 0) {
+          ys.innerHTML = "";
+          for (let y = d.getFullYear(); y >= 2022; y--) {
+            let o = document.createElement("option");
+            o.value = y;
+            o.text = y;
+            ys.appendChild(o);
+          }
+          document.getElementById("ext-ay").value = d.getMonth();
+        }
+      }
+
+      function renderExtraTransactions() {
+        const extYilEl = document.getElementById("ext-yil");
+        const extAyEl = document.getElementById("ext-ay");
+        const selectedYear = extYilEl ? parseInt(extYilEl.value, 10) : new Date().getFullYear();
+        const selectedMonth = extAyEl ? parseInt(extAyEl.value, 10) : new Date().getMonth();
+        
+        const targetYM = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+        
+        const filtered = extra_transactions.filter(t => t.transaction_date && t.transaction_date.substring(0, 7) === targetYM);
+        
+        const countEl = document.getElementById("ext-count");
+        if (countEl) countEl.textContent = filtered.length + " işlem";
+        
+        let tbody = document.getElementById("cal-extras-tbody");
+        if (!tbody) return;
+        
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Bu dönem için gelir veya gider kaydı bulunamadı.</div></div></td></tr>`;
+          const footEl = document.getElementById("cal-extras-foot");
+          if (footEl) footEl.innerHTML = "";
+          return;
+        }
+        
+        let totalIncome = 0;
+        let totalExpense = 0;
+        
+        let html = filtered.map(t => {
+          const amt = parseFloat(t.amount) || 0;
+          if (t.type === 'gelir') {
+            totalIncome += amt;
+          } else {
+            totalExpense += amt;
+          }
+          
+          return `
+            <tr>
+              <td style="font-weight: 600;">${t.description}</td>
+              <td><span class="badge ${t.type === 'gelir' ? 'badge-green' : 'badge-amber'}">${t.type === 'gelir' ? 'Gelir' : 'Gider'}</span></td>
+              <td style="font-weight: 700; color: ${t.type === 'gelir' ? '#16a34a' : '#dc2626'}">${fmt(amt)}</td>
+              <td>${toLocalYYYYMMDD(t.transaction_date)}</td>
+              <td style="text-align: right;">
+                <button class="btn btn-sm btn-danger" onclick="deleteExtraTransaction('${t.id}')">Sil</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+        
+        tbody.innerHTML = html;
+        
+        const diff = totalIncome - totalExpense;
+        const footEl = document.getElementById("cal-extras-foot");
+        if (footEl) {
+          footEl.innerHTML = `
+            <span>Toplam Gelir: <span style="color: #16a34a;">${fmt(totalIncome)}</span></span>
+            <span>Toplam Gider: <span style="color: #dc2626;">${fmt(totalExpense)}</span></span>
+            <span>Net Fark: <span style="color: ${diff >= 0 ? '#16a34a' : '#dc2626'};">${fmt(diff)}</span></span>
+          `;
+        }
+      }
+
+      function openExtraTransactionModal() {
+        document.getElementById("ext-desc").value = "";
+        document.getElementById("ext-type").value = "gider";
+        document.getElementById("ext-amount").value = "";
+        
+        const extYil = parseInt(document.getElementById("ext-yil").value);
+        const extAy = parseInt(document.getElementById("ext-ay").value);
+        const d = new Date();
+        let day = d.getDate();
+        if (d.getFullYear() !== extYil || d.getMonth() !== extAy) {
+          day = 1;
+        }
+        const dateStr = `${extYil}-${String(extAy + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        document.getElementById("ext-date").value = dateStr;
+        
+        openM("modal-extra-transaction");
+      }
+
+      async function submitExtraTransaction() {
+        const description = document.getElementById("ext-desc").value.trim();
+        const type = document.getElementById("ext-type").value;
+        const amount = parseFloat(document.getElementById("ext-amount").value) || 0;
+        const transaction_date = document.getElementById("ext-date").value;
+        
+        if (!description) {
+          toast("Lütfen açıklama girin!", "err");
+          return;
+        }
+        if (amount <= 0) {
+          toast("Lütfen geçerli bir tutar girin!", "err");
+          return;
+        }
+        if (!transaction_date) {
+          toast("Lütfen tarih seçin!", "err");
+          return;
+        }
+        
+        try {
+          await api.post("/admin/extra-transactions", {
+            description,
+            type,
+            amount,
+            transaction_date
+          });
+          toast("Gelir/Gider başarıyla eklendi ✓");
+          closeM("modal-extra-transaction");
+          await loadAll();
+          renderExtraTransactions();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      async function deleteExtraTransaction(id) {
+        if (!confirm("Bu gelir/gider işlemini silmek istediğinize emin misiniz?")) return;
+        try {
+          await api.delete(`/admin/extra-transactions/${id}`);
+          toast("İşlem silindi ✓");
+          await loadAll();
+          renderExtraTransactions();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
         }
       }
 
