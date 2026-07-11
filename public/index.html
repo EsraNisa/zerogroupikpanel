@@ -8340,39 +8340,47 @@
         }
       }
 
-      function loadSettingsForm() {
-        document.getElementById("set-renew-day").value = ikSettings.renew_day || 1;
-        document.getElementById("set-payment-day").value = ikSettings.payment_day || 5;
+      function loadSettingsForm() {}
+
+      function dismissAlert(key) {
+        let dismissedAlerts = JSON.parse(localStorage.getItem('dismissed_alerts') || '[]');
+        if (!dismissedAlerts.includes(key)) {
+          dismissedAlerts.push(key);
+          localStorage.setItem('dismissed_alerts', JSON.stringify(dismissedAlerts));
+        }
+        renderHatirlatici();
       }
 
-      async function saveSettings() {
-        const renew = parseInt(document.getElementById("set-renew-day").value);
-        const payment = parseInt(document.getElementById("set-payment-day").value);
+      function dismissAllAlerts() {
+        if (!confirm("Tüm bildirimleri kaldırmak istediğinize emin misiniz?")) return;
+        let dismissedAlerts = JSON.parse(localStorage.getItem('dismissed_alerts') || '[]');
         
-        if (isNaN(renew) || renew < 1 || renew > 28) {
-          toast("Yenilenme günü 1 ile 28 arasında olmalıdır.", "err");
-          return;
-        }
-        if (isNaN(payment) || payment < 1 || payment > 28) {
-          toast("Ödeme günü 1 ile 28 arasında olmalıdır.", "err");
-          return;
-        }
+        work_records.forEach(r => {
+          if (r.archived || !r.start_day) return;
+          
+          const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+          if (r.personnel_payment_status !== 'odendi' && netPay > 0) {
+            const key = `per_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) dismissedAlerts.push(key);
+          }
+          
+          const isToplu = isTopluRecord(r, work_records);
+          const isCompanyPaymentUnpaid = r.company_payment_status !== 'odendi';
+          const hasCompanyPayment = (parseFloat(r.total_company_payment) || 0) > 0;
+          if (isCompanyPaymentUnpaid && (!isToplu || hasCompanyPayment)) {
+            const key = `com_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) dismissedAlerts.push(key);
+          }
+        });
+        
+        localStorage.setItem('dismissed_alerts', JSON.stringify(dismissedAlerts));
+        renderHatirlatici();
+      }
 
-        const btn = document.getElementById("btn-save-settings");
-        btn.disabled = true;
-        btn.textContent = "Kaydediliyor...";
-        
-        try {
-          const res = await api.post("/admin/settings", { renew_day: renew, payment_day: payment });
-          ikSettings = res;
-          updateSidebarBadge();
-          toast("Ayarlar başarıyla kaydedildi ✓");
-        } catch (e) {
-          toast("Ayar kaydetme hatası: " + e.message, "err");
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "Kaydet";
-        }
+      function resetDismissedAlerts() {
+        if (!confirm("Kaldırılan tüm bildirimleri geri getirmek ve sıfırlamak istediğinize emin misiniz?")) return;
+        localStorage.removeItem('dismissed_alerts');
+        renderHatirlatici();
       }
 
       function renderHatirlatici() {
