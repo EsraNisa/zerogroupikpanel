@@ -1733,6 +1733,7 @@
                 <table>
                   <thead>
                     <tr>
+                      <th style="width: 70px; text-align: center;">Sıra</th>
                       <th>Kurum Adı</th>
                       <th>Yetkili</th>
                       <th>Telefon</th>
@@ -1744,7 +1745,7 @@
                   </thead>
                   <tbody id="kurum-tbody">
                     <tr class="loading-row">
-                      <td colspan="7"><div class="spinner"></div></td>
+                      <td colspan="8"><div class="spinner"></div></td>
                     </tr>
                   </tbody>
                 </table>
@@ -3782,6 +3783,10 @@
             return nameA.localeCompare(nameB, 'tr');
           });
           companies = (c || []).sort((a, b) => {
+            const orderA = a.sort_order === undefined || a.sort_order === null ? 9999 : a.sort_order;
+            const orderB = b.sort_order === undefined || b.sort_order === null ? 9999 : b.sort_order;
+            if (orderA !== orderB) return orderA - orderB;
+            
             const nameA = (a.company_name || "").trim();
             const nameB = (b.company_name || "").trim();
             return nameA.localeCompare(nameB, 'tr');
@@ -4209,12 +4214,8 @@
           groups[r.company_id].push(r);
         });
 
-        // Sort all companies alphabetically
-        const sortedCompanies = [...companies].sort((a, b) => {
-          let cA = a.company_name || "";
-          let cB = b.company_name || "";
-          return cA.localeCompare(cB, 'tr');
-        });
+        // Sort all companies by sort_order (already sorted)
+        const sortedCompanies = [...companies];
 
         let html = '';
         sortedCompanies.forEach((c) => {
@@ -4348,7 +4349,7 @@
         
         if (compSelect) {
           compSelect.innerHTML = '<option value="">Seçin...</option>';
-          const sortedCom = [...companies].sort((a, b) => (a.company_name || "").localeCompare(b.company_name || "", 'tr'));
+          const sortedCom = [...companies];
           sortedCom.forEach(c => {
             const o = document.createElement("option");
             o.value = c.id;
@@ -5250,7 +5251,7 @@
   let tbody = document.getElementById('kurum-tbody');
   document.getElementById('k-count').textContent = companies.length + ' kayıt';
   if (!companies.length) { 
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Henüz kurum eklenmedi</div></div></td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">🏢</div><div class="empty-text">Henüz kurum eklenmedi</div></div></td></tr>'; 
     return; 
   }
   tbody.innerHTML = companies.map(c => {
@@ -5276,6 +5277,10 @@
     tg = Math.round(tg * 100) / 100;
     
     return `<tr>
+      <td style="white-space:nowrap; text-align:center;">
+        <button class="btn btn-sm" onclick="moveCompanyUp('${c.id}')" style="padding:2px 6px; font-size:10px; min-width:auto; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;" title="Yukarı Taşı">⬆️</button>
+        <button class="btn btn-sm" onclick="moveCompanyDown('${c.id}')" style="padding:2px 6px; font-size:10px; min-width:auto; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; margin-left:2px;" title="Aşağı Taşı">⬇️</button>
+      </td>
       <td>
         <div class="company-cell" onclick="viewCompanyHistory('${c.id}')" style="cursor:pointer;" title="İş geçmişini görüntüle">
           <div style="font-weight:700;color:#2563eb;text-decoration:none;">${c.company_name}</div>
@@ -5292,6 +5297,41 @@
       </td>
     </tr>`;
   }).join('');
+}
+
+async function saveCompanyOrder() {
+  try {
+    const promises = companies.map((c, idx) => {
+      c.sort_order = idx + 1;
+      return api.patch(`/admin/companies/${c.id}`, { sort_order: c.sort_order });
+    });
+    await Promise.all(promises);
+    await loadAll();
+    renderCompanies();
+    if (activePageId === "operasyon") renderOperasyonCockpit();
+    if (activePageId === "calismalar") renderRecords();
+    toast("Sıralama güncellendi ✓");
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+async function moveCompanyUp(id) {
+  const idx = companies.findIndex(c => c.id == id);
+  if (idx <= 0) return;
+  const temp = companies[idx];
+  companies[idx] = companies[idx - 1];
+  companies[idx - 1] = temp;
+  await saveCompanyOrder();
+}
+
+async function moveCompanyDown(id) {
+  const idx = companies.findIndex(c => c.id == id);
+  if (idx === -1 || idx >= companies.length - 1) return;
+  const temp = companies[idx];
+  companies[idx] = companies[idx + 1];
+  companies[idx + 1] = temp;
+  await saveCompanyOrder();
 }
       let selectRowCounter = 0;
       let activeQuickAddRowId = null;
@@ -6798,14 +6838,22 @@
           });
         }
         rows = [...rows].sort((a, b) => {
-          let cA = cName(a.company_id) || "";
-          let cB = cName(b.company_id) || "";
+          const compA = companies.find(c => c.id == a.company_id);
+          const compB = companies.find(c => c.id == b.company_id);
+          const orderA = compA && compA.sort_order !== undefined && compA.sort_order !== null ? compA.sort_order : 9999;
+          const orderB = compB && compB.sort_order !== undefined && compB.sort_order !== null ? compB.sort_order : 9999;
+          if (orderA !== orderB) return orderA - orderB;
+          
+          let cA = compA ? compA.company_name : "";
+          let cB = compB ? compB.company_name : "";
           let cmp = cA.localeCompare(cB, 'tr');
           if (cmp !== 0) return cmp;
+          
           let sA = a.start_day || "";
           let sB = b.start_day || "";
           let sCmp = sA.localeCompare(sB);
           if (sCmp !== 0) return sCmp;
+          
           let pA = pName(a.personnel_id) || "";
           let pB = pName(b.personnel_id) || "";
           return pA.localeCompare(pB, 'tr');
