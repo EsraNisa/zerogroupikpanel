@@ -1599,6 +1599,7 @@
               </select>
               <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openKurumModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Yeni Kurum</button>
               <button class="btn btn-sm btn-primary" id="btn-op-new-per" onclick="openPersonelModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">👤 Yeni Personel</button>
+              <button class="btn btn-sm btn-primary" id="btn-op-assign-per" onclick="openAddPersonnelToOpModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">➕ Personel Ata</button>
               <button class="btn btn-primary" id="btn-toggle-op-edit" onclick="toggleOpEditMode()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; margin-left: auto;">✍️ Bu Ayki Çalışmaları Gir</button>
               <button class="btn" id="btn-op-approve" onclick="togglePeriodApproval()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"></button>
             </div>
@@ -2819,6 +2820,12 @@
           <button class="modal-close" onclick="closeM('modal-op-add-personnel')">×</button>
         </div>
         <div class="modal-body">
+          <div class="form-group" id="op-add-company-group" style="margin-bottom: 12px;">
+            <label class="form-label">Kurum *</label>
+            <select class="form-input" id="op-add-company-select">
+              <option value="">Seçin...</option>
+            </select>
+          </div>
           <input type="hidden" id="op-add-company-id" />
           <div class="form-group">
             <label class="form-label">Eklenecek Personel *</label>
@@ -4063,21 +4070,13 @@
         // Auto-generate missing recurring records for this period
         await ensureRecurringRecordsForPeriod(selYear, selMonth);
         
-        // Filter records that are recurring OR cover records of the current period
+        // Filter all records for the current period (both recurring and non-recurring)
         const activeList = work_records.filter(r => {
           if (r.archived || !r.start_day) return false;
           
           const ym = getYearMonth(r.start_day);
           const isCurrentPeriod = (ym.month === selMonth && ym.year === selYear);
-          if (!isCurrentPeriod) return false;
-          
-          if (r.is_recurring) return true;
-          
-          // Check if it's a cover record
-          const subInfo = parseSubstituteNote(r.note);
-          if (subInfo) return true;
-          
-          return false;
+          return isCurrentPeriod;
         });
 
         // Group active rows by company_id
@@ -4102,8 +4101,13 @@
           const grRows = groups[cId] || [];
           
           // Separate parent and cover rows
-          const parents = grRows.filter(r => r.is_recurring);
-          const covers = grRows.filter(r => !r.is_recurring);
+          const parents = grRows.filter(r => !parseSubstituteNote(r.note));
+          const covers = grRows.filter(r => parseSubstituteNote(r.note));
+          
+          if (parents.length === 0 && covers.length === 0) {
+            // Hide companies with 0 records in this month
+            return;
+          }
           
           // Sort parent rows inside the group by personnel name
           parents.sort((a, b) => {
@@ -4124,14 +4128,7 @@
             </tr>
           `;
 
-          if (parents.length === 0 && covers.length === 0) {
-            html += `
-              <tr>
-                <td colspan="7" style="text-align: center; padding: 12px; color: #94a3b8; font-style: italic; font-size: 11px;">
-                  Henüz bu kuruma atanmış personel yok.
-                </td>
-              </tr>
-            `;
+          if (false) { // unused placeholder block
           } else {
             // Individual personnel rows under the company
             parents.forEach((r) => {
@@ -4219,20 +4216,45 @@
       }
 
       function openAddPersonnelToOpModal(companyId) {
-        document.getElementById("op-add-company-id").value = companyId;
+        const compGroup = document.getElementById("op-add-company-group");
+        const compSelect = document.getElementById("op-add-company-select");
+        const hiddenCompId = document.getElementById("op-add-company-id");
+        
+        if (compSelect) {
+          compSelect.innerHTML = '<option value="">Seçin...</option>';
+          const sortedCom = [...companies].sort((a, b) => (a.company_name || "").localeCompare(b.company_name || "", 'tr'));
+          sortedCom.forEach(c => {
+            const o = document.createElement("option");
+            o.value = c.id;
+            o.text = c.company_name;
+            compSelect.appendChild(o);
+          });
+        }
+
+        if (companyId) {
+          if (compGroup) compGroup.style.display = "none";
+          if (hiddenCompId) hiddenCompId.value = companyId;
+          if (compSelect) compSelect.value = companyId;
+        } else {
+          if (compGroup) compGroup.style.display = "block";
+          if (hiddenCompId) hiddenCompId.value = "";
+          if (compSelect) compSelect.value = "";
+        }
+        
         const sel = document.getElementById("op-add-personnel-select");
-        if (sel) {
+        function populatePersonnel() {
+          if (!sel) return;
           sel.innerHTML = '<option value="">Seçin...</option>';
-          const selYear = parseInt(document.getElementById("op-yil").value);
-          const selMonth = parseInt(document.getElementById("op-ay").value);
-          
-          const existingPids = work_records
+          const filterCompanyId = hiddenCompId ? hiddenCompId.value : null;
+          const existingPids = filterCompanyId ? work_records
             .filter(r => {
-              if (r.company_id != companyId || r.archived || !r.start_day) return false;
+              if (r.company_id != filterCompanyId || r.archived || !r.start_day) return false;
+              const selYear = parseInt(document.getElementById("op-yil").value);
+              const selMonth = parseInt(document.getElementById("op-ay").value);
               const ym = getYearMonth(r.start_day);
               return ym.month === selMonth && ym.year === selYear;
             })
-            .map(r => r.personnel_id);
+            .map(r => r.personnel_id) : [];
             
           personnel.forEach(p => {
             if (!existingPids.includes(p.id)) {
@@ -4243,12 +4265,26 @@
             }
           });
         }
+
+        populatePersonnel();
+        
+        if (compSelect) {
+          compSelect.onchange = function() {
+            if (hiddenCompId) hiddenCompId.value = compSelect.value;
+            populatePersonnel();
+          };
+        }
+        
         openM("modal-op-add-personnel");
       }
 
       async function submitAddPersonnelToOp() {
         const companyId = document.getElementById("op-add-company-id").value;
         const personnelId = document.getElementById("op-add-personnel-select").value;
+        if (!companyId) {
+          toast("Lütfen bir kurum seçin!", "err");
+          return;
+        }
         if (!personnelId) {
           toast("Lütfen bir personel seçin!", "err");
           return;
@@ -4517,20 +4553,25 @@
         const selYear = parseInt(document.getElementById("op-yil").value);
         const selMonth = parseInt(document.getElementById("op-ay").value);
         
-        const recurringList = work_records.filter(r => {
-          if (!r.is_recurring || r.archived || !r.start_day) return false;
+        const mainList = work_records.filter(r => {
+          if (r.archived || !r.start_day) return false;
           const ym = getYearMonth(r.start_day);
-          return ym.month === selMonth && ym.year === selYear;
+          const isCurrentPeriod = (ym.month === selMonth && ym.year === selYear);
+          if (!isCurrentPeriod) return false;
+          
+          // Exclude cover records from being edited as main cards
+          if (parseSubstituteNote(r.note)) return false;
+          return true;
         });
         
-        if (recurringList.length === 0) {
-          container.innerHTML = `<div class="card" style="padding: 24px; text-align: center;"><div class="empty-text">Seçilen dönem için tekrarlayan iş kaydı bulunamadı.</div></div>`;
+        if (mainList.length === 0) {
+          container.innerHTML = `<div class="card" style="padding: 24px; text-align: center;"><div class="empty-text">Seçilen dönem için iş kaydı bulunamadı.</div></div>`;
           return;
         }
         
         const groups = {};
         const groupOrder = [];
-        recurringList.forEach(r => {
+        mainList.forEach(r => {
           if (!groups[r.company_id]) {
             groups[r.company_id] = [];
             groupOrder.push(r.company_id);
@@ -6405,8 +6446,7 @@
               reminder_at = orig.reminder_at || null;
             }
           }
-          const curPage = localStorage.getItem("active_page") || "dashboard";
-          const is_recurring = curPage === "calismalar" ? false : document.getElementById("c-is-recurring").checked;
+          const is_recurring = document.getElementById("c-is-recurring").checked;
           
           let com_kdv = false;
           let com_tevkifat = false;
@@ -6759,8 +6799,34 @@
         if (!confirm("Kaydı silmek istiyor musunuz?")) return;
         try {
           await api.delete(`/admin/work_records/${id}`);
+          
+          if (r) {
+            // Delete associated cover records from backend
+            const covers = work_records.filter(x => 
+              x.company_id == r.company_id && 
+              x.start_day && r.start_day &&
+              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
+              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+              !x.archived
+            );
+            for (let cov of covers) {
+              await api.delete(`/admin/work_records/${cov.id}`);
+            }
+          }
+          
           toast("Kayıt silindi");
-          work_records = work_records.filter((r) => r.id != id);
+          
+          // Filter out deleted record and any associated cover records from local state
+          work_records = work_records.filter((rec) => {
+            if (rec.id == id) return false;
+            if (r && rec.company_id == r.company_id && 
+                rec.start_day && r.start_day &&
+                toLocalYYYYMMDD(rec.start_day) === toLocalYYYYMMDD(r.start_day) && 
+                rec.note && rec.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":")) {
+              return false;
+            }
+            return true;
+          });
           renderRecords();
           renderOperasyonCockpit();
           renderDashboard();
@@ -6783,10 +6849,36 @@
         if (!confirm("Bu çalışma kaydını silmek istediğinize emin misiniz?")) return;
         try {
           await api.delete(`/admin/work_records/${editRecId}`);
+          
+          if (r) {
+            // Delete associated cover records from backend
+            const covers = work_records.filter(x => 
+              x.company_id == r.company_id && 
+              x.start_day && r.start_day &&
+              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
+              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+              !x.archived
+            );
+            for (let cov of covers) {
+              await api.delete(`/admin/work_records/${cov.id}`);
+            }
+          }
+          
           toast("Kayıt silindi ✓");
           closeM('modal-calisma');
           resetCForm();
-          work_records = work_records.filter((r) => r.id != editRecId);
+          
+          // Filter out deleted record and any associated cover records from local state
+          work_records = work_records.filter((rec) => {
+            if (rec.id == editRecId) return false;
+            if (r && rec.company_id == r.company_id && 
+                rec.start_day && r.start_day &&
+                toLocalYYYYMMDD(rec.start_day) === toLocalYYYYMMDD(r.start_day) && 
+                rec.note && rec.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":")) {
+              return false;
+            }
+            return true;
+          });
           renderRecords();
           renderOperasyonCockpit();
           renderDashboard();
