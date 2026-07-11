@@ -1298,13 +1298,7 @@
           </svg>
           Raporlar
         </div>
-        <div class="nav-item" onclick="goPage('ayarlar', this)">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none">
-            <path d="M8 4.5a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" stroke="currentColor" stroke-width="1.5"/>
-            <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-          Ayarlar
-        </div>
+        <!-- Removed Settings Page link -->
         <div class="sidebar-footer">
           <div class="user-info">Giriş yapıldı:</div>
           <div class="user-email" id="sidebar-email">—</div>
@@ -1468,12 +1462,16 @@
 
           <!-- HATIRLATICI -->
           <div class="page" id="page-hatirlatici">
-            <!-- Settings Alerts (Tarih bazlı uyarılar) -->
-            <div id="settings-alerts" style="margin-bottom: 14px;"></div>
+            <!-- Settings Alerts (Tarih bazlı uyarılar - Gizlendi) -->
+            <div id="settings-alerts" style="display: none; margin-bottom: 14px;"></div>
             
             <div class="card">
-              <div class="card-head" style="background: #eff6ff; border-bottom: 1px solid #dbeafe;">
-                <span class="card-title" style="color: #1e40af; display: flex; align-items: center; gap: 6px;">🔔 Sistem Bildirimleri & Eksikler (Genel)</span>
+              <div class="card-head" style="background: #eff6ff; border-bottom: 1px solid #dbeafe; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;">
+                <span class="card-title" style="color: #1e40af; display: flex; align-items: center; gap: 6px; margin: 0;">🔔 Sistem Bildirimleri & Eksikler (Genel)</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-danger" onclick="dismissAllAlerts()" style="font-size: 11px; padding: 4px 10px; font-weight: 700; height: auto;">Tümünü Kaldır</button>
+                  <button class="btn btn-sm" onclick="resetDismissedAlerts()" style="font-size: 11px; padding: 4px 10px; font-weight: 700; height: auto; background: #cbd5e1; color: #334155; border: 1px solid #cbd5e1;">Sıfırla</button>
+                </div>
               </div>
               <div style="padding: 16px 18px;" id="hatirlatici-alerts-container">
                 <!-- Dynamic alerts will go here -->
@@ -1547,36 +1545,7 @@
           </div>
 
           <!-- AYARLAR -->
-          <div class="page" id="page-ayarlar">
-            <div class="card" style="max-width: 500px; margin: 0 auto;">
-              <div class="card-head">
-                <span class="card-title">⚙️ İK Sistem Ayarları</span>
-              </div>
-              <div class="card-body">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label class="form-label" style="font-weight: 700; color: #475569;">Aylık Operasyon ve Ödeme Bildirim Günü</label>
-                    <input type="number" id="set-renew-day" class="form-input" min="1" max="28" value="1" placeholder="Örn: 1 (Her ayın 1. günü)">
-                    <div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4;">
-                      Aylık operasyon güncelleme ve ödeme bildirimlerinin tetikleneceği gündür. (1 - 28 arası değer giriniz)
-                    </div>
-                  </div>
-                  <div class="form-group" style="margin-top: 15px;">
-                    <label class="form-label" style="font-weight: 700; color: #475569;">Aylık Ödemelerin Yapılacağı Gün</label>
-                    <input type="number" id="set-payment-day" class="form-input" min="1" max="28" value="5" placeholder="Örn: 5 (Her ayın 5. günü)">
-                    <div style="font-size: 11px; color: #64748b; margin-top: 4px; line-height: 1.4;">
-                      Personel ve kurum ödemeleri için belirlenen son gündür. Bu tarihten sonra tamamlanmayan ödemeler hatırlatıcılarda uyarı olarak gösterilir.
-                    </div>
-                  </div>
-                </div>
-                <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
-                  <button class="btn btn-primary" id="btn-save-settings" onclick="saveSettings()">
-                    Kaydet
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- AYARLAR - KALDIRILDI -->
 
           <!-- AYLIK OPERASYON -->
           <div class="page" id="page-operasyon">
@@ -3620,7 +3589,6 @@
         raporlar: ["Raporlar", "Excel export"],
         hatirlatici: ["Hatırlatıcı", "Bildirimler ve eksikler"],
         kontrol: ["Kontrol", "Toplu ödeme ve kar/zarar kontrolü"],
-        ayarlar: ["Ayarlar", "Sistem yenileme ve ödeme günleri"],
       };
 
       function goPage(id, el) {
@@ -3670,7 +3638,7 @@
           initKSelects();
           renderKontrol();
         }
-        if (id === "ayarlar") loadSettingsForm();
+        // Removed settings page navigation hook
         if (id === "personeller") {
           renderPersonnel();
         }
@@ -3852,142 +3820,71 @@
         }
       }
 
-      function generateDetailedAlertsHtml(records) {
+      function generateDetailedAlertsHtml() {
         let alertsHtml = '';
-        const todayDay = new Date().getDate();
+        let dismissedAlerts = JSON.parse(localStorage.getItem('dismissed_alerts') || '[]');
         
-        let pastUnpaidHtml = "";
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth(); // 0-indexed
-
         work_records.forEach(r => {
           if (r.archived || !r.start_day) return;
           const ym = getYearMonth(r.start_day);
-          const isStrictlyPrevious = ym.year < currentYear || (ym.year === currentYear && ym.month < currentMonth);
-          if (!isStrictlyPrevious) return;
-
-          if (r.personnel_payment_status !== 'odendi') {
-            const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-            if (netPay > 0) {
-              const p = personnel.find(x => x.id == r.personnel_id);
-              const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
-              const monthText = MONTHS_TR[ym.month];
-              const periodLabel = `${monthText} ${ym.year}`;
-              
-              pastUnpaidHtml += `
-                <div class="alert-item danger" style="margin-bottom: 8px; background: #fff5f5; border-left: 4px solid #dc2626; border-color: #fecaca; color: #991b1b;">
-                  <div style="font-size: 16px; margin-top: 2px;">⚠️</div>
-                  <div style="flex: 1;">
-                    <div class="alert-item-title" style="font-weight: 700; color: #991b1b;">Geçmiş Dönem Ödeme Uyarısı</div>
-                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${periodLabel}</b> ayından <b>${pName}</b> personeline ödeme yapılmadı! (Net: ${fmt(netPay)})</div>
-                  </div>
-                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #dc2626; color: #fff;" onclick="openEditRecModal('${r.id}')">Öde</button>
-                </div>
-              `;
-            }
-          }
-        });
-        
-        alertsHtml = pastUnpaidHtml + alertsHtml;
-
-        records.forEach(r => {
+          const monthText = MONTHS_TR[ym.month];
+          const periodLabel = `${monthText} ${ym.year}`;
+          
           const p = personnel.find(x => x.id == r.personnel_id);
           const c = companies.find(x => x.id == r.company_id);
           const pName = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
           const cName = c ? c.company_name : "Bilinmeyen Kurum";
           
-          // B: Eksik İzin Bilgisi
-          const leaveSum = parseFloat(r.annual_leave || 0) + parseFloat(r.sick_leave || 0) + parseFloat(r.missing_days || 0) + parseFloat(r.official_holiday || 0);
-          if (r.needs_review && leaveSum === 0) {
-            alertsHtml += `
-              <div class="alert-item warning" style="background:#fffbeb; border-color:#fde68a; margin-bottom: 8px;">
-                <div style="font-size: 16px; margin-top: 2px;">🌴</div>
-                <div style="flex: 1;">
-                  <div class="alert-item-title">${pName}</div>
-                  <div class="alert-item-desc"><b>${cName}</b> — İzin bilgisi doğrulanmadı.</div>
-                </div>
-                <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px;" onclick="openEditRecModal('${r.id}')">Gir</button>
-              </div>
-            `;
-          }
-          
-          // C: Tamamlanmayan Ödemeler (Sadece ödeme tarihi geldiğinde veya geçmişse uyarır)
-          if (todayDay >= ikSettings.payment_day) {
-            // Kurum Ödemesi Uyarısı
-            const isToplu = isTopluRecord(r, records);
-            const isCompanyPaymentUnpaid = r.company_payment_status !== 'odendi';
-            const hasCompanyPayment = (parseFloat(r.total_company_payment) || 0) > 0;
-            
-            if (isCompanyPaymentUnpaid && (!isToplu || hasCompanyPayment)) {
+          // 1. Personel Ödemesi Uyarısı
+          const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+          if (r.personnel_payment_status !== 'odendi' && netPay > 0) {
+            const key = `per_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) {
               alertsHtml += `
-                <div class="alert-item danger" style="margin-bottom: 8px; background: #fef2f2; border-color: #fecaca; color: #b91c1c;">
-                  <div style="font-size: 16px; margin-top: 2px;">🏢</div>
-                  <div style="flex: 1;">
-                    <div class="alert-item-title" style="font-weight: 700; color: #b91c1c;">${cName}</div>
-                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${cName}</b> kurumundan ödeme alınmadı.</div>
+                <div class="alert-item danger" style="margin-bottom: 8px; background: #fff5f5; border-left: 4px solid #dc2626; border-color: #fecaca; color: #991b1b; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 6px;">
+                  <div style="display: flex; gap: 10px; align-items: center; flex: 1;">
+                    <div style="font-size: 16px;">👤</div>
+                    <div>
+                      <div class="alert-item-title" style="font-weight: 700; color: #991b1b;">Personel Ödeme Uyarısı (${periodLabel})</div>
+                      <div class="alert-item-desc" style="color: #7f1d1d; font-size: 11px;"><b>${pName}</b> personeline ödeme yapılmadı! (Net: ${fmt(netPay)})</div>
+                    </div>
                   </div>
-                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #b91c1c; color: #fff;" onclick="openEditRecModal('${r.id}')">Güncelle</button>
-                </div>
-              `;
-            }
-            
-            // Personel Ödemesi Uyarısı
-            if (r.personnel_payment_status !== 'odendi' && (parseFloat(r.total_personnel_payment) || 0) > 0) {
-              alertsHtml += `
-                <div class="alert-item danger" style="margin-bottom: 8px; background: #fef2f2; border-color: #fecaca; color: #b91c1c;">
-                  <div style="font-size: 16px; margin-top: 2px;">👤</div>
-                  <div style="flex: 1;">
-                    <div class="alert-item-title" style="font-weight: 700; color: #b91c1c;">${pName}</div>
-                    <div class="alert-item-desc" style="color: #7f1d1d;"><b>${pName}</b> personeline ödeme yapılmadı.</div>
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn btn-sm btn-primary" style="padding: 4px 8px; font-size: 10px; border-radius: 4px; border: none; background: #dc2626; color: #fff;" onclick="openEditRecModal('${r.id}')">Öde / Güncelle</button>
+                    <button class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; color: #475569;" onclick="dismissAlert('${key}')">Kaldır</button>
                   </div>
-                  <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px; border: none; background: #b91c1c; color: #fff;" onclick="openEditRecModal('${r.id}')">Güncelle</button>
                 </div>
               `;
             }
           }
           
-          // D: Onay Bekleyen Kurum Kaydı (needs_review = true)
-          if (r.needs_review) {
-            alertsHtml += `
-              <div class="alert-item info" style="margin-bottom: 8px;">
-                <div style="font-size: 16px; margin-top: 2px;">🏥</div>
-                <div style="flex: 1;">
-                  <div class="alert-item-title">${cName} Listesi</div>
-                  <div class="alert-item-desc"><b>${pName}</b> için devralınan kayıt kontrol bekliyor.</div>
-                </div>
-                <button class="btn btn-sm btn-primary" style="padding: 3px 8px; font-size: 10px; border-radius: 4px;" onclick="openEditRecModal('${r.id}')">Onayla</button>
-              </div>
-            `;
-          }
+          // 2. Kurum Ödemesi Uyarısı
+          const isToplu = isTopluRecord(r, work_records);
+          const isCompanyPaymentUnpaid = r.company_payment_status !== 'odendi';
+          const hasCompanyPayment = (parseFloat(r.total_company_payment) || 0) > 0;
           
-          // E: Hatırlatıcı Notu
-          if (r.reminder_note && r.reminder_note.trim().length > 0) {
-            let shouldShow = true;
-            let timeText = "";
-            if (r.reminder_at) {
-              const remTime = new Date(r.reminder_at);
-              const now = new Date();
-              if (now < remTime) {
-                shouldShow = false;
-              } else {
-                timeText = ` (Zamanı: ${remTime.toLocaleString("tr-TR")})`;
-              }
-            }
-            if (shouldShow) {
+          if (isCompanyPaymentUnpaid && (!isToplu || hasCompanyPayment)) {
+            const key = `com_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) {
               alertsHtml += `
-                <div class="alert-item info" style="background: #f8fafc; border-color: #cbd5e1; color: #334155; margin-bottom: 8px;">
-                  <div style="font-size: 16px; margin-top: 2px;">📝</div>
-                  <div style="flex: 1;">
-                    <div class="alert-item-title">${pName} (${cName})${timeText ? `<span style="font-size: 10px; color:#d97706; margin-left: 6px;">${timeText}</span>` : ""}</div>
-                    <div class="alert-item-desc" style="font-style: italic;">Hatırlatıcı: "${r.reminder_note}"</div>
+                <div class="alert-item danger" style="margin-bottom: 8px; background: #fff5f5; border-left: 4px solid #dc2626; border-color: #fecaca; color: #991b1b; display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 6px;">
+                  <div style="display: flex; gap: 10px; align-items: center; flex: 1;">
+                    <div style="font-size: 16px;">🏢</div>
+                    <div>
+                      <div class="alert-item-title" style="font-weight: 700; color: #991b1b;">Kurum Ödeme Uyarısı (${periodLabel})</div>
+                      <div class="alert-item-desc" style="color: #7f1d1d; font-size: 11px;"><b>${cName}</b> kurumundan ödeme alınmadı!</div>
+                    </div>
                   </div>
-                  <button class="btn btn-sm" style="padding: 3px 8px; font-size: 10px; border-radius: 4px;" onclick="openEditRecModal('${r.id}')">Düzenle</button>
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn btn-sm btn-primary" style="padding: 4px 8px; font-size: 10px; border-radius: 4px; border: none; background: #dc2626; color: #fff;" onclick="openEditRecModal('${r.id}')">Ödeme Al / Güncelle</button>
+                    <button class="btn btn-sm btn-secondary" style="padding: 4px 8px; font-size: 10px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; color: #475569;" onclick="dismissAlert('${key}')">Kaldır</button>
+                  </div>
                 </div>
               `;
             }
           }
         });
+        
         return alertsHtml;
       }
 
@@ -8178,60 +8075,36 @@ async function moveCompanyDown(id) {
         if (!countEl) return;
         
         let warningCount = 0;
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1;
-        const currentYear = now.getFullYear();
-        const todayDay = now.getDate();
-        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        let dismissedAlerts = JSON.parse(localStorage.getItem('dismissed_alerts') || '[]');
         
-        // Yenilenme uyarısı (3 gün kalmışsa)
-        let daysLeftRenew = ikSettings.renew_day > todayDay ? ikSettings.renew_day - todayDay : (lastDayOfMonth - todayDay + ikSettings.renew_day);
-        if (daysLeftRenew > 0 && daysLeftRenew <= 3) {
-          warningCount++;
-        }
-        
-        // Ödeme uyarısı (Ödeme günü geçmişse ve bekleyen varsa)
-        const unpaidRecordsCount = work_records.filter(r => !r.archived && (r.personnel_payment_status !== 'odendi')).length;
-        if (todayDay >= ikSettings.payment_day && unpaidRecordsCount > 0) {
-          warningCount++;
-        }
-        
-        // Dönem Sonu Rapor Kaydetme Hatırlatması (Son 5 gün)
-        if (todayDay >= lastDayOfMonth - 4) {
-          warningCount++;
-        }
-        
-        // Detaylı işlem bildirimleri (Bu ayki eksikler)
-        const currentMonthRecords = work_records.filter(r => {
-          if (!r.start_day) return false;
-          const ym = getYearMonth(r.start_day);
-          return ym.month + 1 === currentMonth && ym.year === currentYear && !r.archived;
-        });
-        
-        currentMonthRecords.forEach(r => {
-          const leaveSum = parseFloat(r.annual_leave || 0) + parseFloat(r.sick_leave || 0) + parseFloat(r.missing_days || 0) + parseFloat(r.official_holiday || 0);
-          if (r.needs_review && leaveSum === 0) warningCount++;
-          if (r.personnel_payment_status !== 'odendi' && todayDay >= ikSettings.payment_day) warningCount++;
-          if (r.needs_review) warningCount++;
+        work_records.forEach(r => {
+          if (r.archived || !r.start_day) return;
           
-          // E: Hatırlatıcı Notu
-          if (r.reminder_note && r.reminder_note.trim().length > 0) {
-            let shouldShow = true;
-            if (r.reminder_at) {
-              const remTime = new Date(r.reminder_at);
-              if (now < remTime) {
-                shouldShow = false;
-              }
+          // 1. Personel Ödemesi Uyarısı
+          const netPay = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
+          if (r.personnel_payment_status !== 'odendi' && netPay > 0) {
+            const key = `per_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) {
+              warningCount++;
             }
-            if (shouldShow) {
+          }
+          
+          // 2. Kurum Ödemesi Uyarısı
+          const isToplu = isTopluRecord(r, work_records);
+          const isCompanyPaymentUnpaid = r.company_payment_status !== 'odendi';
+          const hasCompanyPayment = (parseFloat(r.total_company_payment) || 0) > 0;
+          
+          if (isCompanyPaymentUnpaid && (!isToplu || hasCompanyPayment)) {
+            const key = `com_unpaid_${r.id}`;
+            if (!dismissedAlerts.includes(key)) {
               warningCount++;
             }
           }
         });
         
         if (warningCount > 0) {
-          countEl.textContent = warningCount;
           countEl.style.display = "inline-flex";
+          countEl.textContent = warningCount;
         } else {
           countEl.style.display = "none";
         }
