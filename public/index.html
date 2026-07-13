@@ -1813,9 +1813,7 @@
                       <th style="min-width: 120px;">Kurum Toplam (₺)</th>
                       <th style="min-width: 65px;">İzin (Gün)</th>
                       <th style="min-width: 140px;">Yerine Gelen (Cover)</th>
-                      <th style="min-width: 70px;">Mesai (Saat)</th>
-                      <th style="min-width: 70px;">Mesai (Gün)</th>
-                      <th style="min-width: 100px;">Mesai Ücreti (₺)</th>
+                      <th style="min-width: 140px;">Mesai Bilgileri</th>
                       <th style="min-width: 160px;">Not / Açıklama</th>
                       <th style="min-width: 60px; text-align: center;">İşlemler</th>
                     </tr>
@@ -1893,6 +1891,62 @@
                   <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
                     <button type="button" class="btn btn-secondary" onclick="closeExtrasModal()">İptal</button>
                     <button type="button" class="btn btn-primary" onclick="saveExtrasModalChanges()" style="font-weight: 700;">Kaydet</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- OVERTIME MANAGEMENT MODAL (Mesai Bilgileri - Ortalanmış) -->
+              <div id="overtime-management-modal" class="centered-modal-overlay">
+                <div class="centered-modal-box" style="max-width: 480px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                    <h3 style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">⏰ Mesai Bilgileri</h3>
+                    <button type="button" onclick="closeOvertimeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
+                  </div>
+                  
+                  <div id="overtime-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
+                    <!-- Parent info loaded dynamically -->
+                  </div>
+
+                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px;">
+                    Personel Mesai Bilgileri
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                    <div class="form-group">
+                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Saatlik Mesai (Saat)</label>
+                      <input class="form-input" id="m-overtime-hours" type="text" inputmode="decimal" oninput="onlyNum(this); onModalOvertimeParamsChange();" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Günlük Mesai (Gün)</label>
+                      <input class="form-input" id="m-overtime-days" type="text" inputmode="decimal" oninput="onlyNum(this); onModalOvertimeParamsChange();" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Mesai Ücreti (₺)</label>
+                      <input class="form-input" id="m-overtime-wage" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
+                    </div>
+                  </div>
+
+                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px;">
+                    Kurum Mesai Hakedişi
+                  </div>
+
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Kurumdan Alınacak Tutar (Matrah) (₺)</label>
+                    <input class="form-input" id="m-overtime-company-wage" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="Örn: 1500" style="font-size: 12px; padding: 6px 8px;" />
+                  </div>
+
+                  <div style="display: flex; gap: 16px; margin-bottom: 16px; background: #f8fafc; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="m-overtime-company-kdv" style="width: 15px; height: 15px;" /> +%20 KDV
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; cursor: pointer; user-select: none;">
+                      <input type="checkbox" id="m-overtime-company-tef" style="width: 15px; height: 15px;" /> +%2 Tevkifat
+                    </label>
+                  </div>
+
+                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeOvertimeModal()">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveOvertimeModalChanges()" style="font-weight: 700;">Kaydet</button>
                   </div>
                 </div>
               </div>
@@ -4671,6 +4725,27 @@
         return `__EXTRAS:${JSON.stringify(extrasList)}__ ${cleaned}`.trim();
       }
 
+      function parseOvertimeCompany(noteStr) {
+        if (!noteStr) return { cleanNote: "", overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+        const match = noteStr.match(/__OVERTIME_COMPANY:(\{.*?\})__/);
+        if (match) {
+          try {
+            const overtimeCompany = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__OVERTIME_COMPANY:(\{.*?\})__/, '').trim();
+            return { cleanNote, overtimeCompany };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+      }
+
+      function serializeOvertimeCompany(cleanNote, overtimeCompany) {
+        const cleaned = (cleanNote || "").replace(/__OVERTIME_COMPANY:(\{.*?\})__/, '').trim();
+        if (!overtimeCompany || !overtimeCompany.wage) return cleaned;
+        return `__OVERTIME_COMPANY:${JSON.stringify(overtimeCompany)}__ ${cleaned}`.trim();
+      }
+
       function onWageModeSpreadsheetChange(rowId) {
         onOvertimeParamsChange(rowId);
       }
@@ -4757,7 +4832,7 @@
       }
       
       function getNextInputCol(currentCol, direction) {
-        const editableCols = [1, 2, 3, 6, 10, 12, 13, 14, 15];
+        const editableCols = [1, 2, 3, 6, 10, 13];
         let idx = editableCols.indexOf(currentCol);
         if (idx === -1) return currentCol;
         
@@ -5065,6 +5140,121 @@
         onInputChanged();
       }
 
+      // OVERTIME MANAGEMENT MODAL HELPERS
+      let activeOvertimeModalRowId = null;
+
+      function openOvertimeModal(rowId) {
+        activeOvertimeModalRowId = rowId;
+        const r = work_records.find(x => x.id == rowId);
+        if (!r) return;
+        
+        const p = personnel.find(x => x.id == r.personnel_id);
+        const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
+        const compNameText = cName(r.company_id) || "Kurum";
+        
+        document.getElementById("overtime-modal-parent-info").innerHTML = `
+          🏢 Kurum: <strong>${compNameText}</strong> | 👤 Personel: <strong>${pNameText}</strong>
+        `;
+        
+        const btn = document.getElementById(`c-overtime-btn-${rowId}`);
+        let hours = 0;
+        let days = 0;
+        let wage = 0;
+        let overtimeCompany = { wage: 0, kdv: false, tevkifat: false };
+        
+        if (btn) {
+          hours = parseFloat(btn.dataset.hours) || 0;
+          days = parseFloat(btn.dataset.days) || 0;
+          wage = parseFloat(btn.dataset.wage) || 0;
+          try {
+            overtimeCompany = JSON.parse(btn.dataset.company || '{}');
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        
+        document.getElementById("m-overtime-hours").value = hours > 0 ? hours : "";
+        document.getElementById("m-overtime-days").value = days > 0 ? days : "";
+        document.getElementById("m-overtime-wage").value = wage > 0 ? wage : "";
+        
+        document.getElementById("m-overtime-company-wage").value = overtimeCompany.wage > 0 ? overtimeCompany.wage : "";
+        document.getElementById("m-overtime-company-kdv").checked = !!overtimeCompany.kdv;
+        document.getElementById("m-overtime-company-tef").checked = !!overtimeCompany.tevkifat;
+        
+        document.getElementById("overtime-management-modal").style.display = "flex";
+      }
+
+      function closeOvertimeModal() {
+        document.getElementById("overtime-management-modal").style.display = "none";
+        activeOvertimeModalRowId = null;
+      }
+
+      function onModalOvertimeParamsChange() {
+        const rowId = activeOvertimeModalRowId;
+        if (!rowId) return;
+        
+        const parentWageInput = document.getElementById(`c-per-wage-${rowId}`);
+        const wageModeEl = document.getElementById(`c-wage-mode-${rowId}`);
+        const wageMode = wageModeEl ? wageModeEl.value : "calculated";
+        
+        const hoursInput = document.getElementById("m-overtime-hours");
+        const daysInput = document.getElementById("m-overtime-days");
+        const wageInput = document.getElementById("m-overtime-wage");
+        
+        if (wageMode === "calculated" && hoursInput && daysInput && wageInput && parentWageInput) {
+          const overtime_hours = parseFloat(hoursInput.value) || 0;
+          const overtime_days = parseFloat(daysInput.value) || 0;
+          const input_wage = parseFloat(parentWageInput.value) || 0;
+          
+          const overtime_wage = ( (input_wage / 225) * 1.5 * overtime_hours ) + ( (input_wage / 30) * 1.5 * overtime_days );
+          wageInput.value = overtime_wage > 0 ? Math.round(overtime_wage) : "";
+        }
+      }
+
+      function saveOvertimeModalChanges() {
+        const rowId = activeOvertimeModalRowId;
+        if (!rowId) return;
+        
+        const hoursVal = parseFloat(document.getElementById("m-overtime-hours").value) || 0;
+        const daysVal = parseFloat(document.getElementById("m-overtime-days").value) || 0;
+        const wageVal = parseFloat(document.getElementById("m-overtime-wage").value) || 0;
+        
+        const compWageVal = parseFloat(document.getElementById("m-overtime-company-wage").value) || 0;
+        const compKdvVal = document.getElementById("m-overtime-company-kdv").checked;
+        const compTefVal = document.getElementById("m-overtime-company-tef").checked;
+        
+        const btn = document.getElementById(`c-overtime-btn-${rowId}`);
+        if (btn) {
+          btn.dataset.hours = hoursVal;
+          btn.dataset.days = daysVal;
+          btn.dataset.wage = wageVal;
+          btn.dataset.company = JSON.stringify({
+            wage: compWageVal,
+            kdv: compKdvVal,
+            tevkifat: compTefVal
+          });
+          
+          let parts = [];
+          if (hoursVal > 0) parts.push(`${hoursVal} Sa`);
+          if (daysVal > 0) parts.push(`${daysVal} G`);
+          if (compWageVal > 0) {
+            let comStr = `Kur: ${compWageVal}₺`;
+            if (compKdvVal) comStr += "+KDV";
+            if (compTefVal) comStr += "+Tev";
+            parts.push(comStr);
+          }
+          
+          if (parts.length > 0) {
+            btn.textContent = parts.join(" / ");
+          } else {
+            btn.textContent = "➕ Ekle";
+          }
+        }
+        
+        closeOvertimeModal();
+        onInputChanged();
+      }
+
       function renderOperasyonEditMode() {
         const tbody = document.getElementById("spreadsheet-tbody");
         if (!tbody) return;
@@ -5119,7 +5309,7 @@
           // Render company header row divider
           html += `
             <tr class="spreadsheet-company-header">
-              <td colspan="17">🏢 ${compNameText}</td>
+              <td colspan="15">🏢 ${compNameText}</td>
             </tr>
           `;
           
@@ -5166,8 +5356,13 @@
               }).join(', ')})`;
             }
             
+            // Parse dynamic company overtime from note
+            const parsedOt = parseOvertimeCompany(r.note);
+            const rawNoteCleaned = parsedOt.cleanNote;
+            const overtimeCompany = parsedOt.overtimeCompany;
+            
             // Parse dynamic extras
-            const parsed = parseExtrasNote(r.note);
+            const parsed = parseExtrasNote(rawNoteCleaned);
             const cleanNoteText = parsed.cleanNote;
             const extrasList = parsed.extras;
             
@@ -5180,6 +5375,20 @@
               if (parts.length > 0) {
                 extrasSummary = parts.join(" / ");
               }
+            }
+            
+            let overtimeBtnText = "➕ Ekle";
+            let otParts = [];
+            if (r.overtime_hours > 0) otParts.push(`${r.overtime_hours} Sa`);
+            if (r.overtime_days > 0) otParts.push(`${r.overtime_days} G`);
+            if (overtimeCompany && overtimeCompany.wage > 0) {
+              let comStr = `Kur: ${overtimeCompany.wage}₺`;
+              if (overtimeCompany.kdv) comStr += "+KDV";
+              if (overtimeCompany.tevkifat) comStr += "+Tev";
+              otParts.push(comStr);
+            }
+            if (otParts.length > 0) {
+              overtimeBtnText = otParts.join(" / ");
             }
             
             html += `
@@ -5233,17 +5442,15 @@
                     </button>
                   </div>
                 </td>
-                <td>
-                  <input class="spreadsheet-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 12)" />
+                <td style="text-align: center;">
+                  <div class="spreadsheet-action-cell">
+                    <button type="button" class="btn-spreadsheet-action" id="c-overtime-btn-${rowId}" onclick="openOvertimeModal('${rowId}')" data-hours="${r.overtime_hours || 0}" data-days="${r.overtime_days || 0}" data-wage="${r.overtime_wage || 0}" data-company='${JSON.stringify(overtimeCompany)}'>
+                      ${overtimeBtnText}
+                    </button>
+                  </div>
                 </td>
                 <td>
-                  <input class="spreadsheet-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" />
-                </td>
-                <td>
-                  <input class="spreadsheet-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 14)" />
-                </td>
-                <td>
-                  <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${cleanNoteText}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 15)" style="text-align: left;" />
+                  <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${cleanNoteText}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" style="text-align: left;" />
                 </td>
                 <td style="text-align: center;">
                   <div class="spreadsheet-action-cell">
@@ -5305,8 +5512,19 @@
               }
             });
             
-            const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
-            const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
+            // Read overtime values
+            const otBtn = document.getElementById(`c-overtime-btn-${rowId}`);
+            let overtime_hours = 0;
+            let overtime_days = 0;
+            let overtime_wage = 0;
+            let overtimeCompany = { wage: 0, kdv: false, tevkifat: false };
+            if (otBtn) {
+              overtime_hours = parseFloat(otBtn.dataset.hours) || 0;
+              overtime_days = parseFloat(otBtn.dataset.days) || 0;
+              overtime_wage = parseFloat(otBtn.dataset.wage) || 0;
+              try { overtimeCompany = JSON.parse(otBtn.dataset.company || '{}'); } catch(e){}
+            }
+            
             const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
             
             const btn = document.getElementById(`c-cover-btn-${rowId}`);
@@ -5328,17 +5546,15 @@
               base_payment = input_wage;
             }
             
-            const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
-            const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
-            
             let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
             if (coverWageSum > 0) {
               total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
             }
             
-            // Serialize extras JSON into the note field along with the user note
+            // Serialize note with both Extras and OvertimeCompany details!
             const noteInput = document.getElementById(`c-not-${rowId}`).value || "";
-            const note = serializeExtrasNote(noteInput, extrasList);
+            let note = serializeExtrasNote(noteInput, extrasList);
+            note = serializeOvertimeCompany(note, overtimeCompany);
             
             const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
             const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
@@ -5444,8 +5660,19 @@
             }
           });
           
-          const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
-          const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
+          // Read overtime values
+          const otBtn = document.getElementById(`c-overtime-btn-${rowId}`);
+          let overtime_hours = 0;
+          let overtime_days = 0;
+          let overtime_wage = 0;
+          let overtimeCompany = { wage: 0, kdv: false, tevkifat: false };
+          if (otBtn) {
+            overtime_hours = parseFloat(otBtn.dataset.hours) || 0;
+            overtime_days = parseFloat(otBtn.dataset.days) || 0;
+            overtime_wage = parseFloat(otBtn.dataset.wage) || 0;
+            try { overtimeCompany = JSON.parse(otBtn.dataset.company || '{}'); } catch(e){}
+          }
+          
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
           
           const btn = document.getElementById(`c-cover-btn-${rowId}`);
@@ -5462,9 +5689,6 @@
           } else {
             base_payment = input_wage;
           }
-          
-          const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
-          const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
           let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
           if (coverWageSum > 0) {
@@ -5486,7 +5710,18 @@
             let factor = 1.0;
             if (kdvCb && kdvCb.checked) factor += 0.20;
             if (tefCb && tefCb.checked) factor += 0.02;
-            const finalVal = baseVal * factor;
+            const baseCompanyTotal = baseVal * factor;
+            
+            // Calculate overtime company payment
+            let otCompanyTotal = 0;
+            if (overtimeCompany && overtimeCompany.wage > 0) {
+              let otFactor = 1.0;
+              if (overtimeCompany.kdv) otFactor += 0.20;
+              if (overtimeCompany.tevkifat) otFactor += 0.02;
+              otCompanyTotal = overtimeCompany.wage * otFactor;
+            }
+            
+            const finalVal = baseCompanyTotal + otCompanyTotal;
             comCalcEl.value = finalVal > 0 ? fmt(finalVal) : fmt(baseVal);
           }
         });
