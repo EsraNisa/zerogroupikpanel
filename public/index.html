@@ -1084,10 +1084,167 @@
       .c-tab-pane.active {
         display: block;
       }
-      @media (max-width: 992px) {
-        .operasyon-grid {
-          grid-template-columns: 1fr;
-        }
+      /* ── SPREADSHEET (EXCEL) STYLES ── */
+      .spreadsheet-container {
+        width: 100%;
+        max-height: 75vh;
+        overflow: auto;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      }
+      .spreadsheet-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-family: inherit;
+        font-size: 12px;
+      }
+      .spreadsheet-table th {
+        background: #f8fafc;
+        color: #1e293b;
+        font-weight: 700;
+        padding: 10px 12px;
+        border-bottom: 2px solid #cbd5e1;
+        border-right: 1px solid #e2e8f0;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        text-align: left;
+        white-space: nowrap;
+      }
+      .spreadsheet-table td {
+        padding: 0;
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #e2e8f0;
+        background: #fff;
+        height: 38px;
+        min-width: 85px;
+      }
+      .spreadsheet-table tr:hover td {
+        background: #f1f5f9;
+      }
+      .spreadsheet-table tr.active-row td {
+        background: #f0f9ff;
+      }
+      .spreadsheet-table td.sticky-col-1, 
+      .spreadsheet-table th.sticky-col-1 {
+        position: sticky;
+        left: 0;
+        z-index: 21;
+        background: #f8fafc;
+        border-right: 2px solid #cbd5e1;
+        min-width: 140px;
+        max-width: 160px;
+        font-weight: 700;
+        color: #1e3b5e;
+        padding-left: 14px;
+        padding-right: 10px;
+        vertical-align: middle;
+        line-height: 1.2;
+      }
+      .spreadsheet-table td.sticky-col-2,
+      .spreadsheet-table th.sticky-col-2 {
+        position: sticky;
+        left: 140px;
+        z-index: 21;
+        background: #f8fafc;
+        border-right: 2px solid #cbd5e1;
+        min-width: 140px;
+        max-width: 160px;
+        font-weight: 700;
+        color: #1e3b5e;
+        padding-left: 14px;
+        padding-right: 10px;
+        vertical-align: middle;
+        line-height: 1.2;
+      }
+      .spreadsheet-table tr:hover td.sticky-col-1,
+      .spreadsheet-table tr:hover td.sticky-col-2 {
+        background: #e2e8f0;
+      }
+      .spreadsheet-input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        outline: none;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-family: inherit;
+        background: transparent;
+        color: #334155;
+        transition: all 0.15s ease;
+      }
+      .spreadsheet-input:focus {
+        background: #fff;
+        box-shadow: inset 0 0 0 2px #3b82f6;
+        z-index: 30;
+      }
+      .spreadsheet-input[readonly] {
+        background: #f8fafc;
+        color: #64748b;
+        cursor: not-allowed;
+      }
+      .spreadsheet-select {
+        width: 100%;
+        height: 100%;
+        border: none;
+        outline: none;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-family: inherit;
+        background: transparent;
+        color: #334155;
+        cursor: pointer;
+      }
+      .spreadsheet-select:focus {
+        background: #fff;
+        box-shadow: inset 0 0 0 2px #3b82f6;
+      }
+      .spreadsheet-checkbox-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      .spreadsheet-checkbox {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+      .spreadsheet-action-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+      }
+      .btn-spreadsheet-action {
+        width: 100%;
+        height: 100%;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #334155;
+        transition: all 0.15s ease;
+      }
+      .btn-spreadsheet-action:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
       }
     </style>
   </head>
@@ -1621,13 +1778,68 @@
             </div>
 
             <div id="operasyon-edit-view" style="display: none;">
-              <!-- Container for inline cards -->
-              <div id="operasyon-edit-container"></div>
+              <!-- Spreadsheet wrapper instead of card container -->
+              <div class="spreadsheet-container">
+                <table class="spreadsheet-table">
+                  <thead>
+                    <tr>
+                      <th class="sticky-col-1">Kurum</th>
+                      <th class="sticky-col-2">Personel</th>
+                      <th style="min-width: 60px;">Çalışılan Gün</th>
+                      <th style="min-width: 110px;">Maaş Yöntemi</th>
+                      <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
+                      <th style="min-width: 90px;">Avans (₺)</th>
+                      <th style="min-width: 110px;">Ödenecek Net (₺)</th>
+                      <th style="min-width: 120px;">Kurum Hakediş (₺)</th>
+                      <th style="min-width: 70px; text-align: center;">KDV %20</th>
+                      <th style="min-width: 75px; text-align: center;">Tevkifat %2</th>
+                      <th style="min-width: 120px;">Kurum Toplam (₺)</th>
+                      <th style="min-width: 65px;">İzin (Gün)</th>
+                      <th style="min-width: 140px;">Yerine Gelen (Cover)</th>
+                      <th style="min-width: 70px;">Mesai (Saat)</th>
+                      <th style="min-width: 70px;">Mesai (Gün)</th>
+                      <th style="min-width: 100px;">Mesai Ücreti (₺)</th>
+                      <th style="min-width: 80px;">Prim (₺)</th>
+                      <th style="min-width: 80px;">Kesinti (₺)</th>
+                      <th style="min-width: 160px;">Not / Açıklama</th>
+                      <th style="min-width: 60px; text-align: center;">İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody id="spreadsheet-tbody">
+                    <!-- Spreadsheet rows will be generated dynamically -->
+                  </tbody>
+                </table>
+              </div>
               
               <!-- Save and Cancel actions -->
               <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
                 <button class="btn btn-secondary" onclick="toggleOpEditMode(false)">İptal</button>
                 <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
+              </div>
+
+              <!-- COVER PERSONNEL MODAL (Yerine Gelen Atama) -->
+              <div id="cover-management-modal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 1001; background: rgba(15, 23, 42, 0.6); position: fixed; inset: 0;">
+                <div class="modal-box" style="width: 100%; max-width: 520px; padding: 24px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); background: #fff; margin: auto;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                    <h3 id="cover-modal-title" style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">Yerine Gelen Personel Atama</h3>
+                    <button type="button" onclick="closeCoverModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
+                  </div>
+                  
+                  <div id="cover-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
+                    <!-- Parent info will be loaded dynamically -->
+                  </div>
+
+                  <div id="cover-modal-rows-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;">
+                    <!-- Dynamic rows go here -->
+                  </div>
+
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="addCoverModalRow()" style="font-size: 11px; padding: 8px 12px; width: 100%; font-weight: 700; margin-bottom: 16px;">➕ Yerine Gelen Personel Ekle</button>
+
+                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCoverModal()">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCoverModalChanges()" style="font-weight: 700;">Kaydet</button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -4383,196 +4595,257 @@
         }
       }
 
-      function renderOperasyonEditCard(r) {
+      function onWageModeSpreadsheetChange(rowId) {
+        onOvertimeParamsChange(rowId);
+      }
+
+      function onLeaveChangeSpreadsheet(rowId) {
+        let leaveDays = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
+        
+        let s = document.getElementById("c-start") ? document.getElementById("c-start").value : "";
+        let e = document.getElementById("c-end") ? document.getElementById("c-end").value : "";
+        if (s && e && new Date(s) <= new Date(e)) {
+          const daysInput = document.getElementById(`c-days-${rowId}`);
+          if (daysInput && daysInput.dataset.manual !== 'true') {
+            let baseDays = totalDays(s, e);
+            let total = Math.max(0, baseDays - leaveDays);
+            daysInput.value = total;
+          }
+        }
+        
+        const btn = document.getElementById(`c-cover-btn-${rowId}`);
+        if (btn && leaveDays === 0) {
+          btn.dataset.covers = JSON.stringify([]);
+          btn.textContent = "➕ Ekle";
+        }
+        
+        onInputChanged();
+      }
+
+      async function delRecSpreadsheet(rowId) {
+        if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
+        try {
+          await api.delete(`/admin/work_records/${rowId}`);
+          toast("Kayıt silindi ✓");
+          work_records = work_records.filter(x => x.id != rowId);
+          renderOperasyonEditMode();
+        } catch(e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      function handleSpreadsheetKey(event, rowId, colIndex) {
+        const key = event.key;
+        const currentRow = document.getElementById(`row-${rowId}`);
+        if (!currentRow) return;
+        
+        const rowIndex = parseInt(currentRow.getAttribute("data-row-index"));
+        let targetRowIndex = rowIndex;
+        let targetColIndex = colIndex;
+        
+        if (key === "ArrowDown" || key === "Enter") {
+          targetRowIndex = rowIndex + 1;
+          event.preventDefault();
+        } else if (key === "ArrowUp") {
+          targetRowIndex = rowIndex - 1;
+          event.preventDefault();
+        } else if (key === "ArrowRight") {
+          const target = event.target;
+          if (target.selectionStart === undefined || target.selectionStart === target.value.length) {
+            targetColIndex = getNextInputCol(colIndex, 1);
+            if (targetColIndex !== colIndex) event.preventDefault();
+          }
+        } else if (key === "ArrowLeft") {
+          const target = event.target;
+          if (target.selectionStart === undefined || target.selectionStart === 0) {
+            targetColIndex = getNextInputCol(colIndex, -1);
+            if (targetColIndex !== colIndex) event.preventDefault();
+          }
+        } else {
+          return;
+        }
+        
+        const targetRow = document.querySelector(`.spreadsheet-row[data-row-index="${targetRowIndex}"]`);
+        if (targetRow) {
+          const cells = targetRow.cells;
+          if (cells[targetColIndex]) {
+            const input = cells[targetColIndex].querySelector('input, select');
+            if (input && !input.readOnly && input.style.display !== 'none') {
+              input.focus();
+              if (input.select && input.tagName === 'INPUT') {
+                input.select();
+              }
+            }
+          }
+        }
+      }
+      
+      function getNextInputCol(currentCol, direction) {
+        const editableCols = [2, 3, 4, 5, 7, 11, 13, 14, 15, 16, 17, 18];
+        let idx = editableCols.indexOf(currentCol);
+        if (idx === -1) return currentCol;
+        
+        idx += direction;
+        if (idx >= 0 && idx < editableCols.length) {
+          return editableCols[idx];
+        }
+        return currentCol;
+      }
+
+      let activeCoverModalRowId = null;
+
+      function openCoverManagementModal(rowId) {
+        activeCoverModalRowId = rowId;
+        const r = work_records.find(x => x.id == rowId);
+        if (!r) return;
+        
         const p = personnel.find(x => x.id == r.personnel_id);
-        const pName = p ? `${p.first_name} ${p.last_name}` : "Personel";
-        const rowId = r.id; 
-        const pWage = cleanVal(r.personnel_monthly_wage);
+        const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
+        const compNameText = cName(r.company_id) || "Kurum";
         
-        const wageMode = r.wage_mode || "calculated";
-        const isDirect = (wageMode === "direct");
-        const labelText = isDirect ? "Direkt Net Ödeme (₺)" : "Aylık Ücret (₺)";
-        const placeholderText = isDirect ? "Örn: 25000" : "Örn: 30000";
+        document.getElementById("cover-modal-parent-info").innerHTML = `
+          🏢 Kurum: <strong>${compNameText}</strong><br/>
+          👤 İzinli Personel: <strong>${pNameText}</strong>
+        `;
         
-        let factor = 1.0;
-        if (r.com_kdv) factor += 0.20;
-        if (r.com_tevkifat) factor += 0.02;
-        let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
-        baseVal = Math.round(baseVal * 100) / 100;
-
-        return `
-          <div class="card" id="card-${rowId}" data-personnel-id="${r.personnel_id}" style="margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div class="card-head" style="background: #f8fafc; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0;">
-              <span style="font-weight: 800; color: #1e3a5f; font-size: 13px;">👤 ${pName} Bilgileri</span>
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span id="card-sum-${rowId}" style="font-size: 11px; font-weight: 700; color: #16a34a;">Net: ${fmt(r.total_personnel_payment - r.advance_amount)}</span>
-                <button type="button" class="btn btn-sm btn-danger" onclick="delRec('${rowId}')" style="padding: 2px 6px; font-size: 10px; font-weight: 700;">Sil</button>
-              </div>
+        const btn = document.getElementById(`c-cover-btn-${rowId}`);
+        let coversList = [];
+        if (btn && btn.dataset.covers) {
+          try {
+            coversList = JSON.parse(btn.dataset.covers);
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        
+        const container = document.getElementById("cover-modal-rows-container");
+        container.innerHTML = "";
+        
+        if (coversList.length > 0) {
+          coversList.forEach(cov => {
+            addCoverModalRow(cov.coverPid, cov.coverDays, cov.coverWage);
+          });
+        } else {
+          addCoverModalRow();
+        }
+        
+        openM("cover-management-modal");
+      }
+      
+      function closeCoverModal() {
+        document.getElementById("cover-management-modal").style.display = "none";
+        activeCoverModalRowId = null;
+      }
+      
+      function addCoverModalRow(selectedPid = "", days = "", wage = "") {
+        const container = document.getElementById("cover-modal-rows-container");
+        if (!container) return;
+        
+        const subIndex = Math.random().toString(36).substring(2, 9);
+        
+        let selectOptions = '<option value="">Personel Seçin...</option>';
+        personnel.forEach(p => {
+          selectOptions += `<option value="${p.id}" ${p.id == selectedPid ? 'selected' : ''}>${p.first_name} ${p.last_name}</option>`;
+        });
+        
+        const rowHtml = `
+          <div class="form-grid g3 cover-modal-row" id="modal-cover-row-${subIndex}" style="margin-bottom: 10px; align-items: flex-end; display: grid; grid-template-columns: 2.2fr 1fr 1.5fr; gap: 8px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Yerine Gelen Personel</label>
+              <select class="form-input" id="m-cover-pid-${subIndex}" onchange="onModalCoverPersonnelChange('${subIndex}')" style="font-size: 11px; padding: 6px 8px; width: 100%;">
+                ${selectOptions}
+              </select>
             </div>
-            <div class="card-body" id="card-body-${rowId}" style="padding: 14px; display: block;">
-              
-              <!-- Core fields: Çalışılan Gün & Maaş Yöntemi & Maaş/Ödeme Tutarı -->
-              <div class="form-grid g3" style="margin-bottom: 10px;">
-                <div class="form-group">
-                  <label class="form-label">Çalışılan Gün</label>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <input class="form-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}'); onInputChanged();" style="flex: 1;" />
-                    <button type="button" class="btn btn-sm btn-green" onclick="setFullWork('${rowId}')" style="padding: 9px 8px; font-size: 11px; white-space: nowrap; height: 38px; display: flex; align-items: center;">Tam Çalışma (30)</button>
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Maaş Yöntemi</label>
-                  <div style="display: flex; align-items: center; justify-content: space-between; height: 38px; background: #f1f5f9; border-radius: 8px; padding: 4px 10px; border: 1px solid #cbd5e1;">
-                    <span style="font-size: 11px; font-weight: 700; color: ${isDirect ? '#94a3b8' : '#1e3a5f'};" id="c-wage-mode-text-${rowId}">Aylık Maaş</span>
-                    <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 20px;">
-                      <input type="checkbox" id="c-wage-mode-toggle-${rowId}" onchange="onWageModeToggleChange('${rowId}')" style="opacity: 0; width: 0; height: 0;" ${isDirect ? 'checked' : ''} />
-                      <span class="slider round" style="position: absolute; cursor: pointer; inset: 0; background-color: #cbd5e1; transition: .3s; border-radius: 20px;"></span>
-                    </label>
-                    <span style="font-size: 11px; font-weight: 700; color: ${isDirect ? '#1e3a5f' : '#94a3b8'};" id="c-wage-mode-text-direct-${rowId}">Net Ödeme</span>
-                  </div>
-                  <input type="hidden" id="c-wage-mode-${rowId}" value="${wageMode}" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label" id="c-per-wage-label-${rowId}">${labelText}</label>
-                  <input class="form-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="${placeholderText}" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
-                </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Gün Sayısı</label>
+              <input class="form-input" id="m-cover-days-${subIndex}" type="text" inputmode="numeric" oninput="onlyNum(this); onModalCoverDaysChange('${subIndex}');" placeholder="0" value="${days}" style="font-size: 11px; padding: 6px 8px; width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Hak Ediş Ücreti (₺)</label>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <input class="form-input" id="m-cover-wage-${subIndex}" type="text" inputmode="numeric" oninput="onlyNum(this);" placeholder="0" value="${wage}" style="font-size: 11px; padding: 6px 8px; flex: 1;" />
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeModalCoverRow('${subIndex}')" style="padding: 4px 8px; font-size: 12px; line-height: 1; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">&times;</button>
               </div>
-
-              <!-- Individual Company Payment Group -->
-              <div class="form-grid g1" style="margin-bottom: 10px;">
-                <div class="form-group" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px;">
-                  <label class="form-label" style="color: #0369a1; font-weight: 800; display: flex; align-items: center; justify-content: space-between;">
-                    Kurum Ödemesi (₺)
-                  </label>
-                  <div style="display: flex; gap: 8px; align-items: center;">
-                    <input class="form-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" style="flex: 1; background: #fff;" />
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%20 KDV
-                      </label>
-                      <label style="display: flex; align-items: center; gap: 4px; font-size: 11px; cursor: pointer; user-select: none; font-weight: 600;">
-                        <input type="checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" style="width: 14px; height: 14px;" /> +%2 Tevkifat
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ACCORDION SECTION: MESAI -->
-              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'mesai')">
-                  <span>⏰ Mesai Bilgileri</span>
-                  <span id="sub-toggle-icon-${rowId}-mesai" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
-                </div>
-                <div id="sub-section-${rowId}-mesai" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g3" style="margin-bottom: 0;" id="overtime-row-${rowId}">
-                    <div class="form-group">
-                      <label class="form-label">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" style="background: #fff;" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ACCORDION SECTION: EK ODEMELER -->
-              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'ekodemeler')">
-                  <span>💰 Ek Ödemeler (Avans, Prim, Kesinti)</span>
-                  <span id="sub-toggle-icon-${rowId}-ekodemeler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
-                </div>
-                <div id="sub-section-${rowId}-ekodemeler" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g3" style="margin-bottom: 0;">
-                    <div class="form-group">
-                      <label class="form-label">Avans (₺)</label>
-                      <input class="form-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.advance_amount)}" oninput="onlyNum(this); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Prim (₺)</label>
-                      <input class="form-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.premium)}" oninput="onlyNum(this); onInputChanged();" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">Kesinti (₺)</label>
-                      <input class="form-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.deductions)}" oninput="onlyNum(this); onInputChanged();" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ACCORDION SECTION: IZINLER -->
-              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'izinler')">
-                  <span>🌴 İzin Bilgileri</span>
-                  <span id="sub-toggle-icon-${rowId}-izinler" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg); ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'transform: rotate(90deg);' : ''}">▶</span>
-                </div>
-                <div id="sub-section-${rowId}-izinler" style="padding: 12px; display: ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'block' : 'none'}; background: #fff;">
-                  <div class="form-grid g1" style="margin-bottom: 0;">
-                    <div class="form-group">
-                      <label class="form-label">İzin Günü (Gün)</label>
-                      <input class="form-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChange('${rowId}'); onInputChanged();" />
-                    </div>
-                  </div>
-                  
-                  <!-- Cover Personnel Wrapper -->
-                  <div id="c-sub-wrapper-${rowId}" style="margin-top: 12px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; display: ${(work_records.find(x => x.company_id == r.company_id && x.start_day && r.start_day && x.start_day.substring(0,10) === r.start_day.substring(0,10) && x.note && x.note.includes('__SUB_FOR_PID:' + r.personnel_id + ':') && !x.archived)) ? 'block' : 'none'};">
-                    <div style="font-weight: 700; color: #1e3a5f; font-size: 11px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                      <span>Cover Personnel (Yerine Yollanan Personel)</span>
-                      <button type="button" class="btn btn-sm btn-secondary" onclick="toggleQuickAddCover('${rowId}')" style="font-size: 9px; padding: 2px 6px;">+ Hızlı Personel Ekle</button>
-                    </div>
-                    
-                    <!-- Cover Quick Add Personnel Form (Hidden by default) -->
-                    <div id="quick-add-cover-${rowId}" style="display: none; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
-                      <div class="form-grid g2" style="margin-bottom: 4px;">
-                        <input class="form-input" id="qp-cover-first-${rowId}" placeholder="Ad" style="font-size: 11px; padding: 4px 6px;" />
-                        <input class="form-input" id="qp-cover-last-${rowId}" placeholder="Soyad" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                      <div class="form-grid g2" style="margin-bottom: 4px;">
-                        <input class="form-input" id="qp-cover-pos-${rowId}" placeholder="Pozisyon" style="font-size: 11px; padding: 4px 6px;" />
-                        <input class="form-input" id="qp-cover-wage-${rowId}" placeholder="Günlük Maaş" type="text" inputmode="numeric" oninput="onlyNum(this)" style="font-size: 11px; padding: 4px 6px;" />
-                      </div>
-                      <div style="display: flex; gap: 4px; margin-top: 6px;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="quickSaveCoverPersonnel('${rowId}')" style="font-size: 10px; padding: 3px 6px;">Kaydet ve Seç</button>
-                        <button type="button" class="btn btn-sm" onclick="toggleQuickAddCover('${rowId}', false)" style="font-size: 10px; padding: 3px 6px;">İptal</button>
-                      </div>
-                    </div>
-
-                    <div id="c-sub-rows-container-${rowId}"></div>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="addCoverPersonnelRow('${rowId}')" style="font-size: 11px; padding: 6px 12px; margin-top: 8px; width: 100%;">➕ Yerine Gelen Personel Ekle</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ACCORDION SECTION: NOTLAR -->
-              <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
-                <div style="background: #f8fafc; padding: 10px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 12px; color: #334155; border-bottom: 1px solid #e2e8f0;" onclick="toggleSubSection('${rowId}', 'notlar')">
-                  <span>📝 Genel Not</span>
-                  <span id="sub-toggle-icon-${rowId}-notlar" style="font-size: 10px; color: #64748b; transition: transform 0.2s; transform: rotate(0deg);">▶</span>
-                </div>
-                <div id="sub-section-${rowId}-notlar" style="padding: 12px; display: none; background: #fff;">
-                  <div class="form-grid g1" style="margin-bottom: 0;">
-                    <div class="form-group">
-                      <label class="form-label">Genel Not</label>
-                      <input class="form-input" id="c-not-${rowId}" placeholder="İşle ilgili not." value="${r.note || ''}" oninput="onInputChanged();" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         `;
+        
+        container.insertAdjacentHTML('beforeend', rowHtml);
+      }
+      
+      function removeModalCoverRow(subIndex) {
+        const row = document.getElementById(`modal-cover-row-${subIndex}`);
+        if (row) row.remove();
+      }
+      
+      function onModalCoverPersonnelChange(subIndex) {
+        recalcModalCoverWage(subIndex);
+      }
+      
+      function onModalCoverDaysChange(subIndex) {
+        recalcModalCoverWage(subIndex);
+      }
+      
+      function recalcModalCoverWage(subIndex) {
+        const rowId = activeCoverModalRowId;
+        if (!rowId) return;
+        
+        const parentWageInput = document.getElementById(`c-per-wage-${rowId}`);
+        const subDaysInput = document.getElementById(`m-cover-days-${subIndex}`);
+        const subWageInput = document.getElementById(`m-cover-wage-${subIndex}`);
+        if (!parentWageInput || !subDaysInput || !subWageInput) return;
+        
+        const originalMonthlyWage = parseFloat(parentWageInput.value) || 0;
+        const originalDailyWage = originalMonthlyWage / 30;
+        const coverDays = parseFloat(subDaysInput.value) || 0;
+        
+        subWageInput.value = Math.round(originalDailyWage * coverDays);
+      }
+      
+      function saveCoverModalChanges() {
+        const rowId = activeCoverModalRowId;
+        if (!rowId) return;
+        
+        const container = document.getElementById("cover-modal-rows-container");
+        const rows = container.querySelectorAll('.cover-modal-row');
+        const coversList = [];
+        
+        for (const row of rows) {
+          const subIndex = row.id.replace('modal-cover-row-', '');
+          const coverPid = document.getElementById(`m-cover-pid-${subIndex}`).value;
+          const coverDays = parseFloat(document.getElementById(`m-cover-days-${subIndex}`).value) || 0;
+          const coverWage = parseFloat(document.getElementById(`m-cover-wage-${subIndex}`).value) || 0;
+          
+          if (coverPid && coverDays > 0) {
+            coversList.push({
+              coverPid,
+              coverDays,
+              coverWage
+            });
+          }
+        }
+        
+        const btn = document.getElementById(`c-cover-btn-${rowId}`);
+        if (btn) {
+          btn.dataset.covers = JSON.stringify(coversList);
+          
+          if (coversList.length > 0) {
+            btn.textContent = `👤 ${coversList.length} Kişi (${coversList.map(c => {
+              const cp = personnel.find(x => x.id == c.coverPid);
+              return cp ? cp.first_name : "Bilinmeyen";
+            }).join(', ')})`;
+          } else {
+            btn.textContent = "➕ Ekle";
+          }
+        }
+        
+        closeCoverModal();
+        onInputChanged();
       }
 
       function renderOperasyonEditMode() {
-        const container = document.getElementById("operasyon-edit-container");
-        if (!container) return;
+        const tbody = document.getElementById("spreadsheet-tbody");
+        if (!tbody) return;
         
         const selYear = parseInt(document.getElementById("op-yil").value);
         const selMonth = parseInt(document.getElementById("op-ay").value);
@@ -4583,102 +4856,154 @@
           const isCurrentPeriod = (ym.month === selMonth && ym.year === selYear);
           if (!isCurrentPeriod) return false;
           
-          // Exclude cover records from being edited as main cards
           if (parseSubstituteNote(r.note)) return false;
           return true;
         });
         
         if (mainList.length === 0) {
-          container.innerHTML = `<div class="card" style="padding: 24px; text-align: center;"><div class="empty-text">Seçilen dönem için iş kaydı bulunamadı.</div></div>`;
+          tbody.innerHTML = `<tr><td colspan="20" style="padding: 24px; text-align: center; color: #64748b;">Seçilen dönem için iş kaydı bulunamadı.</td></tr>`;
           return;
         }
         
-        const groups = {};
-        const groupOrder = [];
-        mainList.forEach(r => {
-          if (!groups[r.company_id]) {
-            groups[r.company_id] = [];
-            groupOrder.push(r.company_id);
-          }
-          groups[r.company_id].push(r);
-        });
-
-        groupOrder.sort((a, b) => {
-          let cA = cName(a) || "";
-          let cB = cName(b) || "";
-          return cA.localeCompare(cB, 'tr');
+        mainList.sort((a, b) => {
+          let compA = cName(a.company_id) || "";
+          let compB = cName(b.company_id) || "";
+          let compCompare = compA.localeCompare(compB, 'tr');
+          if (compCompare !== 0) return compCompare;
+          
+          let persA = pName(a.personnel_id) || "";
+          let persB = pName(b.personnel_id) || "";
+          return persA.localeCompare(persB, 'tr');
         });
         
         let html = "";
-        groupOrder.forEach(cId => {
-          const grRows = groups[cId];
-          grRows.sort((a, b) => {
-            let pA = pName(a.personnel_id) || "";
-            let pB = pName(b.personnel_id) || "";
-            return pA.localeCompare(pB, 'tr');
+        mainList.forEach((r, rowIndex) => {
+          const rowId = r.id;
+          const p = personnel.find(x => x.id == r.personnel_id);
+          const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
+          const compNameText = cName(r.company_id) || "Kurum";
+          const pWage = cleanVal(r.personnel_monthly_wage);
+          
+          const wageMode = r.wage_mode || "calculated";
+          const isDirect = (wageMode === "direct");
+          
+          let factor = 1.0;
+          if (r.com_kdv) factor += 0.20;
+          if (r.com_tevkifat) factor += 0.02;
+          let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
+          baseVal = Math.round(baseVal * 100) / 100;
+          
+          const covers = work_records.filter(x => 
+            x.company_id == r.company_id && 
+            x.start_day && r.start_day &&
+            toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
+            x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+            !x.archived
+          );
+          
+          const coverData = [];
+          covers.forEach(cov => {
+            const sInfo = parseSubstituteNote(cov.note);
+            if (sInfo) {
+              coverData.push({
+                coverPid: cov.personnel_id,
+                coverDays: sInfo.days,
+                coverWage: sInfo.wage
+              });
+            }
           });
-
+          
+          let coverBtnText = "➕ Ekle";
+          if (coverData.length > 0) {
+            coverBtnText = `👤 ${coverData.length} Kişi (${coverData.map(c => {
+              const cp = personnel.find(x => x.id == c.coverPid);
+              return cp ? cp.first_name : "Bilinmeyen";
+            }).join(', ')})`;
+          }
+          
           html += `
-            <div style="margin-bottom: 20px;">
-              <h3 style="font-size: 14px; font-weight: 800; color: #1e3a5f; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 2px solid #3b82f6;">
-                🏢 ${cName(cId)}
-              </h3>
-              <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                ${grRows.map(r => renderOperasyonEditCard(r)).join('')}
-              </div>
-            </div>
+            <tr id="row-${rowId}" class="spreadsheet-row" data-row-id="${rowId}" data-row-index="${rowIndex}">
+              <td class="sticky-col-1">${compNameText}</td>
+              <td class="sticky-col-2">${pNameText}</td>
+              <td>
+                <input class="spreadsheet-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 2)" />
+              </td>
+              <td>
+                <select class="spreadsheet-select" id="c-wage-mode-${rowId}" onchange="onWageModeSpreadsheetChange('${rowId}')" onkeydown="handleSpreadsheetKey(event, '${rowId}', 3)">
+                  <option value="calculated" ${!isDirect ? 'selected' : ''}>Aylık Maaş</option>
+                  <option value="direct" ${isDirect ? 'selected' : ''}>Net Ödeme</option>
+                </select>
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 4)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.advance_amount)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 5)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-net-payment-${rowId}" type="text" readonly value="${fmt(r.total_personnel_payment - r.advance_amount)}" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 7)" />
+              </td>
+              <td>
+                <label class="spreadsheet-checkbox-label">
+                  <input type="checkbox" class="spreadsheet-checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                </label>
+              </td>
+              <td>
+                <label class="spreadsheet-checkbox-label">
+                  <input type="checkbox" class="spreadsheet-checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                </label>
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-com-total-calculated-${rowId}" type="text" readonly value="${fmt(r.total_company_payment)}" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChangeSpreadsheet('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 11)" />
+              </td>
+              <td style="text-align: center;">
+                <div class="spreadsheet-action-cell">
+                  <button type="button" class="btn-spreadsheet-action" id="c-cover-btn-${rowId}" onclick="openCoverManagementModal('${rowId}')" data-covers='${JSON.stringify(coverData)}'>
+                    ${coverBtnText}
+                  </button>
+                </div>
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 14)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 15)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.premium)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 16)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.deductions)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 17)" />
+              </td>
+              <td>
+                <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${r.note || ''}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 18)" style="text-align: left;" />
+              </td>
+              <td style="text-align: center;">
+                <div class="spreadsheet-action-cell">
+                  <button type="button" class="btn btn-sm btn-danger" onclick="delRecSpreadsheet('${rowId}')" style="padding: 4px 8px; font-weight: 700; height: 100%; border-radius: 6px;">Sil</button>
+                </div>
+              </td>
+            </tr>
           `;
         });
         
-        container.innerHTML = html;
-        
-        // Populating cover personnel rows for each card in operasyon edit mode
-        const cards = container.querySelectorAll('.card');
-        cards.forEach(card => {
-          const rowId = card.id.replace('card-', '');
-          const r = work_records.find(x => x.id == rowId);
-          if (r) {
-            // Find all cover records for this parent record
-            const covers = work_records.filter(x => 
-              x.company_id == r.company_id && 
-              x.start_day && r.start_day &&
-              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
-              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
-              !x.archived
-            );
-            
-            const subWrapper = document.getElementById(`c-sub-wrapper-${rowId}`);
-            const subContainer = document.getElementById(`c-sub-rows-container-${rowId}`);
-            if (subContainer) {
-              subContainer.innerHTML = "";
-              if (covers.length > 0) {
-                covers.forEach(cov => {
-                  const sInfo = parseSubstituteNote(cov.note);
-                  if (sInfo) {
-                    addCoverPersonnelRow(rowId, cov.personnel_id, sInfo.days, sInfo.wage);
-                  }
-                });
-                if (subWrapper) subWrapper.style.display = "block";
-              } else {
-                if (r.annual_leave > 0) {
-                  addCoverPersonnelRow(rowId);
-                  if (subWrapper) subWrapper.style.display = "block";
-                } else {
-                  if (subWrapper) subWrapper.style.display = "none";
-                }
-              }
-            }
-          }
-        });
-
+        tbody.innerHTML = html;
         onInputChanged();
       }
-
       async function saveAllOpChanges() {
-        const container = document.getElementById("operasyon-edit-container");
-        if (!container) return;
+        const tbody = document.getElementById("spreadsheet-tbody");
+        if (!tbody) return;
         
-        const cards = container.querySelectorAll('.card');
+        const rows = tbody.querySelectorAll('.spreadsheet-row');
         const saveBtn = document.getElementById("btn-save-all-op");
         if (saveBtn) {
           saveBtn.disabled = true;
@@ -4686,8 +5011,9 @@
         }
         
         try {
-          for (const card of cards) {
-            const rowId = card.id.replace('card-', ''); 
+          for (const row of rows) {
+            const rowId = row.getAttribute('data-row-id');
+            if (!rowId) continue;
             
             const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
             const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
@@ -4701,7 +5027,12 @@
             const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
             
             const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
-            const coversList = getCoversList(rowId);
+            
+            const btn = document.getElementById(`c-cover-btn-${rowId}`);
+            let coversList = [];
+            if (btn && btn.dataset.covers) {
+              try { coversList = JSON.parse(btn.dataset.covers); } catch(e){}
+            }
             const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
 
             let base_payment = 0;
@@ -4752,7 +5083,6 @@
               com_tevkifat
             });
 
-            // Also handle cover personnel record saving/updating
             const parentDbRecord = work_records.find(x => x.id == rowId);
             if (parentDbRecord) {
               const parentWithDates = { ...parentDbRecord,
@@ -4793,12 +5123,13 @@
 
       function updateOpCardSums() {
         if (!opEditModeActive) return;
-        const container = document.getElementById("operasyon-edit-container");
-        if (!container) return;
+        const tbody = document.getElementById("spreadsheet-tbody");
+        if (!tbody) return;
         
-        const cards = container.querySelectorAll('.card');
-        cards.forEach(card => {
-          const rowId = card.id.replace('card-', ''); 
+        const rows = tbody.querySelectorAll('.spreadsheet-row');
+        rows.forEach(row => {
+          const rowId = row.getAttribute('data-row-id');
+          if (!rowId) return;
           
           const daysInput = document.getElementById(`c-days-${rowId}`);
           if (!daysInput) return;
@@ -4815,7 +5146,12 @@
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
           
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
-          const coversList = getCoversList(rowId);
+          
+          const btn = document.getElementById(`c-cover-btn-${rowId}`);
+          let coversList = [];
+          if (btn && btn.dataset.covers) {
+            try { coversList = JSON.parse(btn.dataset.covers); } catch(e){}
+          }
           const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
           
           let base_payment = 0;
@@ -4835,9 +5171,22 @@
           }
           const net_personnel_payment = total_personnel_payment - advance_amount;
           
-          const cardSumEl = document.getElementById(`card-sum-${rowId}`);
-          if (cardSumEl) {
-            cardSumEl.textContent = `Net: ${fmt(net_personnel_payment)}`;
+          const netPayEl = document.getElementById(`c-net-payment-${rowId}`);
+          if (netPayEl) {
+            netPayEl.value = fmt(net_personnel_payment);
+          }
+          
+          const comTotalInput = document.getElementById(`c-com-total-${rowId}`);
+          const comCalcEl = document.getElementById(`c-com-total-calculated-${rowId}`);
+          if (comTotalInput && comCalcEl) {
+            const baseVal = parseFloat(comTotalInput.dataset.baseVal) || 0;
+            const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
+            const tefCb = document.getElementById(`c-com-tef-${rowId}`);
+            let factor = 1.0;
+            if (kdvCb && kdvCb.checked) factor += 0.20;
+            if (tefCb && tefCb.checked) factor += 0.02;
+            const finalVal = baseVal * factor;
+            comCalcEl.value = finalVal > 0 ? fmt(finalVal) : fmt(baseVal);
           }
         });
       }
