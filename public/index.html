@@ -1135,8 +1135,8 @@
         z-index: 21;
         background: #f8fafc;
         border-right: 2px solid #cbd5e1;
-        min-width: 140px;
-        max-width: 160px;
+        min-width: 150px;
+        max-width: 180px;
         font-weight: 700;
         color: #1e3b5e;
         padding-left: 14px;
@@ -1144,25 +1144,43 @@
         vertical-align: middle;
         line-height: 1.2;
       }
-      .spreadsheet-table td.sticky-col-2,
-      .spreadsheet-table th.sticky-col-2 {
-        position: sticky;
-        left: 140px;
-        z-index: 21;
-        background: #f8fafc;
-        border-right: 2px solid #cbd5e1;
-        min-width: 140px;
-        max-width: 160px;
-        font-weight: 700;
-        color: #1e3b5e;
-        padding-left: 14px;
-        padding-right: 10px;
-        vertical-align: middle;
-        line-height: 1.2;
-      }
-      .spreadsheet-table tr:hover td.sticky-col-1,
-      .spreadsheet-table tr:hover td.sticky-col-2 {
+      .spreadsheet-table tr:hover td.sticky-col-1 {
         background: #e2e8f0;
+      }
+      
+      /* Centered Modal Overlay & Box */
+      .centered-modal-overlay {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1100;
+        background: rgba(15, 23, 42, 0.6);
+        position: fixed;
+        inset: 0;
+        padding: 20px;
+      }
+      .centered-modal-box {
+        width: 100%;
+        max-width: 520px;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        background: #fff;
+        margin: auto;
+        position: relative;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .spreadsheet-company-header td {
+        background: #f1f5f9;
+        color: #1e3a5f;
+        font-weight: 800;
+        font-size: 13px;
+        padding: 10px 14px !important;
+        border-bottom: 2px solid #cbd5e1;
+        border-top: 1px solid #cbd5e1;
+        text-align: left;
       }
       .spreadsheet-input {
         width: 100%;
@@ -1783,12 +1801,11 @@
                 <table class="spreadsheet-table">
                   <thead>
                     <tr>
-                      <th class="sticky-col-1">Kurum</th>
-                      <th class="sticky-col-2">Personel</th>
+                      <th class="sticky-col-1">Personel</th>
                       <th style="min-width: 60px;">Çalışılan Gün</th>
                       <th style="min-width: 110px;">Maaş Yöntemi</th>
                       <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
-                      <th style="min-width: 90px;">Avans (₺)</th>
+                      <th style="min-width: 155px;">Ödemeler & Kesintiler</th>
                       <th style="min-width: 110px;">Ödenecek Net (₺)</th>
                       <th style="min-width: 120px;">Kurum Hakediş (₺)</th>
                       <th style="min-width: 70px; text-align: center;">KDV %20</th>
@@ -1799,8 +1816,6 @@
                       <th style="min-width: 70px;">Mesai (Saat)</th>
                       <th style="min-width: 70px;">Mesai (Gün)</th>
                       <th style="min-width: 100px;">Mesai Ücreti (₺)</th>
-                      <th style="min-width: 80px;">Prim (₺)</th>
-                      <th style="min-width: 80px;">Kesinti (₺)</th>
                       <th style="min-width: 160px;">Not / Açıklama</th>
                       <th style="min-width: 60px; text-align: center;">İşlemler</th>
                     </tr>
@@ -1817,19 +1832,19 @@
                 <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
               </div>
 
-              <!-- COVER PERSONNEL MODAL (Yerine Gelen Atama) -->
-              <div id="cover-management-modal" class="modal" style="display: none; align-items: center; justify-content: center; z-index: 1001; background: rgba(15, 23, 42, 0.6); position: fixed; inset: 0;">
-                <div class="modal-box" style="width: 100%; max-width: 520px; padding: 24px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); background: #fff; margin: auto;">
+              <!-- COVER PERSONNEL MODAL (Yerine Gelen Atama - Ortalanmış) -->
+              <div id="cover-management-modal" class="centered-modal-overlay">
+                <div class="centered-modal-box">
                   <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
                     <h3 id="cover-modal-title" style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">Yerine Gelen Personel Atama</h3>
                     <button type="button" onclick="closeCoverModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
                   </div>
                   
                   <div id="cover-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
-                    <!-- Parent info will be loaded dynamically -->
+                    <!-- Parent info loaded dynamically -->
                   </div>
 
-                  <div id="cover-modal-rows-container" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;">
+                  <div id="cover-modal-rows-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
                     <!-- Dynamic rows go here -->
                   </div>
 
@@ -1838,6 +1853,46 @@
                   <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
                     <button type="button" class="btn btn-secondary" onclick="closeCoverModal()">İptal</button>
                     <button type="button" class="btn btn-primary" onclick="saveCoverModalChanges()" style="font-weight: 700;">Kaydet</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- EXTRAS MANAGEMENT MODAL (Ödemeler & Kesintiler Detayı - Ortalanmış) -->
+              <div id="extras-management-modal" class="centered-modal-overlay">
+                <div class="centered-modal-box">
+                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                    <h3 style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">Ödeme & Kesinti Detayları</h3>
+                    <button type="button" onclick="closeExtrasModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
+                  </div>
+                  
+                  <div id="extras-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
+                    <!-- Parent info loaded dynamically -->
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group">
+                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Avans Tutarı (₺)</label>
+                      <input class="form-input" id="m-extras-avans" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Temel Prim Tutarı (₺)</label>
+                      <input class="form-input" id="m-extras-prim" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
+                    </div>
+                  </div>
+
+                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 10px;">
+                    Ekstra Ödeme ve Kesintiler
+                  </div>
+
+                  <div id="extras-modal-rows-container" style="max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
+                    <!-- Dynamic extras rows -->
+                  </div>
+
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="addExtrasModalRow()" style="font-size: 11px; padding: 8px 12px; width: 100%; font-weight: 700; margin-bottom: 16px;">➕ Ekstra Ödeme/Kesinti Ekle</button>
+
+                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeExtrasModal()">İptal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveExtrasModalChanges()" style="font-weight: 700;">Kaydet</button>
                   </div>
                 </div>
               </div>
@@ -4595,6 +4650,27 @@
         }
       }
 
+      function parseExtrasNote(noteStr) {
+        if (!noteStr) return { cleanNote: "", extras: [] };
+        const match = noteStr.match(/__EXTRAS:(\[.*?\])__/);
+        if (match) {
+          try {
+            const extras = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__EXTRAS:(\[.*?\])__/, '').trim();
+            return { cleanNote, extras };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, extras: [] };
+      }
+
+      function serializeExtrasNote(cleanNote, extrasList) {
+        const cleaned = (cleanNote || "").replace(/__EXTRAS:(\[.*?\])__/, '').trim();
+        if (!extrasList || extrasList.length === 0) return cleaned;
+        return `__EXTRAS:${JSON.stringify(extrasList)}__ ${cleaned}`.trim();
+      }
+
       function onWageModeSpreadsheetChange(rowId) {
         onOvertimeParamsChange(rowId);
       }
@@ -4681,7 +4757,7 @@
       }
       
       function getNextInputCol(currentCol, direction) {
-        const editableCols = [2, 3, 4, 5, 7, 11, 13, 14, 15, 16, 17, 18];
+        const editableCols = [1, 2, 3, 6, 10, 12, 13, 14, 15];
         let idx = editableCols.indexOf(currentCol);
         if (idx === -1) return currentCol;
         
@@ -4729,7 +4805,7 @@
           addCoverModalRow();
         }
         
-        openM("cover-management-modal");
+        document.getElementById("cover-management-modal").style.display = "flex";
       }
       
       function closeCoverModal() {
@@ -4843,6 +4919,152 @@
         onInputChanged();
       }
 
+      // EXTRAS MANAGEMENT MODAL HELPERS
+      let activeExtrasModalRowId = null;
+
+      function openExtrasModal(rowId) {
+        activeExtrasModalRowId = rowId;
+        const r = work_records.find(x => x.id == rowId);
+        if (!r) return;
+        
+        const p = personnel.find(x => x.id == r.personnel_id);
+        const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
+        const compNameText = cName(r.company_id) || "Kurum";
+        
+        document.getElementById("extras-modal-parent-info").innerHTML = `
+          🏢 Kurum: <strong>${compNameText}</strong> | 👤 Personel: <strong>${pNameText}</strong>
+        `;
+        
+        const btn = document.getElementById(`c-extras-btn-${rowId}`);
+        let avans = 0;
+        let prim = 0;
+        let extrasList = [];
+        
+        if (btn) {
+          avans = parseFloat(btn.dataset.avans) || 0;
+          prim = parseFloat(btn.dataset.prim) || 0;
+          try {
+            extrasList = JSON.parse(btn.dataset.extras || '[]');
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        
+        document.getElementById("m-extras-avans").value = avans > 0 ? avans : "";
+        document.getElementById("m-extras-prim").value = prim > 0 ? prim : "";
+        
+        const container = document.getElementById("extras-modal-rows-container");
+        container.innerHTML = "";
+        
+        if (extrasList.length > 0) {
+          extrasList.forEach(item => {
+            addExtrasModalRow(item.type, item.title, item.amount);
+          });
+        }
+        
+        document.getElementById("extras-management-modal").style.display = "flex";
+      }
+
+      function closeExtrasModal() {
+        document.getElementById("extras-management-modal").style.display = "none";
+        activeExtrasModalRowId = null;
+      }
+
+      function addExtrasModalRow(type = "plus", title = "", amount = "") {
+        const container = document.getElementById("extras-modal-rows-container");
+        if (!container) return;
+        
+        const subIndex = Math.random().toString(36).substring(2, 9);
+        
+        const rowHtml = `
+          <div class="form-grid g3 extras-modal-row-item" id="modal-extras-row-${subIndex}" style="margin-bottom: 10px; align-items: flex-end; display: grid; grid-template-columns: 1.2fr 2.5fr 1.5fr; gap: 8px;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">İşlem</label>
+              <select class="form-input" id="m-extras-type-${subIndex}" style="font-size: 11px; padding: 6px 8px; width: 100%;">
+                <option value="plus" ${type === 'plus' ? 'selected' : ''}>+ Ekle (Prim)</option>
+                <option value="minus" ${type === 'minus' ? 'selected' : ''}>- Kes (Kesinti)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Başlık / Sebep (Bayram, İzinli vb.)</label>
+              <input class="form-input" id="m-extras-title-${subIndex}" placeholder="örn: Bayram Ücreti" value="${title}" style="font-size: 11px; padding: 6px 8px; width: 100%;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Tutar (₺)</label>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <input class="form-input" id="m-extras-amount-${subIndex}" type="text" inputmode="numeric" oninput="onlyNum(this);" placeholder="0" value="${amount}" style="font-size: 11px; padding: 6px 8px; flex: 1;" />
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeExtrasModalRow('${subIndex}')" style="padding: 4px 8px; font-size: 12px; line-height: 1; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">&times;</button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', rowHtml);
+      }
+
+      function removeExtrasModalRow(subIndex) {
+        const row = document.getElementById(`modal-extras-row-${subIndex}`);
+        if (row) row.remove();
+      }
+
+      function saveExtrasModalChanges() {
+        const rowId = activeExtrasModalRowId;
+        if (!rowId) return;
+        
+        const avansVal = parseFloat(document.getElementById("m-extras-avans").value) || 0;
+        const primVal = parseFloat(document.getElementById("m-extras-prim").value) || 0;
+        
+        const container = document.getElementById("extras-modal-rows-container");
+        const rows = container.querySelectorAll('.extras-modal-row-item');
+        const extrasList = [];
+        
+        for (const row of rows) {
+          const subIndex = row.id.replace('modal-extras-row-', '');
+          const type = document.getElementById(`m-extras-type-${subIndex}`).value;
+          const title = document.getElementById(`m-extras-title-${subIndex}`).value.trim();
+          const amount = parseFloat(document.getElementById(`m-extras-amount-${subIndex}`).value) || 0;
+          
+          if (title && amount > 0) {
+            extrasList.push({
+              type,
+              title,
+              amount
+            });
+          }
+        }
+        
+        const btn = document.getElementById(`c-extras-btn-${rowId}`);
+        if (btn) {
+          btn.dataset.avans = avansVal;
+          btn.dataset.prim = primVal;
+          btn.dataset.extras = JSON.stringify(extrasList);
+          
+          let parts = [];
+          if (avansVal > 0) parts.push(`Av: ${avansVal}₺`);
+          if (primVal > 0) parts.push(`Pr: ${primVal}₺`);
+          
+          // Calculate dynamic extras sum
+          let addSum = 0;
+          let subSum = 0;
+          extrasList.forEach(item => {
+            if (item.type === "plus") addSum += item.amount;
+            else subSum += item.amount;
+          });
+          
+          if (addSum > 0) parts.push(`Ek(+): ${addSum}₺`);
+          if (subSum > 0) parts.push(`Ek(-): ${subSum}₺`);
+          
+          if (parts.length > 0) {
+            btn.textContent = parts.join(" / ");
+          } else {
+            btn.textContent = "➕ Detaylar";
+          }
+        }
+        
+        closeExtrasModal();
+        onInputChanged();
+      }
+
       function renderOperasyonEditMode() {
         const tbody = document.getElementById("spreadsheet-tbody");
         if (!tbody) return;
@@ -4865,140 +5087,180 @@
           return;
         }
         
-        mainList.sort((a, b) => {
-          let compA = cName(a.company_id) || "";
-          let compB = cName(b.company_id) || "";
-          let compCompare = compA.localeCompare(compB, 'tr');
-          if (compCompare !== 0) return compCompare;
-          
-          let persA = pName(a.personnel_id) || "";
-          let persB = pName(b.personnel_id) || "";
-          return persA.localeCompare(persB, 'tr');
+        // Group by company
+        const groups = {};
+        const groupOrder = [];
+        mainList.forEach(r => {
+          if (!groups[r.company_id]) {
+            groups[r.company_id] = [];
+            groupOrder.push(r.company_id);
+          }
+          groups[r.company_id].push(r);
+        });
+
+        groupOrder.sort((a, b) => {
+          let cA = cName(a) || "";
+          let cB = cName(b) || "";
+          return cA.localeCompare(cB, 'tr');
         });
         
         let html = "";
-        mainList.forEach((r, rowIndex) => {
-          const rowId = r.id;
-          const p = personnel.find(x => x.id == r.personnel_id);
-          const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
-          const compNameText = cName(r.company_id) || "Kurum";
-          const pWage = cleanVal(r.personnel_monthly_wage);
-          
-          const wageMode = r.wage_mode || "calculated";
-          const isDirect = (wageMode === "direct");
-          
-          let factor = 1.0;
-          if (r.com_kdv) factor += 0.20;
-          if (r.com_tevkifat) factor += 0.02;
-          let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
-          baseVal = Math.round(baseVal * 100) / 100;
-          
-          const covers = work_records.filter(x => 
-            x.company_id == r.company_id && 
-            x.start_day && r.start_day &&
-            toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
-            x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
-            !x.archived
-          );
-          
-          const coverData = [];
-          covers.forEach(cov => {
-            const sInfo = parseSubstituteNote(cov.note);
-            if (sInfo) {
-              coverData.push({
-                coverPid: cov.personnel_id,
-                coverDays: sInfo.days,
-                coverWage: sInfo.wage
-              });
-            }
+        let globalRowIndex = 0;
+        
+        groupOrder.forEach(cId => {
+          const compNameText = cName(cId) || "Kurum";
+          const grRows = groups[cId];
+          grRows.sort((a, b) => {
+            let pA = pName(a.personnel_id) || "";
+            let pB = pName(b.personnel_id) || "";
+            return pA.localeCompare(pB, 'tr');
           });
           
-          let coverBtnText = "➕ Ekle";
-          if (coverData.length > 0) {
-            coverBtnText = `👤 ${coverData.length} Kişi (${coverData.map(c => {
-              const cp = personnel.find(x => x.id == c.coverPid);
-              return cp ? cp.first_name : "Bilinmeyen";
-            }).join(', ')})`;
-          }
-          
+          // Render company header row divider
           html += `
-            <tr id="row-${rowId}" class="spreadsheet-row" data-row-id="${rowId}" data-row-index="${rowIndex}">
-              <td class="sticky-col-1">${compNameText}</td>
-              <td class="sticky-col-2">${pNameText}</td>
-              <td>
-                <input class="spreadsheet-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 2)" />
-              </td>
-              <td>
-                <select class="spreadsheet-select" id="c-wage-mode-${rowId}" onchange="onWageModeSpreadsheetChange('${rowId}')" onkeydown="handleSpreadsheetKey(event, '${rowId}', 3)">
-                  <option value="calculated" ${!isDirect ? 'selected' : ''}>Aylık Maaş</option>
-                  <option value="direct" ${isDirect ? 'selected' : ''}>Net Ödeme</option>
-                </select>
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 4)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-avans-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.advance_amount)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 5)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-net-payment-${rowId}" type="text" readonly value="${fmt(r.total_personnel_payment - r.advance_amount)}" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 7)" />
-              </td>
-              <td>
-                <label class="spreadsheet-checkbox-label">
-                  <input type="checkbox" class="spreadsheet-checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
-                </label>
-              </td>
-              <td>
-                <label class="spreadsheet-checkbox-label">
-                  <input type="checkbox" class="spreadsheet-checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
-                </label>
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-com-total-calculated-${rowId}" type="text" readonly value="${fmt(r.total_company_payment)}" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChangeSpreadsheet('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 11)" />
-              </td>
-              <td style="text-align: center;">
-                <div class="spreadsheet-action-cell">
-                  <button type="button" class="btn-spreadsheet-action" id="c-cover-btn-${rowId}" onclick="openCoverManagementModal('${rowId}')" data-covers='${JSON.stringify(coverData)}'>
-                    ${coverBtnText}
-                  </button>
-                </div>
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 14)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 15)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-premium-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.premium)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 16)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-deductions-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.deductions)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 17)" />
-              </td>
-              <td>
-                <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${r.note || ''}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 18)" style="text-align: left;" />
-              </td>
-              <td style="text-align: center;">
-                <div class="spreadsheet-action-cell">
-                  <button type="button" class="btn btn-sm btn-danger" onclick="delRecSpreadsheet('${rowId}')" style="padding: 4px 8px; font-weight: 700; height: 100%; border-radius: 6px;">Sil</button>
-                </div>
-              </td>
+            <tr class="spreadsheet-company-header">
+              <td colspan="17">🏢 ${compNameText}</td>
             </tr>
           `;
+          
+          grRows.forEach(r => {
+            const rowId = r.id;
+            const p = personnel.find(x => x.id == r.personnel_id);
+            const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
+            const pWage = cleanVal(r.personnel_monthly_wage);
+            
+            const wageMode = r.wage_mode || "calculated";
+            const isDirect = (wageMode === "direct");
+            
+            let factor = 1.0;
+            if (r.com_kdv) factor += 0.20;
+            if (r.com_tevkifat) factor += 0.02;
+            let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
+            baseVal = Math.round(baseVal * 100) / 100;
+            
+            const covers = work_records.filter(x => 
+              x.company_id == r.company_id && 
+              x.start_day && r.start_day &&
+              toLocalYYYYMMDD(x.start_day) === toLocalYYYYMMDD(r.start_day) && 
+              x.note && x.note.includes("__SUB_FOR_PID:" + r.personnel_id + ":") &&
+              !x.archived
+            );
+            
+            const coverData = [];
+            covers.forEach(cov => {
+              const sInfo = parseSubstituteNote(cov.note);
+              if (sInfo) {
+                coverData.push({
+                  coverPid: cov.personnel_id,
+                  coverDays: sInfo.days,
+                  coverWage: sInfo.wage
+                });
+              }
+            });
+            
+            let coverBtnText = "➕ Ekle";
+            if (coverData.length > 0) {
+              coverBtnText = `👤 ${coverData.length} Kişi (${coverData.map(c => {
+                const cp = personnel.find(x => x.id == c.coverPid);
+                return cp ? cp.first_name : "Bilinmeyen";
+              }).join(', ')})`;
+            }
+            
+            // Parse dynamic extras
+            const parsed = parseExtrasNote(r.note);
+            const cleanNoteText = parsed.cleanNote;
+            const extrasList = parsed.extras;
+            
+            let extrasSummary = "➕ Detaylar";
+            if (r.advance_amount > 0 || r.premium > 0 || r.deductions > 0 || extrasList.length > 0) {
+              let parts = [];
+              if (r.advance_amount > 0) parts.push(`Av: ${r.advance_amount}₺`);
+              if (r.premium > 0) parts.push(`Pr: ${r.premium}₺`);
+              if (r.deductions > 0) parts.push(`Kes: ${r.deductions}₺`);
+              if (parts.length > 0) {
+                extrasSummary = parts.join(" / ");
+              }
+            }
+            
+            html += `
+              <tr id="row-${rowId}" class="spreadsheet-row" data-row-id="${rowId}" data-row-index="${globalRowIndex}">
+                <td class="sticky-col-1">${pNameText}</td>
+                <td>
+                  <input class="spreadsheet-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 1)" />
+                </td>
+                <td>
+                  <select class="spreadsheet-select" id="c-wage-mode-${rowId}" onchange="onWageModeSpreadsheetChange('${rowId}')" onkeydown="handleSpreadsheetKey(event, '${rowId}', 2)">
+                    <option value="calculated" ${!isDirect ? 'selected' : ''}>Aylık Maaş</option>
+                    <option value="direct" ${isDirect ? 'selected' : ''}>Net Ödeme</option>
+                  </select>
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 3)" />
+                </td>
+                <td style="text-align: center;">
+                  <div class="spreadsheet-action-cell">
+                    <button type="button" class="btn-spreadsheet-action" id="c-extras-btn-${rowId}" onclick="openExtrasModal('${rowId}')" data-avans="${r.advance_amount || 0}" data-prim="${r.premium || 0}" data-deductions="${r.deductions || 0}" data-extras='${JSON.stringify(extrasList)}'>
+                      ${extrasSummary}
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-net-payment-${rowId}" type="text" readonly value="${fmt(r.total_personnel_payment - r.advance_amount)}" />
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 6)" />
+                </td>
+                <td>
+                  <label class="spreadsheet-checkbox-label">
+                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                  </label>
+                </td>
+                <td>
+                  <label class="spreadsheet-checkbox-label">
+                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                  </label>
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-com-total-calculated-${rowId}" type="text" readonly value="${fmt(r.total_company_payment)}" />
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChangeSpreadsheet('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 10)" />
+                </td>
+                <td style="text-align: center;">
+                  <div class="spreadsheet-action-cell">
+                    <button type="button" class="btn-spreadsheet-action" id="c-cover-btn-${rowId}" onclick="openCoverManagementModal('${rowId}')" data-covers='${JSON.stringify(coverData)}'>
+                      ${coverBtnText}
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-overtime-hours-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_hours)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 12)" />
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-overtime-days-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_days)}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" />
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-overtime-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.overtime_wage)}" oninput="onlyNum(this); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 14)" />
+                </td>
+                <td>
+                  <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${cleanNoteText}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 15)" style="text-align: left;" />
+                </td>
+                <td style="text-align: center;">
+                  <div class="spreadsheet-action-cell">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="delRecSpreadsheet('${rowId}')" style="padding: 4px 8px; font-weight: 700; height: 100%; border-radius: 6px;">Sil</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+            
+            globalRowIndex++;
+          });
         });
         
         tbody.innerHTML = html;
         onInputChanged();
       }
+
       async function saveAllOpChanges() {
         const tbody = document.getElementById("spreadsheet-tbody");
         if (!tbody) return;
@@ -5019,13 +5281,32 @@
             const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
             const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
             
-            const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
-            const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
-            const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+            // Read avans/prim/deductions and dynamic extras from button dataset
+            const extBtn = document.getElementById(`c-extras-btn-${rowId}`);
+            let advance_amount = 0;
+            let base_premium = 0;
+            let dynamic_deductions = 0;
+            let extrasList = [];
+            if (extBtn) {
+              advance_amount = parseFloat(extBtn.dataset.avans) || 0;
+              base_premium = parseFloat(extBtn.dataset.prim) || 0;
+              dynamic_deductions = parseFloat(extBtn.dataset.deductions) || 0;
+              try { extrasList = JSON.parse(extBtn.dataset.extras || '[]'); } catch(e){}
+            }
+            
+            // Calculate final premium & deductions factoring in dynamic extras list
+            let premium = base_premium;
+            let deductions = dynamic_deductions;
+            extrasList.forEach(item => {
+              if (item.type === "plus") {
+                premium += parseFloat(item.amount) || 0;
+              } else if (item.type === "minus") {
+                deductions += parseFloat(item.amount) || 0;
+              }
+            });
             
             const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
             const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
-            
             const annual_leave = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
             
             const btn = document.getElementById(`c-cover-btn-${rowId}`);
@@ -5055,7 +5336,10 @@
               total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
             }
             
-            const note = document.getElementById(`c-not-${rowId}`).value || "";
+            // Serialize extras JSON into the note field along with the user note
+            const noteInput = document.getElementById(`c-not-${rowId}`).value || "";
+            const note = serializeExtrasNote(noteInput, extrasList);
+            
             const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
             const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
             const tefCb = document.getElementById(`c-com-tef-${rowId}`);
@@ -5137,14 +5421,31 @@
           const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
           const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
           
-          const advance_amount = parseFloat(document.getElementById(`c-avans-${rowId}`).value) || 0;
-          const additional_payment = 0;
-          const premium = parseFloat(document.getElementById(`c-premium-${rowId}`).value) || 0;
-          const deductions = parseFloat(document.getElementById(`c-deductions-${rowId}`).value) || 0;
+          // Read from dataset
+          const extBtn = document.getElementById(`c-extras-btn-${rowId}`);
+          let advance_amount = 0;
+          let base_premium = 0;
+          let dynamic_deductions = 0;
+          let extrasList = [];
+          if (extBtn) {
+            advance_amount = parseFloat(extBtn.dataset.avans) || 0;
+            base_premium = parseFloat(extBtn.dataset.prim) || 0;
+            dynamic_deductions = parseFloat(extBtn.dataset.deductions) || 0;
+            try { extrasList = JSON.parse(extBtn.dataset.extras || '[]'); } catch(e){}
+          }
+          
+          let premium = base_premium;
+          let deductions = dynamic_deductions;
+          extrasList.forEach(item => {
+            if (item.type === "plus") {
+              premium += parseFloat(item.amount) || 0;
+            } else if (item.type === "minus") {
+              deductions += parseFloat(item.amount) || 0;
+            }
+          });
           
           const overtime_hours = parseFloat(document.getElementById(`c-overtime-hours-${rowId}`).value) || 0;
           const overtime_days = parseFloat(document.getElementById(`c-overtime-days-${rowId}`).value) || 0;
-          
           const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
           
           const btn = document.getElementById(`c-cover-btn-${rowId}`);
@@ -5165,7 +5466,7 @@
           const otWageInput = document.getElementById(`c-overtime-wage-${rowId}`);
           const overtime_wage = otWageInput ? (parseFloat(otWageInput.value) || 0) : 0;
           
-          let total_personnel_payment = base_payment + overtime_wage + additional_payment + premium - deductions;
+          let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
           if (coverWageSum > 0) {
             total_personnel_payment = Math.max(0, total_personnel_payment - coverWageSum);
           }
