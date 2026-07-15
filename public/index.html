@@ -5875,14 +5875,28 @@
             let note = serializeExtrasNote(noteInput, extrasList);
             note = serializeOvertimeCompany(note, overtimeCompany);
             
-            // IMPORTANT FIX: Save the calculated final company total including KDV + Tevkifat + Overtime Company Payment
-            const calculatedComTotalEl = document.getElementById(`c-com-total-calculated-${rowId}`);
-            const total_company_payment = calculatedComTotalEl ? parseFmtVal(calculatedComTotalEl.value) : 0;
-            
             const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
             const tefCb = document.getElementById(`c-com-tef-${rowId}`);
             const com_kdv = kdvCb ? kdvCb.checked : false;
             const com_tevkifat = tefCb ? tefCb.checked : false;
+
+            // Recalculate the final company total directly from numeric fields
+            const comTotalInput = document.getElementById(`c-com-total-${rowId}`);
+            const baseVal = comTotalInput ? (parseFloat(comTotalInput.dataset.baseVal) || 0) : 0;
+            let factor = 1.0;
+            if (com_kdv) factor += 0.20;
+            if (com_tevkifat) factor += 0.02;
+            const baseCompanyTotal = baseVal * factor;
+            
+            let otCompanyTotal = 0;
+            if (overtimeCompany && overtimeCompany.wage > 0) {
+              let otFactor = 1.0;
+              if (overtimeCompany.kdv) otFactor += 0.20;
+              if (overtimeCompany.tevkifat) otFactor += 0.02;
+              otCompanyTotal = overtimeCompany.wage * otFactor;
+            }
+            
+            const total_company_payment = baseCompanyTotal + otCompanyTotal;
 
             await api.patch(`/admin/work_records/${rowId}`, {
               work_days,
