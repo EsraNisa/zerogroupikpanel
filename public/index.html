@@ -3182,17 +3182,51 @@
             </select>
           </div>
           <input type="hidden" id="op-add-company-id" />
-          <div class="form-group">
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label class="form-label">Ekleme Yöntemi</label>
+            <div style="display: flex; gap: 16px; margin-top: 6px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="op-per-add-method" value="existing" checked onchange="toggleOpPerAddMethod()" />
+                Kayıtlı Personel Seç
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="op-per-add-method" value="new" onchange="toggleOpPerAddMethod()" />
+                Yeni Personel Kaydet
+              </label>
+            </div>
+          </div>
+
+          <!-- Yöntem 1: Kayıtlı Personel Seç -->
+          <div id="op-per-existing-group" class="form-group">
             <label class="form-label" style="margin-bottom: 6px;">Eklenecek Personel *</label>
             <input type="text" id="op-add-personnel-search" class="form-input" placeholder="Personel ara..." oninput="filterOpAddPersonnelList()" style="margin-bottom: 8px; font-size: 13px; padding: 6px 10px;" />
             <div id="op-add-personnel-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: #fff;">
               <!-- Checkboxes populate here -->
             </div>
           </div>
+
+          <!-- Yöntem 2: Yeni Personel Kaydet -->
+          <div id="op-per-new-group" style="display: none; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; background: #f8fafc;">
+            <div class="form-grid g2" style="margin-bottom: 8px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Ad *</label>
+                <input class="form-input" id="op-per-new-first" placeholder="Ad" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Soyad *</label>
+                <input class="form-input" id="op-per-new-last" placeholder="Soyad" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 11px;">Ünvan / Görev</label>
+              <input class="form-input" id="op-per-new-pos" placeholder="örn: Güvenlik Görevlisi" style="font-size: 12px; padding: 6px 10px;" />
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn" onclick="closeM('modal-op-add-personnel')">İptal</button>
-          <button class="btn btn-primary" onclick="submitAddPersonnelToOp()">Ekle</button>
+          <button class="btn btn-primary" id="btn-submit-op-add-per" onclick="submitAddPersonnelToOp()">Ekle</button>
         </div>
       </div>
     </div>
@@ -4060,7 +4094,8 @@
           initCSelects();
           initCalSelects();
           initExtSelects();
-          switchCalTab("cal-records");
+          const subTab = localStorage.getItem("cal_sub_tab") || "cal-records";
+          switchCalTab(subTab);
         }
         if (id === "operasyon") {
           initOpSelects();
@@ -4650,7 +4685,28 @@
           };
         }
         
+        const radioExisting = document.querySelector('input[name="op-per-add-method"][value="existing"]');
+        if (radioExisting) radioExisting.checked = true;
+        toggleOpPerAddMethod();
+        
+        document.getElementById("op-per-new-first").value = "";
+        document.getElementById("op-per-new-last").value = "";
+        document.getElementById("op-per-new-pos").value = "";
+        
         openM("modal-op-add-personnel");
+      }
+
+      function toggleOpPerAddMethod() {
+        const method = document.querySelector('input[name="op-per-add-method"]:checked').value;
+        const existingGroup = document.getElementById("op-per-existing-group");
+        const newGroup = document.getElementById("op-per-new-group");
+        if (method === "existing") {
+          existingGroup.style.display = "block";
+          newGroup.style.display = "none";
+        } else {
+          existingGroup.style.display = "none";
+          newGroup.style.display = "block";
+        }
       }
 
       function populatePersonnelList() {
@@ -4723,12 +4779,7 @@
           return;
         }
         
-        const checkedBoxes = document.querySelectorAll(".op-add-personnel-checkbox:checked");
-        if (checkedBoxes.length === 0) {
-          toast("Lütfen en az bir personel seçin!", "err");
-          return;
-        }
-
+        const method = document.querySelector('input[name="op-per-add-method"]:checked').value;
         const selYear = parseInt(document.getElementById("op-yil").value);
         const selMonth = parseInt(document.getElementById("op-ay").value);
         const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
@@ -4736,37 +4787,112 @@
         const targetStartStr = `${selYear}-${monthStr}-01`;
         const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
 
-        const records = [];
-        checkedBoxes.forEach(cb => {
-          const personnelId = cb.value;
-          const p = personnel.find(x => x.id == personnelId);
-          const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
-          
-          records.push({
-            personnel_id: parseInt(personnelId),
-            company_id: parseInt(companyId),
-            start_day: targetStartStr,
-            end_date: targetEndStr,
-            work_days: lastDay,
-            personnel_monthly_wage: monthlyWage,
-            personnel_daily_wage: monthlyWage / 30,
-            total_personnel_payment: monthlyWage,
-            total_company_payment: 0,
-            is_recurring: true,
-            needs_review: true,
-            wage_mode: "calculated",
-            note: ""
-          });
-        });
+        const saveBtn = document.getElementById("btn-submit-op-add-per");
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Ekleniyor...";
+        }
 
         try {
-          await api.post("/admin/work_records", records);
-          toast(`${records.length} personel başarıyla eklendi ✓`);
+          if (method === "existing") {
+            const checkedBoxes = document.querySelectorAll(".op-add-personnel-checkbox:checked");
+            if (checkedBoxes.length === 0) {
+              toast("Lütfen en az bir personel seçin!", "err");
+              if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Ekle";
+              }
+              return;
+            }
+            
+            const records = [];
+            checkedBoxes.forEach(cb => {
+              const personnelId = cb.value;
+              const p = personnel.find(x => x.id == personnelId);
+              const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+              
+              records.push({
+                personnel_id: parseInt(personnelId),
+                company_id: parseInt(companyId),
+                start_day: targetStartStr,
+                end_date: targetEndStr,
+                work_days: lastDay,
+                personnel_monthly_wage: monthlyWage,
+                personnel_daily_wage: monthlyWage / 30,
+                total_personnel_payment: monthlyWage,
+                total_company_payment: 0,
+                is_recurring: true,
+                needs_review: true,
+                wage_mode: "calculated",
+                note: ""
+              });
+            });
+            
+            await api.post("/admin/work_records", records);
+            toast(`${records.length} personel başarıyla eklendi ✓`);
+          } else {
+            // New personnel registration from scratch
+            const first = document.getElementById("op-per-new-first").value.trim();
+            const last = document.getElementById("op-per-new-last").value.trim();
+            const pos = document.getElementById("op-per-new-pos").value.trim();
+            
+            if (!first || !last) {
+              toast("Ad ve soyad zorunludur!", "err");
+              if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = "Ekle";
+              }
+              return;
+            }
+            
+            // Post new personnel
+            const newP = await api.post("/admin/personnel", {
+              first_name: first,
+              last_name: last,
+              position: pos,
+              daily_wage: 0, // default to 0
+              phone: "",
+              email: "",
+              iban: ""
+            });
+            
+            const addedPersonnel = Array.isArray(newP) && newP[0] ? newP[0] : newP;
+            if (!addedPersonnel || !addedPersonnel.id) {
+              throw new Error("Personel kimliği alınamadı.");
+            }
+            
+            personnel.push(addedPersonnel);
+            
+            const record = {
+              personnel_id: parseInt(addedPersonnel.id),
+              company_id: parseInt(companyId),
+              start_day: targetStartStr,
+              end_date: targetEndStr,
+              work_days: lastDay,
+              personnel_monthly_wage: 0,
+              personnel_daily_wage: 0,
+              total_personnel_payment: 0,
+              total_company_payment: 0,
+              is_recurring: true,
+              needs_review: true,
+              wage_mode: "calculated",
+              note: ""
+            };
+            
+            await api.post("/admin/work_records", [record]);
+            toast("Yeni personel başarıyla oluşturuldu ve kuruma eklendi ✓");
+          }
+          
           closeM("modal-op-add-personnel");
           await loadAll();
           renderOperasyonCockpit();
         } catch (e) {
           toast("Hata: " + e.message, "err");
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Ekle";
+          }
         }
       }
 
@@ -4881,13 +5007,22 @@
         }
       }
 
+      let opHasUnsavedChanges = false;
       let opEditModeActive = false;
       function toggleOpEditMode(active) {
-        if (active === undefined) {
-          opEditModeActive = !opEditModeActive;
-        } else {
-          opEditModeActive = active;
+        let targetActive = active;
+        if (targetActive === undefined) {
+          targetActive = !opEditModeActive;
         }
+        
+        if (opEditModeActive && !targetActive && opHasUnsavedChanges) {
+          if (!confirm("Kaydedilmemiş değişiklikleriniz var. Çıkmak istediğinize emin misiniz?")) {
+            return;
+          }
+        }
+        
+        opEditModeActive = targetActive;
+        opHasUnsavedChanges = false;
         
         const cockpitView = document.getElementById("operasyon-cockpit-view");
         const editView = document.getElementById("operasyon-edit-view");
@@ -5791,6 +5926,7 @@
           }
           
           toast("Tüm operasyon kayıtları güncellendi ✓");
+          opHasUnsavedChanges = false;
           toggleOpEditMode(false);
           await loadAll();
           renderOperasyonCockpit();
@@ -7295,6 +7431,8 @@ async function moveCompanyDown(id) {
         
         var prev = document.getElementById("c-preview");
         if (prev) prev.style.display = "none";
+        
+        opHasUnsavedChanges = true;
         
         updateIndividualCardSums();
         updateOpCardSums();
@@ -9546,6 +9684,8 @@ async function moveCompanyDown(id) {
         const extContainer = document.getElementById("cal-extras-container");
         if (recContainer) recContainer.style.display = tabName === "cal-records" ? "block" : "none";
         if (extContainer) extContainer.style.display = tabName === "cal-extras" ? "block" : "none";
+        
+        localStorage.setItem("cal_sub_tab", tabName);
         
         if (tabName === "cal-extras") {
           initExtSelects();
