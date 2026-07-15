@@ -1741,7 +1741,7 @@
                 <option value="10">Kasım</option>
                 <option value="11">Aralık</option>
               </select>
-              <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openKurumModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Yeni Kurum</button>
+              <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openAddCompanyToMonthModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Kurum Ekle / Oluştur</button>
               <button class="btn btn-sm btn-primary" id="btn-op-new-per" onclick="openPersonelModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">👤 Yeni Personel</button>
               <button class="btn btn-sm btn-primary" id="btn-op-assign-per" onclick="openAddPersonnelToOpModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">➕ Personel Ata</button>
               <button class="btn btn-primary" id="btn-toggle-op-edit" onclick="toggleOpEditMode()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; margin-left: auto;">✍️ Bu Ayki Çalışmaları Gir</button>
@@ -3183,15 +3183,83 @@
           </div>
           <input type="hidden" id="op-add-company-id" />
           <div class="form-group">
-            <label class="form-label">Eklenecek Personel *</label>
-            <select class="form-input" id="op-add-personnel-select">
-              <option value="">Seçin...</option>
-            </select>
+            <label class="form-label" style="margin-bottom: 6px;">Eklenecek Personel *</label>
+            <input type="text" id="op-add-personnel-search" class="form-input" placeholder="Personel ara..." oninput="filterOpAddPersonnelList()" style="margin-bottom: 8px; font-size: 13px; padding: 6px 10px;" />
+            <div id="op-add-personnel-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: #fff;">
+              <!-- Checkboxes populate here -->
+            </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn" onclick="closeM('modal-op-add-personnel')">İptal</button>
           <button class="btn btn-primary" onclick="submitAddPersonnelToOp()">Ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Döneme Kurum Ekle / Oluştur -->
+    <div
+      class="modal-backdrop"
+      id="modal-op-add-company-to-month"
+      style="display: none"
+      onclick="closeMBD(event, 'modal-op-add-company-to-month')"
+    >
+      <div class="modal" style="max-width: 500px; width: 95%;">
+        <div class="modal-handle"></div>
+        <div class="modal-head">
+          <span class="modal-title">Döneme Kurum Ekle</span>
+          <button class="modal-close" onclick="closeM('modal-op-add-company-to-month')">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">Ekleme Yöntemi</label>
+            <div style="display: flex; gap: 16px; margin-top: 6px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="op-com-add-method" value="existing" checked onchange="toggleOpComAddMethod()" />
+                Kayıtlı Kurum Seç
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="op-com-add-method" value="new" onchange="toggleOpComAddMethod()" />
+                Yeni Kurum Yaz
+              </label>
+            </div>
+          </div>
+
+          <!-- Yöntem 1: Kayıtlı Kurum Seç -->
+          <div id="op-com-existing-group" class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">Kurum *</label>
+            <select class="form-input" id="op-com-existing-select">
+              <option value="">Seçin...</option>
+            </select>
+          </div>
+
+          <!-- Yöntem 2: Yeni Kurum Yaz -->
+          <div id="op-com-new-group" style="display: none; border: 1px dashed #cbd5e1; padding: 12px; border-radius: 8px; margin-bottom: 14px; background: #f8fafc;">
+            <div class="form-grid g2" style="margin-bottom: 8px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Kurum Adı *</label>
+                <input class="form-input" id="op-com-new-name" placeholder="Kurum adı" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Yetkili Kişi</label>
+                <input class="form-input" id="op-com-new-contact" placeholder="Ad Soyad" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+            </div>
+            <div class="form-grid g2">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Telefon</label>
+                <input class="form-input" id="op-com-new-phone" placeholder="Telefon" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Adres</label>
+                <input class="form-input" id="op-com-new-addr" placeholder="Adres" style="font-size: 12px; padding: 6px 10px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeM('modal-op-add-company-to-month')">İptal</button>
+          <button class="btn btn-primary" id="btn-submit-op-add-com" onclick="submitAddCompanyToMonth()">Ekle</button>
         </div>
       </div>
     </div>
@@ -4260,138 +4328,7 @@
 
       let isGeneratingRecurring = false;
       async function ensureRecurringRecordsForPeriod(selYear, selMonth) {
-        if (isGeneratingRecurring) return;
-        isGeneratingRecurring = true;
-        
-        const targetPeriodValue = selYear * 12 + selMonth;
-        
-        // Skip generation if this period already contains any records (explicitly deleted rows shouldn't regenerate)
-        const targetHasAnyRecords = work_records.some(r => {
-          if (!r.start_day) return false;
-          const ym = getYearMonth(r.start_day);
-          return ym.month === selMonth && ym.year === selYear;
-        });
-        if (targetHasAnyRecords) {
-          isGeneratingRecurring = false;
-          return;
-        }
-
-        // Check if there are any recurring records strictly before the target period in the system
-        const hasPriorRecords = work_records.some(r => {
-          if (!r.start_day) return false;
-          if (parseSubstituteNote(r.note)) return false;
-          const ym = getYearMonth(r.start_day);
-          return (ym.year * 12 + ym.month) < targetPeriodValue;
-        });
-
-        // Find all unique (personnel_id, company_id) active recurring records in the system
-        const latestPairs = {};
-        work_records.forEach(r => {
-          if (!r.start_day) return;
-          // Exclude cover records
-          if (parseSubstituteNote(r.note)) return;
-          
-          const key = `${r.personnel_id}-${r.company_id}`;
-          const ym = getYearMonth(r.start_day);
-          const rPeriodValue = ym.year * 12 + ym.month;
-          
-          if (!hasPriorRecords) {
-            // Backward initialization from closest subsequent month
-            if (!latestPairs[key]) {
-              latestPairs[key] = r;
-            } else {
-              const latestYM = getYearMonth(latestPairs[key].start_day);
-              const latestPeriodValue = latestYM.year * 12 + latestYM.month;
-              if (Math.abs(rPeriodValue - targetPeriodValue) < Math.abs(latestPeriodValue - targetPeriodValue)) {
-                latestPairs[key] = r;
-              }
-            }
-          } else {
-            // Forward copying: standard logic, only copy from strictly prior months
-            if (rPeriodValue >= targetPeriodValue) return;
-            
-            if (!latestPairs[key]) {
-              latestPairs[key] = r;
-            } else {
-              const latestYM = getYearMonth(latestPairs[key].start_day);
-              const latestPeriodValue = latestYM.year * 12 + latestYM.month;
-              
-              if (rPeriodValue > latestPeriodValue) {
-                latestPairs[key] = r;
-              } else if (rPeriodValue === latestPeriodValue) {
-                // Prefer the recurring one if periods are equal
-                if (r.is_recurring && !latestPairs[key].is_recurring) {
-                  latestPairs[key] = r;
-                }
-              }
-            }
-          }
-        });
-
-        const missingRecords = [];
-        const targetStartStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-01`;
-        const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
-        const targetEndStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-        Object.values(latestPairs).forEach(rec => {
-          if (rec.is_recurring && !rec.archived) {
-            // Check if a record already exists in this target month
-            const exists = work_records.some(r => {
-              if (!r.start_day) return false;
-              const rYM = getYearMonth(r.start_day);
-              return r.personnel_id == rec.personnel_id && 
-                     r.company_id == rec.company_id && 
-                     rYM.month === selMonth && 
-                     rYM.year === selYear;
-            });
-            
-            if (!exists) {
-              missingRecords.push({
-                personnel_id: rec.personnel_id,
-                company_id: rec.company_id,
-                start_day: targetStartStr,
-                end_date: targetEndStr,
-                work_days: lastDay,
-                personnel_monthly_wage: 0,
-                personnel_daily_wage: 0,
-                total_personnel_payment: 0,
-                total_company_payment: 0,
-                advance_amount: 0,
-                expenses: 0,
-                is_recurring: true,
-                needs_review: true,
-                wage_mode: "calculated",
-                note: "",
-                overtime_hours: 0,
-                overtime_days: 0,
-                overtime_wage: 0,
-                additional_payment: 0,
-                deductions: 0,
-                premium: 0,
-                travel_expense: 0,
-                food_expense: 0,
-                accommodation: 0,
-                other_expenses: 0,
-                annual_leave: 0,
-                sick_leave: 0,
-                missing_days: 0,
-                official_holiday: 0,
-                leave_days: 0
-              });
-            }
-          }
-        });
-
-        if (missingRecords.length > 0) {
-          try {
-            await api.post("/admin/work_records", missingRecords);
-            const res = await api.get("/work_records");
-            work_records = res;
-          } catch (err) {
-            console.error("Failed to generate missing recurring records:", err);
-          }
-        }
-        isGeneratingRecurring = false;
+        // No-op: we no longer auto-generate personnel records for new periods
       }
 
       async function togglePeriodApproval() {
@@ -4460,13 +4397,12 @@
           toggleOpEditMode(false);
         }
         
-        // Auto-generate missing recurring records for this period
+        // Auto-generate missing recurring records for this period (no-op in new mode)
         await ensureRecurringRecordsForPeriod(selYear, selMonth);
         
-        // Filter all records for the current period (both recurring and non-recurring)
+        // Filter all records for the current period
         const activeList = work_records.filter(r => {
           if (r.archived || !r.start_day) return false;
-          
           const ym = getYearMonth(r.start_day);
           const isCurrentPeriod = (ym.month === selMonth && ym.year === selYear);
           return isCurrentPeriod;
@@ -4481,8 +4417,37 @@
           groups[r.company_id].push(r);
         });
 
-        // Sort all companies by sort_order (already sorted)
-        const sortedCompanies = [...companies];
+        // Determine active companies for this month
+        let prevMonth = selMonth - 1;
+        let prevYear = selYear;
+        if (prevMonth < 0) {
+          prevMonth = 11;
+          prevYear = selYear - 1;
+        }
+
+        const currentCompanyIds = new Set(work_records.filter(r => {
+          if (r.archived || !r.start_day) return false;
+          if (parseSubstituteNote(r.note)) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
+        }).map(r => r.company_id));
+
+        const previousCompanyIds = new Set(work_records.filter(r => {
+          if (r.archived || !r.start_day) return false;
+          if (parseSubstituteNote(r.note)) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === prevMonth && ym.year === prevYear;
+        }).map(r => r.company_id));
+
+        const activeCompanyIds = new Set([...currentCompanyIds, ...previousCompanyIds]);
+        
+        const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+        const hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+        
+        const sortedCompanies = [...companies].filter(c => {
+          if (hiddenComps.includes(c.id.toString()) || hiddenComps.includes(Number(c.id))) return false;
+          return activeCompanyIds.has(c.id);
+        });
 
         let html = '';
         sortedCompanies.forEach((c) => {
@@ -4492,11 +4457,6 @@
           // Separate parent and cover rows
           const parents = grRows.filter(r => !parseSubstituteNote(r.note));
           const covers = grRows.filter(r => parseSubstituteNote(r.note));
-          
-          if (parents.length === 0 && covers.length === 0) {
-            // Hide companies with 0 records in this month
-            return;
-          }
           
           // Sort parent rows inside the group by personnel name
           parents.sort((a, b) => {
@@ -4522,7 +4482,14 @@
             </tr>
           `;
 
-          if (false) { // unused placeholder block
+          if (parents.length === 0 && covers.length === 0) {
+            html += `
+              <tr>
+                <td colspan="7" style="text-align: center; color: #94a3b8; font-size: 11px; padding: 12px; font-style: italic; background: #fafafa;">
+                  Bu kuruma henüz personel eklenmedi. Eklemek için yukarıdaki "+ Personel Ekle" butonunu kullanabilirsiniz.
+                </td>
+              </tr>
+            `;
           } else {
             // Individual personnel rows under the company
             parents.forEach((r) => {
@@ -4609,6 +4576,42 @@
         tbody.innerHTML = html;
       }
 
+      async function removeCompanyFromPeriod(companyId) {
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        
+        if (!confirm("Bu kurumu bu dönemden kaldırmak istediğinize emin misiniz?")) {
+          return;
+        }
+        
+        // Find all records for this company in this period
+        const recordsToDelete = work_records.filter(r => {
+          if (r.company_id != companyId || r.archived || !r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
+        });
+        
+        try {
+          for (let r of recordsToDelete) {
+            await api.delete(`/admin/work_records/${r.id}`);
+          }
+          
+          // Add to localstorage hidden list
+          const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+          const hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+          if (!hiddenComps.includes(companyId.toString()) && !hiddenComps.includes(Number(companyId))) {
+            hiddenComps.push(companyId);
+            localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
+          }
+          
+          toast("Kurum dönemden kaldırıldı ✓");
+          await loadAll();
+          renderOperasyonCockpit();
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
       function openAddPersonnelToOpModal(companyId) {
         const compGroup = document.getElementById("op-add-company-group");
         const compSelect = document.getElementById("op-add-company-select");
@@ -4635,52 +4638,94 @@
           if (compSelect) compSelect.value = "";
         }
         
-        const sel = document.getElementById("op-add-personnel-select");
-        function populatePersonnel() {
-          if (!sel) return;
-          sel.innerHTML = '<option value="">Seçin...</option>';
-          const filterCompanyId = hiddenCompId ? hiddenCompId.value : null;
-          const existingPids = filterCompanyId ? work_records
-            .filter(r => {
-              if (r.company_id != filterCompanyId || r.archived || !r.start_day) return false;
-              const selYear = parseInt(document.getElementById("op-yil").value);
-              const selMonth = parseInt(document.getElementById("op-ay").value);
-              const ym = getYearMonth(r.start_day);
-              return ym.month === selMonth && ym.year === selYear;
-            })
-            .map(r => r.personnel_id) : [];
-            
-          personnel.forEach(p => {
-            if (!existingPids.includes(p.id)) {
-              const o = document.createElement("option");
-              o.value = p.id;
-              o.text = p.first_name + " " + p.last_name;
-              sel.appendChild(o);
-            }
-          });
-        }
-
-        populatePersonnel();
+        const searchInput = document.getElementById("op-add-personnel-search");
+        if (searchInput) searchInput.value = "";
+        
+        populatePersonnelList();
         
         if (compSelect) {
           compSelect.onchange = function() {
             if (hiddenCompId) hiddenCompId.value = compSelect.value;
-            populatePersonnel();
+            populatePersonnelList();
           };
         }
         
         openM("modal-op-add-personnel");
       }
 
+      function populatePersonnelList() {
+        const container = document.getElementById("op-add-personnel-list");
+        if (!container) return;
+        
+        container.innerHTML = "";
+        
+        const hiddenCompId = document.getElementById("op-add-company-id");
+        const filterCompanyId = hiddenCompId ? hiddenCompId.value : null;
+        
+        const existingPids = filterCompanyId ? work_records
+          .filter(r => {
+            if (r.company_id != filterCompanyId || r.archived || !r.start_day) return false;
+            const selYear = parseInt(document.getElementById("op-yil").value);
+            const selMonth = parseInt(document.getElementById("op-ay").value);
+            const ym = getYearMonth(r.start_day);
+            return ym.month === selMonth && ym.year === selYear;
+          })
+          .map(r => r.personnel_id) : [];
+          
+        const activePersonnel = [...personnel].sort((a, b) => 
+          `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, 'tr')
+        );
+        
+        let hasAny = false;
+        activePersonnel.forEach(p => {
+          if (!existingPids.includes(p.id)) {
+            hasAny = true;
+            const label = document.createElement("label");
+            label.className = "spreadsheet-checkbox-label";
+            label.style.cssText = "display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 8px; border-radius: 6px; font-size: 13px; font-weight: 500; color: #334155; border: 1px solid #f1f5f9; background: #fafafa; transition: background 0.2s;";
+            label.innerHTML = `
+              <input type="checkbox" class="op-add-personnel-checkbox" value="${p.id}" data-name="${p.first_name.toLowerCase()} ${p.last_name.toLowerCase()}" style="cursor: pointer;" />
+              <span>${p.first_name} ${p.last_name}</span>
+            `;
+            
+            // Hover effect
+            label.onmouseenter = () => label.style.background = "#f1f5f9";
+            label.onmouseleave = () => label.style.background = "#fafafa";
+            
+            container.appendChild(label);
+          }
+        });
+        
+        if (!hasAny) {
+          container.innerHTML = `<div style="padding: 12px; text-align: center; color: #94a3b8; font-size: 13px;">Eklenebilecek personel kalmadı.</div>`;
+        }
+      }
+
+      function filterOpAddPersonnelList() {
+        const query = document.getElementById("op-add-personnel-search").value.toLowerCase().trim();
+        const items = document.querySelectorAll("#op-add-personnel-list label");
+        items.forEach(label => {
+          const checkbox = label.querySelector("input");
+          if (!checkbox) return;
+          const name = checkbox.dataset.name;
+          if (name.includes(query)) {
+            label.style.display = "flex";
+          } else {
+            label.style.display = "none";
+          }
+        });
+      }
+
       async function submitAddPersonnelToOp() {
         const companyId = document.getElementById("op-add-company-id").value;
-        const personnelId = document.getElementById("op-add-personnel-select").value;
         if (!companyId) {
           toast("Lütfen bir kurum seçin!", "err");
           return;
         }
-        if (!personnelId) {
-          toast("Lütfen bir personel seçin!", "err");
+        
+        const checkedBoxes = document.querySelectorAll(".op-add-personnel-checkbox:checked");
+        if (checkedBoxes.length === 0) {
+          toast("Lütfen en az bir personel seçin!", "err");
           return;
         }
 
@@ -4691,33 +4736,148 @@
         const targetStartStr = `${selYear}-${monthStr}-01`;
         const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
 
-        const p = personnel.find(x => x.id == personnelId);
-        const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
-
-        const record = {
-          personnel_id: parseInt(personnelId),
-          company_id: parseInt(companyId),
-          start_day: targetStartStr,
-          end_date: targetEndStr,
-          work_days: lastDay,
-          personnel_monthly_wage: monthlyWage,
-          personnel_daily_wage: monthlyWage / 30,
-          total_personnel_payment: monthlyWage,
-          total_company_payment: 0,
-          is_recurring: true,
-          needs_review: true,
-          wage_mode: "calculated",
-          note: ""
-        };
+        const records = [];
+        checkedBoxes.forEach(cb => {
+          const personnelId = cb.value;
+          const p = personnel.find(x => x.id == personnelId);
+          const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+          
+          records.push({
+            personnel_id: parseInt(personnelId),
+            company_id: parseInt(companyId),
+            start_day: targetStartStr,
+            end_date: targetEndStr,
+            work_days: lastDay,
+            personnel_monthly_wage: monthlyWage,
+            personnel_daily_wage: monthlyWage / 30,
+            total_personnel_payment: monthlyWage,
+            total_company_payment: 0,
+            is_recurring: true,
+            needs_review: true,
+            wage_mode: "calculated",
+            note: ""
+          });
+        });
 
         try {
-          await api.post("/admin/work_records", [record]);
-          toast("Personel başarıyla eklendi ✓");
+          await api.post("/admin/work_records", records);
+          toast(`${records.length} personel başarıyla eklendi ✓`);
           closeM("modal-op-add-personnel");
           await loadAll();
           renderOperasyonCockpit();
         } catch (e) {
           toast("Hata: " + e.message, "err");
+        }
+      }
+
+      function toggleOpComAddMethod() {
+        const method = document.querySelector('input[name="op-com-add-method"]:checked').value;
+        const existingGroup = document.getElementById("op-com-existing-group");
+        const newGroup = document.getElementById("op-com-new-group");
+        if (method === "existing") {
+          existingGroup.style.display = "block";
+          newGroup.style.display = "none";
+        } else {
+          existingGroup.style.display = "none";
+          newGroup.style.display = "block";
+        }
+      }
+
+      function openAddCompanyToMonthModal() {
+        const select = document.getElementById("op-com-existing-select");
+        if (select) {
+          select.innerHTML = '<option value="">Seçin...</option>';
+          const sorted = [...companies].sort((a, b) => a.company_name.localeCompare(b.company_name, 'tr'));
+          sorted.forEach(c => {
+            const o = document.createElement("option");
+            o.value = c.id;
+            o.text = c.company_name;
+            select.appendChild(o);
+          });
+        }
+        
+        document.getElementById("op-com-new-name").value = "";
+        document.getElementById("op-com-new-contact").value = "";
+        document.getElementById("op-com-new-phone").value = "";
+        document.getElementById("op-com-new-addr").value = "";
+        
+        // Reset radio buttons
+        const radioExisting = document.querySelector('input[name="op-com-add-method"][value="existing"]');
+        if (radioExisting) radioExisting.checked = true;
+        toggleOpComAddMethod();
+        
+        openM("modal-op-add-company-to-month");
+      }
+
+      async function submitAddCompanyToMonth() {
+        const method = document.querySelector('input[name="op-com-add-method"]:checked').value;
+        const selYear = parseInt(document.getElementById("op-yil").value);
+        const selMonth = parseInt(document.getElementById("op-ay").value);
+        
+        let companyId = null;
+        
+        if (method === "existing") {
+          companyId = document.getElementById("op-com-existing-select").value;
+          if (!companyId) {
+            toast("Lütfen bir kurum seçin!", "err");
+            return;
+          }
+          
+          // Remove from localstorage hidden list if present
+          const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+          let hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+          hiddenComps = hiddenComps.filter(id => id != companyId);
+          localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
+          
+          closeM("modal-op-add-company-to-month");
+          openAddPersonnelToOpModal(companyId);
+        } else {
+          const name = document.getElementById("op-com-new-name").value.trim();
+          if (!name) {
+            toast("Kurum adı zorunludur!", "err");
+            return;
+          }
+          
+          const saveBtn = document.getElementById("btn-submit-op-add-com");
+          if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.textContent = "Kaydediliyor...";
+          }
+          
+          try {
+            const newCom = await api.post("/admin/companies", {
+              company_name: name,
+              contact_person: document.getElementById("op-com-new-contact").value.trim(),
+              phone: document.getElementById("op-com-new-phone").value.trim(),
+              address: document.getElementById("op-com-new-addr").value.trim()
+            });
+            
+            const addedCompany = Array.isArray(newCom) && newCom[0] ? newCom[0] : newCom;
+            if (addedCompany && addedCompany.id) {
+              companies.push(addedCompany);
+              companyId = addedCompany.id;
+            } else {
+              throw new Error("Kurum kimliği alınamadı.");
+            }
+            
+            toast("Kurum başarıyla oluşturuldu ✓");
+            closeM("modal-op-add-company-to-month");
+            
+            // Remove from hidden list if present
+            const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+            let hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+            hiddenComps = hiddenComps.filter(id => id != companyId);
+            localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
+            
+            openAddPersonnelToOpModal(companyId);
+          } catch(e) {
+            toast("Hata: " + e.message, "err");
+          } finally {
+            if (saveBtn) {
+              saveBtn.disabled = false;
+              saveBtn.textContent = "Ekle";
+            }
+          }
         }
       }
 
