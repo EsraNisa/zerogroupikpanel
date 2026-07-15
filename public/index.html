@@ -1803,7 +1803,6 @@
                     <tr>
                       <th class="sticky-col-1">Personel</th>
                       <th style="min-width: 60px;">Çalışılan Gün</th>
-                      <th style="min-width: 110px;">Maaş Yöntemi</th>
                       <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
                       <th style="min-width: 155px;">Ödemeler & Kesintiler</th>
                       <th style="min-width: 110px;">Ödenecek Net (₺)</th>
@@ -4751,25 +4750,6 @@
       }
 
       function onLeaveChangeSpreadsheet(rowId) {
-        let leaveDays = parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0;
-        
-        let s = document.getElementById("c-start") ? document.getElementById("c-start").value : "";
-        let e = document.getElementById("c-end") ? document.getElementById("c-end").value : "";
-        if (s && e && new Date(s) <= new Date(e)) {
-          const daysInput = document.getElementById(`c-days-${rowId}`);
-          if (daysInput && daysInput.dataset.manual !== 'true') {
-            let baseDays = totalDays(s, e);
-            let total = Math.max(0, baseDays - leaveDays);
-            daysInput.value = total;
-          }
-        }
-        
-        const btn = document.getElementById(`c-cover-btn-${rowId}`);
-        if (btn && leaveDays === 0) {
-          btn.dataset.covers = JSON.stringify([]);
-          btn.textContent = "➕ Ekle";
-        }
-        
         onInputChanged();
       }
 
@@ -4832,7 +4812,7 @@
       }
       
       function getNextInputCol(currentCol, direction) {
-        const editableCols = [1, 2, 3, 6, 10, 13];
+        const editableCols = [1, 2, 5, 9, 12];
         let idx = editableCols.indexOf(currentCol);
         if (idx === -1) return currentCol;
         
@@ -5194,14 +5174,12 @@
         if (!rowId) return;
         
         const parentWageInput = document.getElementById(`c-per-wage-${rowId}`);
-        const wageModeEl = document.getElementById(`c-wage-mode-${rowId}`);
-        const wageMode = wageModeEl ? wageModeEl.value : "calculated";
         
         const hoursInput = document.getElementById("m-overtime-hours");
         const daysInput = document.getElementById("m-overtime-days");
         const wageInput = document.getElementById("m-overtime-wage");
         
-        if (wageMode === "calculated" && hoursInput && daysInput && wageInput && parentWageInput) {
+        if (hoursInput && daysInput && wageInput && parentWageInput) {
           const overtime_hours = parseFloat(hoursInput.value) || 0;
           const overtime_days = parseFloat(daysInput.value) || 0;
           const input_wage = parseFloat(parentWageInput.value) || 0;
@@ -5273,7 +5251,7 @@
         });
         
         if (mainList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="20" style="padding: 24px; text-align: center; color: #64748b;">Seçilen dönem için iş kaydı bulunamadı.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="15" style="padding: 24px; text-align: center; color: #64748b;">Seçilen dönem için iş kaydı bulunamadı.</td></tr>`;
           return;
         }
         
@@ -5309,7 +5287,7 @@
           // Render company header row divider
           html += `
             <tr class="spreadsheet-company-header">
-              <td colspan="15">🏢 ${compNameText}</td>
+              <td colspan="14">🏢 ${compNameText}</td>
             </tr>
           `;
           
@@ -5319,13 +5297,24 @@
             const pNameText = p ? `${p.first_name} ${p.last_name}` : "Personel";
             const pWage = cleanVal(r.personnel_monthly_wage);
             
-            const wageMode = r.wage_mode || "calculated";
-            const isDirect = (wageMode === "direct");
+            // Parse dynamic company overtime from note
+            const parsedOt = parseOvertimeCompany(r.note);
+            const rawNoteCleaned = parsedOt.cleanNote;
+            const overtimeCompany = parsedOt.overtimeCompany;
+            
+            let otCompanyTotal = 0;
+            if (overtimeCompany && overtimeCompany.wage > 0) {
+              let otFactor = 1.0;
+              if (overtimeCompany.kdv) otFactor += 0.20;
+              if (overtimeCompany.tevkifat) otFactor += 0.02;
+              otCompanyTotal = overtimeCompany.wage * otFactor;
+            }
             
             let factor = 1.0;
             if (r.com_kdv) factor += 0.20;
             if (r.com_tevkifat) factor += 0.02;
-            let baseVal = factor > 0 ? (r.total_company_payment / factor) : (r.total_company_payment || 0);
+            let remainingPayment = Math.max(0, (r.total_company_payment || 0) - otCompanyTotal);
+            let baseVal = factor > 0 ? (remainingPayment / factor) : remainingPayment;
             baseVal = Math.round(baseVal * 100) / 100;
             
             const covers = work_records.filter(x => 
@@ -5355,11 +5344,6 @@
                 return cp ? cp.first_name : "Bilinmeyen";
               }).join(', ')})`;
             }
-            
-            // Parse dynamic company overtime from note
-            const parsedOt = parseOvertimeCompany(r.note);
-            const rawNoteCleaned = parsedOt.cleanNote;
-            const overtimeCompany = parsedOt.overtimeCompany;
             
             // Parse dynamic extras
             const parsed = parseExtrasNote(rawNoteCleaned);
@@ -5398,13 +5382,7 @@
                   <input class="spreadsheet-input" id="c-days-${rowId}" type="text" inputmode="numeric" placeholder="30" value="${cleanVal(r.work_days)}" oninput="onlyNum(this); onDaysInput('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 1)" />
                 </td>
                 <td>
-                  <select class="spreadsheet-select" id="c-wage-mode-${rowId}" onchange="onWageModeSpreadsheetChange('${rowId}')" onkeydown="handleSpreadsheetKey(event, '${rowId}', 2)">
-                    <option value="calculated" ${!isDirect ? 'selected' : ''}>Aylık Maaş</option>
-                    <option value="direct" ${isDirect ? 'selected' : ''}>Net Ödeme</option>
-                  </select>
-                </td>
-                <td>
-                  <input class="spreadsheet-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 3)" />
+                  <input class="spreadsheet-input" id="c-per-wage-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${pWage}" oninput="onlyNum(this); onOvertimeParamsChange('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 2)" />
                 </td>
                 <td style="text-align: center;">
                   <div class="spreadsheet-action-cell">
@@ -5417,23 +5395,23 @@
                   <input class="spreadsheet-input" id="c-net-payment-${rowId}" type="text" readonly value="${fmt(r.total_personnel_payment - r.advance_amount)}" />
                 </td>
                 <td>
-                  <input class="spreadsheet-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.total_company_payment)}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 6)" />
+                  <input class="spreadsheet-input" id="c-com-total-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${baseVal}" data-base-val="${baseVal}" oninput="onlyNum(this); onCardComTotalInput('${rowId}'); onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 5)" />
                 </td>
                 <td>
                   <label class="spreadsheet-checkbox-label">
-                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-kdv-${rowId}" ${r.com_kdv ? 'checked' : ''} onchange="onInputChanged();" />
                   </label>
                 </td>
                 <td>
                   <label class="spreadsheet-checkbox-label">
-                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="recalcCardComTotal('${rowId}'); onInputChanged();" />
+                    <input type="checkbox" class="spreadsheet-checkbox" id="c-com-tef-${rowId}" ${r.com_tevkifat ? 'checked' : ''} onchange="onInputChanged();" />
                   </label>
                 </td>
                 <td>
                   <input class="spreadsheet-input" id="c-com-total-calculated-${rowId}" type="text" readonly value="${fmt(r.total_company_payment)}" />
                 </td>
                 <td>
-                  <input class="spreadsheet-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChangeSpreadsheet('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 10)" />
+                  <input class="spreadsheet-input" id="c-annual-leave-${rowId}" type="text" inputmode="decimal" placeholder="0" value="${cleanVal(r.annual_leave)}" oninput="onlyNum(this); onLeaveChangeSpreadsheet('${rowId}');" onkeydown="handleSpreadsheetKey(event, '${rowId}', 9)" />
                 </td>
                 <td style="text-align: center;">
                   <div class="spreadsheet-action-cell">
@@ -5450,7 +5428,7 @@
                   </div>
                 </td>
                 <td>
-                  <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${cleanNoteText}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 13)" style="text-align: left;" />
+                  <input class="spreadsheet-input" id="c-not-${rowId}" type="text" placeholder="Not..." value="${cleanNoteText}" oninput="onInputChanged();" onkeydown="handleSpreadsheetKey(event, '${rowId}', 12)" style="text-align: left;" />
                 </td>
                 <td style="text-align: center;">
                   <div class="spreadsheet-action-cell">
@@ -5485,7 +5463,7 @@
             if (!rowId) continue;
             
             const work_days = parseFloat(document.getElementById(`c-days-${rowId}`).value) || 0;
-            const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
+            const wage_mode = 'direct';
             const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
             
             // Read avans/prim/deductions and dynamic extras from button dataset
@@ -5534,17 +5512,9 @@
             }
             const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
 
-            let base_payment = 0;
+            // Sadece Net Ödeme düzeni
+            let base_payment = input_wage;
             let personnel_daily_wage = 0;
-            
-            if (wage_mode === "calculated") {
-              personnel_daily_wage = input_wage / 30;
-              const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
-              base_payment = personnel_daily_wage * calcDays;
-            } else {
-              personnel_daily_wage = 0;
-              base_payment = input_wage;
-            }
             
             let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
             if (coverWageSum > 0) {
@@ -5556,7 +5526,10 @@
             let note = serializeExtrasNote(noteInput, extrasList);
             note = serializeOvertimeCompany(note, overtimeCompany);
             
-            const total_company_payment = parseFloat(document.getElementById(`c-com-total-${rowId}`).value) || 0;
+            // IMPORTANT FIX: Save the calculated final company total including KDV + Tevkifat + Overtime Company Payment
+            const calculatedComTotalEl = document.getElementById(`c-com-total-calculated-${rowId}`);
+            const total_company_payment = calculatedComTotalEl ? parseFmtVal(calculatedComTotalEl.value) : 0;
+            
             const kdvCb = document.getElementById(`c-com-kdv-${rowId}`);
             const tefCb = document.getElementById(`c-com-tef-${rowId}`);
             const com_kdv = kdvCb ? kdvCb.checked : false;
@@ -5631,10 +5604,6 @@
           const rowId = row.getAttribute('data-row-id');
           if (!rowId) return;
           
-          const daysInput = document.getElementById(`c-days-${rowId}`);
-          if (!daysInput) return;
-          const work_days = parseFloat(daysInput.value) || 0;
-          const wage_mode = document.getElementById(`c-wage-mode-${rowId}`).value;
           const input_wage = parseFloat(document.getElementById(`c-per-wage-${rowId}`).value) || 0;
           
           // Read from dataset
@@ -5673,8 +5642,6 @@
             try { overtimeCompany = JSON.parse(otBtn.dataset.company || '{}'); } catch(e){}
           }
           
-          const annual_leave = document.getElementById(`c-annual-leave-${rowId}`) ? (parseFloat(document.getElementById(`c-annual-leave-${rowId}`).value) || 0) : 0;
-          
           const btn = document.getElementById(`c-cover-btn-${rowId}`);
           let coversList = [];
           if (btn && btn.dataset.covers) {
@@ -5682,13 +5649,8 @@
           }
           const coverWageSum = coversList.reduce((sum, item) => sum + item.coverWage, 0);
           
-          let base_payment = 0;
-          if (wage_mode === "calculated") {
-            const calcDays = (coverWageSum > 0) ? (work_days + annual_leave) : work_days;
-            base_payment = (input_wage / 30) * calcDays;
-          } else {
-            base_payment = input_wage;
-          }
+          // Net Ödeme Mode
+          let base_payment = input_wage;
           
           let total_personnel_payment = base_payment + overtime_wage + premium - deductions;
           if (coverWageSum > 0) {
