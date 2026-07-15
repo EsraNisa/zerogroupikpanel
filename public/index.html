@@ -5008,6 +5008,7 @@
       }
 
       let opHasUnsavedChanges = false;
+      let isSavingOp = false;
       let opEditModeActive = false;
       function toggleOpEditMode(active) {
         let targetActive = active;
@@ -5795,6 +5796,9 @@
         const tbody = document.getElementById("spreadsheet-tbody");
         if (!tbody) return;
         
+        isSavingOp = true;
+        opHasUnsavedChanges = false;
+        
         const rows = tbody.querySelectorAll('.spreadsheet-row');
         const saveBtn = document.getElementById("btn-save-all-op");
         if (saveBtn) {
@@ -5927,12 +5931,15 @@
           
           toast("Tüm operasyon kayıtları güncellendi ✓");
           opHasUnsavedChanges = false;
+          isSavingOp = false;
           toggleOpEditMode(false);
           await loadAll();
           renderOperasyonCockpit();
         } catch (err) {
           toast("Hata: " + err.message, "err");
         } finally {
+          isSavingOp = false;
+          opHasUnsavedChanges = false;
           if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.textContent = "✓ Tümünü Kaydet";
@@ -7424,6 +7431,7 @@ async function moveCompanyDown(id) {
       }
 
       function onInputChanged() {
+        if (isSavingOp) return;
         var cb = document.getElementById("calc-btns");
         if (cb) cb.style.display = "flex";
         var cfb = document.getElementById("confirm-btns");
