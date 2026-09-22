@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "serve public -p 3001",
-    "dev": "serve public -p 3001",
-    "build": "node build.cjs"
+    "dev": "serve public -p 3001"
   },
   "dependencies": {
     "serve": "^14.2.4"
