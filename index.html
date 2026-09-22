@@ -1996,10 +1996,10 @@
             <!-- Subtab Navigation Bar -->
             <div style="display: flex; gap: 10px; margin-bottom: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;">
               <button id="btn-subtab-calisanlar" class="btn btn-sm" onclick="switchPersonnelSubTab('calisanlar')" style="font-weight: 800; font-size: 13px; padding: 8px 16px; background: #1e3a5f; color: #fff; border-radius: 8px;">
-                👷 Kayıtlı Çalışanlar (<span id="p-count">0 kayıt</span>)
+                👷 Kayıtlı Personel (<span id="p-count">0 kayıt</span>)
               </button>
               <button id="btn-subtab-gorusulenler" class="btn btn-sm btn-secondary" onclick="switchPersonnelSubTab('gorusulenler')" style="font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 8px;">
-                🗣️ Görüşülenler (Adaylar & Notlar) (<span id="candidate-count">0 kişi</span>)
+                🗣️ Görüşülen Personel (<span id="candidate-count">0 kişi</span>)
               </button>
             </div>
 
@@ -2048,7 +2048,7 @@
             <div id="subtab-gorusulenler-content" style="display: none;">
               <div class="toolbar" style="margin-bottom: 14px; display: flex; gap: 10px; align-items: center; background: #eff6ff; padding: 12px; border-radius: 10px; border: 1px solid #dbeafe;">
                 <button class="btn btn-primary" onclick="openCandidateModal()" style="font-weight: 700; background: #2563eb;">
-                  + Yeni Görüşülen Ekle
+                  + Yeni Görüşme Ekle
                 </button>
                 <input
                   id="candidate-search-input"
@@ -2755,6 +2755,17 @@
               </tbody>
             </table>
           </div>
+          <!-- Personel Notları Bölümü -->
+          <div style="margin-top: 18px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+            <div style="font-weight: 800; font-size: 13px; color: #1e3a5f; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+              <span>📝 Personel Hakkında Notlar:</span>
+            </div>
+            <textarea id="per-notes-input" class="form-control" rows="4" placeholder="Bu personel hakkında notlarınızı buraya yazabilirsiniz..." style="font-size: 13px; width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-family: inherit;"></textarea>
+            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+              <button class="btn btn-primary" onclick="savePersonnelNotes()" style="font-weight: 700; background: #2563eb; color: #fff; padding: 6px 18px; border-radius: 6px;">💾 Notu Kaydet</button>
+            </div>
+          </div>
+
         </div>
         <div class="modal-footer">
           <button class="btn" onclick="closeM('modal-per-history')">Kapat</button>
@@ -9987,6 +9998,295 @@ async function delOpRecord(rowId) {
       window.updateCompanyGroupTotalsUI = typeof updateCompanyGroupTotalsUI !== 'undefined' ? updateCompanyGroupTotalsUI : null;
       window.quickAddPersonnelToCompany = typeof quickAddPersonnelToCompany !== 'undefined' ? quickAddPersonnelToCompany : null;
       window.delOpRecord = typeof delOpRecord !== 'undefined' ? delOpRecord : null;
+
+      
+      // ============================================================
+      // ENHANCED PERSONNEL & CANDIDATE WORKFLOW
+      // ============================================================
+
+      function viewPersonnelDetail(id) {
+        currentActivePerId = id;
+        const p = personnel.find(x => x.id == id);
+        if (!p) return;
+
+        const titleEl = document.getElementById("modal-per-history-title");
+        if (titleEl) {
+          titleEl.textContent = `${p.first_name} ${p.last_name} (${p.position || 'Personel'})`;
+        }
+
+        const notesInput = document.getElementById("per-notes-input");
+        if (notesInput) {
+          notesInput.value = p.notes || "";
+        }
+
+        // Filter work records for this personnel from aylık operasyon
+        let records = work_records.filter(r => r.personnel_id == id && !r.archived);
+        records.sort((a, b) => {
+          if (!a.start_day) return 1;
+          if (!b.start_day) return -1;
+          return new Date(b.start_day) - new Date(a.start_day);
+        });
+
+        let tbody = document.getElementById("per-history-tbody");
+        if (tbody) {
+          if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#94a3b8">Bu personele ait aylık operasyon kaydı bulunamadı.</td></tr>';
+          } else {
+            tbody.innerHTML = records.map(r => {
+              let start = r.start_day ? new Date(r.start_day) : null;
+              let periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+              let c = companies.find(x => x.id == r.company_id);
+              let cName = c ? c.company_name : "Bilinmeyen Kurum";
+              let days = r.work_days || 0;
+              let monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
+              let advance = parseFloat(r.advance_amount || 0);
+              let netPer = parseFloat(r.total_personnel_payment || r.personnel_payment || 0);
+              let pB = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
+              let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
+
+              return `
+                <tr>
+                  <td style="font-weight:700;">${periodText}</td>
+                  <td>${cName}</td>
+                  <td style="text-align:center;">${days} gün</td>
+                  <td style="text-align:right;">${fmt(monthlyWage)}</td>
+                  <td style="text-align:right; color:#dc2626;">${fmt(advance)}</td>
+                  <td style="text-align:right; font-weight:700; color:#1d4ed8;">${fmt(netPer)}</td>
+                  <td><span class="badge ${pB}">${r.personnel_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+                  <td><span class="badge ${cB}">${r.company_payment_status === 'odendi' ? 'Ödendi' : 'Bekliyor'}</span></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+
+        openM("modal-per-history");
+      }
+
+      async function savePersonnelNotes() {
+        if (!currentActivePerId) return;
+        const notesInput = document.getElementById("per-notes-input");
+        const notes = notesInput ? notesInput.value : "";
+
+        try {
+          await api.patch(`/admin/personnel/${currentActivePerId}`, { notes });
+          const p = personnel.find(x => x.id == currentActivePerId);
+          if (p) p.notes = notes;
+          toast("Personel notu başarıyla kaydedildi ✓");
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      // Transfer Candidate to Registered Personnel
+      async function transferCandidateToPersonnel(candidateId) {
+        const cand = candidateList.find(x => x.id == candidateId);
+        if (!cand) return;
+
+        if (!confirm(`${cand.full_name} isimli görüşülen kişiyi Kayıtlı Personellere aktarmak ve işe başlatmak istiyor musunuz?`)) {
+          return;
+        }
+
+        const nameParts = (cand.full_name || "").trim().split(" ");
+        const firstName = nameParts[0] || cand.full_name;
+        const lastName = nameParts.slice(1).join(" ") || "";
+
+        try {
+          const newPerPayload = {
+            first_name: firstName,
+            last_name: lastName,
+            phone: cand.phone || "",
+            position: cand.position || "Personel",
+            daily_wage: 0,
+            iban: "",
+            hire_date: new Date().toISOString().split("T")[0],
+            notes: cand.notes ? `[Mülakat Notu]: ${cand.notes}` : ""
+          };
+
+          const created = await api.post("/admin/personnel", newPerPayload);
+          if (created && created.id) {
+            personnel.push(created);
+          } else {
+            newPerPayload.id = Date.now();
+            personnel.push(newPerPayload);
+          }
+
+          // Remove from candidates
+          try {
+            await api.delete(`/candidates/${candidateId}`);
+          } catch(err) {}
+
+          candidateList = candidateList.filter(x => x.id != candidateId);
+          localStorage.setItem("ik_candidates", JSON.stringify(candidateList));
+
+          toast(`${cand.full_name} başarıyla Kayıtlı Personellere aktarıldı ✓`);
+          renderPersonnel();
+          renderCandidateList();
+          switchPersonnelSubTab('calisanlar');
+        } catch (e) {
+          toast("Aktarma hatası: " + e.message, "err");
+        }
+      }
+
+      // Quick add supporting both registered personnel and candidate transfer
+      async function quickAddPersonnelToCompany(companyId, selectVal) {
+        if (!selectVal) return;
+
+        let targetPersonnelId = null;
+
+        if (selectVal.startsWith("cand_")) {
+          const candId = selectVal.replace("cand_", "");
+          const cand = candidateList.find(x => x.id == candId);
+          if (!cand) return;
+
+          // Automatically transfer candidate to registered personnel!
+          const nameParts = (cand.full_name || "").trim().split(" ");
+          const firstName = nameParts[0] || cand.full_name;
+          const lastName = nameParts.slice(1).join(" ") || "";
+
+          try {
+            const newPerPayload = {
+              first_name: firstName,
+              last_name: lastName,
+              phone: cand.phone || "",
+              position: cand.position || "Personel",
+              daily_wage: 0,
+              iban: "",
+              hire_date: new Date().toISOString().split("T")[0],
+              notes: cand.notes ? `[Görüşülen Aktarımı]: ${cand.notes}` : ""
+            };
+
+            const created = await api.post("/admin/personnel", newPerPayload);
+            const savedPer = (created && created.id) ? created : { ...newPerPayload, id: Date.now() };
+            personnel.push(savedPer);
+            targetPersonnelId = savedPer.id;
+
+            // Remove from candidates
+            try {
+              await api.delete(`/candidates/${candId}`);
+            } catch(e) {}
+            candidateList = candidateList.filter(x => x.id != candId);
+            localStorage.setItem("ik_candidates", JSON.stringify(candidateList));
+            
+            toast(`${cand.full_name} görüşülenlerden kayıtlı personele aktarıldı ve işe eklendi ✓`);
+            renderPersonnel();
+            renderCandidateList();
+          } catch (err) {
+            toast("Personel oluşturma hatası: " + err.message, "err");
+            return;
+          }
+        } else if (selectVal.startsWith("per_")) {
+          targetPersonnelId = selectVal.replace("per_", "");
+        } else {
+          targetPersonnelId = selectVal;
+        }
+
+        const opYilEl = document.getElementById("op-yil");
+        const opAyEl = document.getElementById("op-ay");
+        const y = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+        const m = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
+
+        const startDay = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+        const lastDayOfMonth = new Date(y, m + 1, 0).getDate();
+        const endDay = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
+
+        const p = personnel.find(x => x.id == targetPersonnelId);
+        const dailyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+        const workDays = countWorkdays(y, m);
+        const netWage = Math.round(workDays * dailyWage * 100) / 100;
+
+        const payload = {
+          personnel_id: targetPersonnelId,
+          company_id: companyId,
+          start_day: startDay,
+          end_day: endDay,
+          work_days: workDays,
+          net_wage: netWage,
+          advance_amount: 0,
+          extra_amount: 0,
+          total_company_payment: 0,
+          personnel_payment: netWage,
+          personnel_payment_status: 'bekliyor',
+          company_payment_status: 'bekliyor',
+          is_recurring: true
+        };
+
+        try {
+          const res = await api.post('/admin/work_records', payload);
+          if (res) {
+            work_records.push(res);
+            toast("Personel kuruma başarıyla eklendi ✓");
+            renderOperasyonCockpit();
+          }
+        } catch (e) {
+          toast("Hata: " + e.message, "err");
+        }
+      }
+
+      // Filter Candidates across name, notes, phone, position
+      function filterCandidatesList(query = "") {
+        renderCandidateList(query);
+      }
+
+      function renderCandidateList(query = "") {
+        const tbody = document.getElementById("candidate-tbody");
+        const countEl = document.getElementById("candidate-count");
+        if (!tbody) return;
+
+        let filtered = candidateList;
+        if (query && query.trim()) {
+          const q = query.trim().toLowerCase();
+          filtered = candidateList.filter(c => 
+            (c.full_name || "").toLowerCase().includes(q) ||
+            (c.notes || "").toLowerCase().includes(q) ||
+            (c.position || "").toLowerCase().includes(q) ||
+            (c.phone || "").toLowerCase().includes(q)
+          );
+        }
+
+        if (countEl) countEl.textContent = `${filtered.length} kişi`;
+
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 25px; color: #94a3b8;">Arama kriterine uygun görüşülen kaydı bulunamadı.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(c => {
+          let statusBadge = '<span class="badge badge-yellow">⏳ Beklemede</span>';
+          if (c.status === 'olumlu') statusBadge = '<span class="badge badge-green">✅ Olumlu</span>';
+          if (c.status === 'olumsuz') statusBadge = '<span class="badge badge-red">❌ Olumsuz</span>';
+
+          const formattedNotes = (c.notes || '—').replace(/\n/g, '<br/>');
+
+          return `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 10px 12px; font-weight: 700; color: #1e3a5f;">${c.full_name || '—'}</td>
+              <td style="padding: 10px 12px; font-weight: 600;">${c.age || '—'}</td>
+              <td style="padding: 10px 12px; color: #475569;">${c.position || '—'}</td>
+              <td style="padding: 10px 12px; color: #64748b;">${c.phone || '—'}</td>
+              <td style="padding: 10px 12px; color: #64748b;">${fmtDate(c.interview_date)}</td>
+              <td style="padding: 10px 12px;">${statusBadge}</td>
+              <td style="padding: 10px 12px; font-size: 12px; color: #334155; max-width: 320px; line-height: 1.4;">
+                <div style="max-height: 85px; overflow-y: auto; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; font-size: 12px;">
+                  ${formattedNotes}
+                </div>
+              </td>
+              <td style="padding: 10px 12px; text-align: center; white-space: nowrap;">
+                <button class="btn btn-sm" onclick="transferCandidateToPersonnel('${c.id}')" style="font-weight: 800; font-size: 11px; padding: 4px 8px; background: #16a34a; color: #fff; border: none; margin-right: 4px;" title="Kayıtlı Personele Aktar ve İşe Başlat">💼 İşe Başlat</button>
+                <button class="btn btn-sm btn-secondary" onclick="openCandidateModal('${c.id}')" style="font-weight: 700; font-size: 11px; padding: 4px 8px; margin-right: 4px;">✏️ Düzenle</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCandidate('${c.id}')" style="font-size: 11px; padding: 4px 8px;">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      window.viewPersonnelDetail = viewPersonnelDetail;
+      window.savePersonnelNotes = savePersonnelNotes;
+      window.transferCandidateToPersonnel = transferCandidateToPersonnel;
+      window.quickAddPersonnelToCompany = quickAddPersonnelToCompany;
+      window.filterCandidatesList = filterCandidatesList;
+      window.renderCandidateList = renderCandidateList;
 
       // START
       // ============================================================
