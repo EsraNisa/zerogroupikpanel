@@ -5,7 +5,7 @@
   "scripts": {
     "start": "serve public -p 3001",
     "dev": "serve public -p 3001",
-    "build": "echo build ok"
+    "build": "node build.cjs"
   },
   "dependencies": {
     "serve": "^14.2.4"
