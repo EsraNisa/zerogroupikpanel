@@ -1639,6 +1639,7 @@
           
           
           
+          
           <div class="page" id="page-hatirlatici">
             <!-- Add Reminder / Note Card -->
             <div class="card" style="margin-bottom: 16px;">
@@ -3316,7 +3317,7 @@ window.startUserRemindersChecker = function startUserRemindersChecker() {
 // ============================================================
 // 2. PERSONNEL DETAIL & NOTES MODAL JS
 // ============================================================
-let currentActivePerId = null;
+var currentActivePerId = null;
 
 function viewPersonnelDetail(id) {
   currentActivePerId = id;
@@ -3413,7 +3414,7 @@ async function savePersonnelDetailNotes() {
 // ============================================================
 // 3. COMPANY DETAIL & NOTES MODAL JS
 // ============================================================
-let currentActiveComId = null;
+var currentActiveComId = null;
 
 function viewCompanyDetail(id) {
   currentActiveComId = id;
@@ -4052,6 +4053,251 @@ window.deleteUserReminder = function deleteUserReminder(id) {
   if (typeof renderPageRemindersTable === "function") renderPageRemindersTable();
   if (typeof toast === "function") toast("Hatırlatıcı silindi ✓");
 };
+
+
+// ============================================================
+// 1. RENDER PERSONNEL LIST & DETAILS
+// ============================================================
+function renderPersonnel() {
+  const tbody = document.getElementById("personel-tbody");
+  const countEl = document.getElementById("p-count");
+  if (!tbody) return;
+
+  if (countEl) countEl.textContent = personnel.length + " kayıt";
+  if (!personnel.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Henüz personel eklenmedi</div></div></td></tr>';
+    return;
+  }
+
+  const opYilEl = document.getElementById("op-yil");
+  const opAyEl = document.getElementById("op-ay");
+  const selectedYear = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+  const selectedMonth = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
+
+  tbody.innerHTML = personnel.map((p, i) => {
+    let tg = work_records
+      .filter((r) => {
+        if (r.personnel_id != p.id || r.archived || !r.start_day) return false;
+        const ym = getYearMonth(r.start_day);
+        return ym.year === selectedYear && ym.month === selectedMonth;
+      })
+      .reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
+    tg = Math.round(tg * 100) / 100;
+
+    return `
+      <tr>
+        <td>
+          <div class="person-cell" onclick="viewPersonnelDetail('${p.id}')" style="cursor:pointer;" title="İş geçmişini ve notlarını görüntüle">
+            <div class="avatar ${avCol(i)}">${initials(p.first_name + " " + p.last_name)}</div>
+            <div style="font-weight:700;color:#2563eb;text-decoration:none;">${p.first_name} ${p.last_name}</div>
+          </div>
+        </td>
+        <td>${p.position ? `<span class="badge badge-blue">${p.position}</span>` : "—"}</td>
+        <td style="font-weight:700;white-space:nowrap">${fmt(p.daily_wage)}<span style="font-size:10px;color:#94a3b8">/ay</span></td>
+        <td style="color:#64748b">${p.phone || "—"}</td>
+        <td style="font-size:10px;color:#64748b;font-family:monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis">${p.iban || "—"}</td>
+        <td style="color:#64748b">${fmtDate(p.hire_date)}</td>
+        <td style="font-weight:700">${tg}</td>
+        <td style="white-space:nowrap; text-align:center;">
+          <button class="btn btn-sm" onclick="viewPersonnelDetail('${p.id}')" style="background:#1e3a5f; color:#fff; font-size:11px;">📝 Not / Detay</button>
+          <button class="btn btn-sm" onclick="openPersonelModal('${p.id}')" style="margin-left:2px;">Düzenle</button>
+          <button class="btn btn-sm btn-danger" onclick="delPer('${p.id}')" style="margin-left:2px;">Sil</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+
+
+function viewPersonnelDetail(id) {
+  currentActivePerId = id;
+  const p = personnel.find(x => x.id == id);
+  if (!p) return;
+
+  const nameEl = document.getElementById("modal-per-detail-name");
+  const subEl = document.getElementById("modal-per-detail-sub");
+  const avatarEl = document.getElementById("modal-per-avatar");
+  const notesInput = document.getElementById("per-detail-notes-input");
+
+  if (nameEl) nameEl.textContent = `${p.first_name} ${p.last_name}`;
+  if (subEl) subEl.textContent = `${p.position || "Pozisyon yok"} • Tel: ${p.phone || "—"} • İşe Giriş: ${fmtDate(p.hire_date)}`;
+  if (avatarEl) avatarEl.textContent = initials(`${p.first_name} ${p.last_name}`);
+  if (notesInput) notesInput.value = p.notes || "";
+
+  // Render History Tab
+  const tbody = document.getElementById("per-detail-history-tbody");
+  if (tbody) {
+    const records = work_records.filter(r => r.personnel_id == id);
+    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
+
+    if (records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:#94a3b8;">Bu personele ait çalışma kaydı bulunamadı.</td></tr>';
+    } else {
+      tbody.innerHTML = records.map(r => {
+        const start = r.start_day ? new Date(r.start_day) : null;
+        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+        const c = companies.find(x => x.id == r.company_id);
+        const cName = c ? c.company_name : "Bilinmeyen Kurum";
+        const days = r.work_days || 0;
+        const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
+        const advance = parseFloat(r.advance_amount || 0);
+        const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
+        const statusText = r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
+        const statusBadge = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${periodText}</td>
+            <td>🏢 ${cName}</td>
+            <td style="text-align:center; font-weight:700;">${days} gün</td>
+            <td style="font-weight:600;">${fmt(monthlyWage)}</td>
+            <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
+            <td style="font-weight:700; color:#16a34a;">${fmt(netPer)}</td>
+            <td><span class="badge ${statusBadge}">${statusText}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  switchPerDetailTab('notes');
+  openM("modal-per-detail");
+}
+
+function switchPerDetailTab(tab) {
+  const tabHist = document.getElementById("per-detail-tab-history");
+  const tabNotes = document.getElementById("per-detail-tab-notes");
+  const btnHist = document.getElementById("tab-btn-per-history");
+  const btnNotes = document.getElementById("tab-btn-per-notes");
+
+  if (tab === 'history') {
+    if (tabHist) tabHist.style.display = "block";
+    if (tabNotes) tabNotes.style.display = "none";
+    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
+    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
+  } else {
+    if (tabHist) tabHist.style.display = "none";
+    if (tabNotes) tabNotes.style.display = "block";
+    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
+    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
+  }
+}
+
+async function savePersonnelDetailNotes() {
+  if (!currentActivePerId) return;
+  const notesInput = document.getElementById("per-detail-notes-input");
+  const noteText = notesInput ? notesInput.value.trim() : "";
+
+  try {
+    await api.patch(`/admin/personnel/${currentActivePerId}`, { notes: noteText });
+    const p = personnel.find(x => x.id == currentActivePerId);
+    if (p) p.notes = noteText;
+    toast("Personel notu kaydedildi ✓");
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+
+// ============================================================
+// 2. RENDER COMPANY LIST & DETAILS
+// ============================================================
+
+
+function viewCompanyDetail(id) {
+  currentActiveComId = id;
+  const c = companies.find(x => x.id == id);
+  if (!c) return;
+
+  const nameEl = document.getElementById("modal-com-detail-name");
+  const subEl = document.getElementById("modal-com-detail-sub");
+  const notesInput = document.getElementById("com-detail-notes-input");
+
+  if (nameEl) nameEl.textContent = c.company_name;
+  if (subEl) subEl.textContent = `Yetkili: ${c.contact_person || "—"} • Tel: ${c.phone || "—"} • Adres: ${c.address || "—"}`;
+  if (notesInput) notesInput.value = c.notes || "";
+
+  // Render Personnel History Tab
+  const tbody = document.getElementById("com-detail-history-tbody");
+  if (tbody) {
+    const records = work_records.filter(r => r.company_id == id);
+    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
+
+    if (records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px; color:#94a3b8;">Bu kuruma ait çalışma kaydı bulunamadı.</td></tr>';
+    } else {
+      tbody.innerHTML = records.map(r => {
+        const start = r.start_day ? new Date(r.start_day) : null;
+        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+        const p = personnel.find(x => x.id == r.personnel_id);
+        const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
+        const pPos = p ? p.position : "—";
+        const days = r.work_days || 0;
+        const comPay = parseFloat(r.total_company_payment || 0);
+        const statusText = r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
+        const statusBadge = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${periodText}</td>
+            <td style="font-weight:700; color:#2563eb;">👤 ${pNameStr}</td>
+            <td>${pPos}</td>
+            <td style="text-align:center; font-weight:700;">${days} gün</td>
+            <td style="font-weight:700; color:#15803d;">${fmt(comPay)}</td>
+            <td><span class="badge ${statusBadge}">${statusText}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  switchComDetailTab('history');
+  openM("modal-com-detail");
+}
+
+function switchComDetailTab(tab) {
+  const tabHist = document.getElementById("com-detail-tab-history");
+  const tabNotes = document.getElementById("com-detail-tab-notes");
+  const btnHist = document.getElementById("tab-btn-com-history");
+  const btnNotes = document.getElementById("tab-btn-com-notes");
+
+  if (tab === 'history') {
+    if (tabHist) tabHist.style.display = "block";
+    if (tabNotes) tabNotes.style.display = "none";
+    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
+    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
+  } else {
+    if (tabHist) tabHist.style.display = "none";
+    if (tabNotes) tabNotes.style.display = "block";
+    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
+    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
+  }
+}
+
+async function saveCompanyDetailNotes() {
+  if (!currentActiveComId) return;
+  const notesInput = document.getElementById("com-detail-notes-input");
+  const noteText = notesInput ? notesInput.value.trim() : "";
+
+  try {
+    await api.patch(`/admin/companies/${currentActiveComId}`, { notes: noteText });
+    const c = companies.find(x => x.id == currentActiveComId);
+    if (c) c.notes = noteText;
+    toast("Kurum notu kaydedildi ✓");
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+// Bind to window
+window.renderPersonnel = renderPersonnel;
+window.viewPersonnelDetail = viewPersonnelDetail;
+window.switchPerDetailTab = switchPerDetailTab;
+window.savePersonnelDetailNotes = savePersonnelDetailNotes;
+window.viewCompanyDetail = viewCompanyDetail;
+window.switchComDetailTab = switchComDetailTab;
+window.saveCompanyDetailNotes = saveCompanyDetailNotes;
 
 </script>
   
