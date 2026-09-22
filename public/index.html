@@ -4506,6 +4506,107 @@
 
       
       // (Old renderOperasyonCockpit removed - replaced by upgraded version below)
+      
+      // ============================================================
+      // OPERASYON & OVERTIME / SUBSTITUTE HELPERS
+      // ============================================================
+      let opEditModeActive = false;
+
+      function toggleOpEditMode(active) {
+        if (active === undefined) {
+          opEditModeActive = !opEditModeActive;
+        } else {
+          opEditModeActive = active;
+        }
+        
+        const cockpitView = document.getElementById("operasyon-cockpit-view");
+        const editView = document.getElementById("operasyon-edit-view");
+        const toggleBtn = document.getElementById("btn-toggle-op-edit");
+        
+        if (opEditModeActive) {
+          if (cockpitView) cockpitView.style.display = "none";
+          if (editView) editView.style.display = "block";
+          if (toggleBtn) {
+            toggleBtn.textContent = "📊 Kokpit Görünümüne Dön";
+            toggleBtn.classList.remove("btn-primary");
+            toggleBtn.classList.add("btn-secondary");
+          }
+          if (typeof renderOperasyonEditMode === 'function') renderOperasyonEditMode();
+        } else {
+          if (cockpitView) cockpitView.style.display = "block";
+          if (editView) editView.style.display = "none";
+          if (toggleBtn) {
+            toggleBtn.textContent = "✍️ Bu Ayki Çalışmaları Gir";
+            toggleBtn.classList.remove("btn-secondary");
+            toggleBtn.classList.add("btn-primary");
+          }
+          if (typeof renderOperasyonCockpit === 'function') renderOperasyonCockpit();
+        }
+      }
+
+      function parseExtrasNote(noteStr) {
+        if (!noteStr) return { cleanNote: "", extras: [] };
+        const match = noteStr.match(/__EXTRAS:([.*?])__/);
+        if (match) {
+          try {
+            const extras = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__EXTRAS:([.*?])__/, '').trim();
+            return { cleanNote, extras };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, extras: [] };
+      }
+
+      function serializeExtrasNote(cleanNote, extrasList) {
+        const cleaned = (cleanNote || "").replace(/__EXTRAS:([.*?])__/, '').trim();
+        if (!extrasList || extrasList.length === 0) return cleaned;
+        return `__EXTRAS:${JSON.stringify(extrasList)}__ ${cleaned}`.trim();
+      }
+
+      function parseOvertimeCompany(noteStr) {
+        if (!noteStr) return { cleanNote: "", overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+        const match = noteStr.match(/__OVERTIME_COMPANY:({.*?})__/);
+        if (match) {
+          try {
+            const overtimeCompany = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__OVERTIME_COMPANY:({.*?})__/, '').trim();
+            return { cleanNote, overtimeCompany };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+      }
+
+      function serializeOvertimeCompany(cleanNote, overtimeCompany) {
+        const cleaned = (cleanNote || "").replace(/__OVERTIME_COMPANY:({.*?})__/, '').trim();
+        if (!overtimeCompany || !overtimeCompany.wage) return cleaned;
+        return `__OVERTIME_COMPANY:${JSON.stringify(overtimeCompany)}__ ${cleaned}`.trim();
+      }
+
+      function parseSubstituteNote(noteStr) {
+        if (!noteStr) return null;
+        const match = noteStr.match(/__SUB_FOR_PID:(\d+)__DAYS:([\d\.]+)__ORIG_DAILY:([\d\.]+)__NOTE:(.*?)__/);
+        if (match) {
+          return {
+            originalPersonnelId: match[1],
+            days: parseFloat(match[2]),
+            origDailyWage: parseFloat(match[3]),
+            subNote: match[4]
+          };
+        }
+        return null;
+      }
+
+      window.toggleOpEditMode = toggleOpEditMode;
+      window.parseExtrasNote = parseExtrasNote;
+      window.serializeExtrasNote = serializeExtrasNote;
+      window.parseOvertimeCompany = parseOvertimeCompany;
+      window.serializeOvertimeCompany = serializeOvertimeCompany;
+      window.parseSubstituteNote = parseSubstituteNote;
+
       function renderOperasyonEditMode() {
         const tbody = document.getElementById("spreadsheet-tbody");
         if (!tbody) return;
