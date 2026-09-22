@@ -1636,82 +1636,66 @@
           </div>
 
           <!-- HATIRLATICI -->
+          
           <div class="page" id="page-hatirlatici">
-            <!-- Settings Alerts (Tarih bazlı uyarılar - Gizlendi) -->
-            <div id="settings-alerts" style="display: none; margin-bottom: 14px;"></div>
-            
-            <div class="card">
-              <div class="card-head" style="background: #eff6ff; border-bottom: 1px solid #dbeafe; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;">
-                <span class="card-title" style="color: #1e40af; display: flex; align-items: center; gap: 6px; margin: 0;">🔔 Sistem Bildirimleri & Eksikler (Genel)</span>
-                <div style="display: flex; gap: 8px;">
-                  <button class="btn btn-sm btn-danger" onclick="dismissAllAlerts()" style="font-size: 11px; padding: 4px 10px; font-weight: 700; height: auto;">Tümünü Kaldır</button>
-                  <button class="btn btn-sm" onclick="resetDismissedAlerts()" style="font-size: 11px; padding: 4px 10px; font-weight: 700; height: auto; background: #cbd5e1; color: #334155; border: 1px solid #cbd5e1;">Sıfırla</button>
+            <!-- Add Reminder / Note Card -->
+            <div class="card" style="margin-bottom: 16px;">
+              <div class="card-head" style="background: #1e3a5f; color: #fff; padding: 12px 16px; border-radius: 12px 12px 0 0;">
+                <span class="card-title" style="color: #fff; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800;">
+                  ⏰ Yeni Hatırlatıcı / Özel Not Ekle
+                </span>
+              </div>
+              <div class="card-body" style="padding: 16px;">
+                <div class="form-grid g3" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div>
+                    <label style="font-weight: 700; font-size: 12px; display: block; margin-bottom: 4px;">Hatırlatılacak Not / Konu Metni:*</label>
+                    <input type="text" id="page-rem-note" class="form-control" placeholder="Hatırlatma notunuzu giriniz (örn. Firma ödeme kontrolü, sözleşme takibi...)" />
+                  </div>
+                  <div>
+                    <label style="font-weight: 700; font-size: 12px; display: block; margin-bottom: 4px;">Hatırlatılacak Tarih & Saat:*</label>
+                    <input type="datetime-local" id="page-rem-date" class="form-control" />
+                  </div>
+                  <div>
+                    <label style="font-weight: 700; font-size: 12px; display: block; margin-bottom: 4px;">İlişkili Ödeme (Opsiyonel):</label>
+                    <select id="page-rem-payment-select" class="form-control">
+                      <option value="">İlişkili Ödeme Seçiniz (İsteğe Bağlı)...</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                  <button class="btn btn-primary" onclick="addPageReminder()" style="font-weight: 700; padding: 8px 16px;">
+                    + Hatırlatıcı / Not Ekle
+                  </button>
                 </div>
               </div>
-              <div style="padding: 16px 18px;" id="hatirlatici-alerts-container">
-                <!-- Dynamic alerts will go here -->
-              </div>
             </div>
-          </div>
 
-          <!-- KONTROL PANELI -->
-          <div class="page" id="page-kontrol">
-            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569;">Dönem Seç:</span>
-                <select id="kon-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderKontrol()"></select>
-                <select id="kon-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderKontrol()">
-                  <option value="0">Ocak</option>
-                  <option value="1">Şubat</option>
-                  <option value="2">Mart</option>
-                  <option value="3">Nisan</option>
-                  <option value="4">Mayıs</option>
-                  <option value="5">Haziran</option>
-                  <option value="6">Temmuz</option>
-                  <option value="7">Ağustos</option>
-                  <option value="8">Eylül</option>
-                  <option value="9">Ekim</option>
-                  <option value="10">Kasım</option>
-                  <option value="11">Aralık</option>
-                </select>
+            <!-- Reminder List Card -->
+            <div class="card">
+              <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                <span class="card-title" style="font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+                  📋 Tüm Hatırlatıcılar ve Not Listeniz
+                </span>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-secondary" onclick="filterPageReminders('all')" id="btn-rem-filter-all" style="font-weight:700; background:#1e3a5f; color:#fff;">Tümü</button>
+                  <button class="btn btn-sm btn-secondary" onclick="filterPageReminders('active')" id="btn-rem-filter-active" style="font-weight:700;">Aktif</button>
+                  <button class="btn btn-sm btn-secondary" onclick="filterPageReminders('completed')" id="btn-rem-filter-completed" style="font-weight:700;">Tamamlanan</button>
+                </div>
               </div>
-              <div>
-                <button class="btn btn-primary" onclick="downloadKontrolAsPDF()">
-                  📄 PDF Olarak İndir
-                </button>
-              </div>
-            </div>
-            
-            <!-- Summary Stats for Selected Month -->
-            <div id="kontrol-stats" style="margin-bottom: 14px;"></div>
-
-            <div class="card" id="kontrol-table-card">
-              <div class="card-head">
-                <span class="card-title">Toplu Kontrol Listesi</span>
-              </div>
-              <div class="table-wrap" style="padding: 10px;" id="kontrol-table-wrap">
-                <div id="kontrol-print-container" style="background: #fff; padding: 15px; border-radius: 8px;">
-                  <div style="margin-bottom: 15px; display: none;" id="kontrol-print-header">
-                    <h2 style="font-size: 18px; color: #0f172a; font-weight: 800;">ZERO İK PANELİ</h2>
-                    <h3 style="font-size: 13px; color: #64748b; margin-top: 4px;" id="kontrol-print-subheader">Toplu Kontrol Tablosu</h3>
-                  </div>
-                  <table style="width: 100%; border-collapse: collapse; font-size: 11px;" id="kontrol-table">
+              <div class="card-body" style="padding: 0;">
+                <div style="overflow-x: auto;">
+                  <table class="data-table" style="width: 100%; font-size: 12px;">
                     <thead>
-                      <tr>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Kurum</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Personel</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800; text-align: right;">Personel Ödemesi</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800; text-align: right;">Kurumdan Gelen</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800; text-align: right;">Net Kar/Zarar</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800; text-align: center;">Pers. Durum</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800; text-align: center;">Kurum Durum</th>
-                        <th style="padding: 8px; border-bottom: 2px solid #cbd5e1; font-weight: 800;">Notlar / Ayrıntı</th>
+                      <tr style="background: #f1f5f9; color: #475569;">
+                        <th style="padding: 10px 12px;">Not Metni / Konu</th>
+                        <th style="padding: 10px 12px;">Hatırlatma Tarihi & Saati</th>
+                        <th style="padding: 10px 12px;">İlişkili Ödeme Bilgisi</th>
+                        <th style="padding: 10px 12px;">Durum</th>
+                        <th style="padding: 10px 12px; text-align: center;">İşlem</th>
                       </tr>
                     </thead>
-                    <tbody id="kontrol-tbody">
-                      <tr>
-                        <td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;">Yükleniyor...</td>
-                      </tr>
+                    <tbody id="page-reminders-tbody">
+                      <tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Yükleniyor...</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -1719,75 +1703,53 @@
             </div>
           </div>
 
-          <!-- AYARLAR -->
-          <!-- AYARLAR - KALDIRILDI -->
 
-          <!-- AYLIK OPERASYON -->
-          <div class="page" id="page-operasyon">
-            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569;">Dönem Seç:</span>
-              <select id="op-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()"></select>
-              <select id="op-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()">
-                <option value="0">Ocak</option>
-                <option value="1">Şubat</option>
-                <option value="2">Mart</option>
-                <option value="3">Nisan</option>
-                <option value="4">Mayıs</option>
-                <option value="5">Haziran</option>
-                <option value="6">Temmuz</option>
-                <option value="7">Ağustos</option>
-                <option value="8">Eylül</option>
-                <option value="9">Ekim</option>
-                <option value="10">Kasım</option>
-                <option value="11">Aralık</option>
-              </select>
-              <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openAddCompanyToMonthModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Kurum Ekle / Oluştur</button>
-              <button class="btn btn-sm btn-primary" id="btn-op-new-per" onclick="openPersonelModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">👤 Yeni Personel</button>
-              <button class="btn btn-sm btn-primary" id="btn-op-assign-per" onclick="openAddPersonnelToOpModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">➕ Personel Ata</button>
-              <button class="btn btn-primary" id="btn-toggle-op-edit" onclick="toggleOpEditMode()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; margin-left: auto;">✍️ Bu Ayki Çalışmaları Gir</button>
-              <button class="btn" id="btn-op-approve" onclick="togglePeriodApproval()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"></button>
+          
+          <div class="page" id="page-personeller">
+            <!-- Subtab Navigation Bar -->
+            <div style="display: flex; gap: 10px; margin-bottom: 16px; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;">
+              <button id="btn-subtab-calisanlar" class="btn btn-sm" onclick="switchPersonnelSubTab('calisanlar')" style="font-weight: 800; font-size: 13px; padding: 8px 16px; background: #1e3a5f; color: #fff; border-radius: 8px;">
+                👷 Kayıtlı Çalışanlar (<span id="p-count">0 kayıt</span>)
+              </button>
+              <button id="btn-subtab-gorusulenler" class="btn btn-sm btn-secondary" onclick="switchPersonnelSubTab('gorusulenler')" style="font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 8px;">
+                🗣️ Görüşülenler (Adaylar & Notlar) (<span id="candidate-count">0 kişi</span>)
+              </button>
             </div>
-            
-            <div id="op-approval-banner" class="alert alert-info" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; align-items: center; gap: 8px;">
-              <span>🟢</span>
-              <span>Bu döneme ait kayıtlar onaylanmıştır. Dönem üzerinde düzenleme yapılamaz.</span>
-            </div>
-            
-            <div id="operasyon-cockpit-view">
-              <div class="operasyon-grid">
-                <!-- Left Column: Tekrarlayan Kayıtlar (Full Width) -->
-                <div class="card">
-                  <div class="card-head">
-                    <span class="card-title">🔄 Tekrarlayan Aylık İş Döngüsü</span>
-                  </div>
-                  <div style="padding: 12px 18px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #64748b; line-height: 1.5;">
-                    Bu listedeki işler her ayın başında otomatik olarak yeni dönem çalışması olarak kopyalanır. Çalışanların izin, avans ve mesailerini güncelleyerek onaylayabilirsiniz.
-                  </div>
-                  <div style="padding: 8px 18px; border-bottom: 1px solid #f1f5f9;">
-                    <input
-                      class="form-input"
-                      style="font-size: 12px; padding: 6px 10px;"
-                      placeholder="Tekrarlayan işlerde ara..."
-                      oninput="filterTable('operasyon-tbody', this.value)"
-                    />
-                  </div>
-                  <div class="table-wrap">
-                    <table>
+
+            <!-- SUBTAB 1: Çalışanlar Content -->
+            <div id="subtab-calisanlar-content">
+              <div class="toolbar" style="margin-bottom: 14px; display: flex; gap: 10px; align-items: center;">
+                <button class="btn btn-primary" onclick="openPersonelModal()" style="font-weight: 700;">
+                  + Yeni Personel Ekle
+                </button>
+                <input
+                  class="form-input"
+                  style="flex: 1; min-width: 140px; font-size: 12px; padding: 6px 12px;"
+                  placeholder="Kayıtlı çalışanlarda isim ara..."
+                  oninput="filterTable('personel-tbody', this.value)"
+                />
+              </div>
+              <div class="card">
+                <div class="card-head" style="background: #f8fafc; padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
+                  <span class="card-title" style="font-weight: 800; color: #1e293b;">Çalışan Personel Listesi (İş Geçmişi ve Notlar İçin İsmine Tıklayın)</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                  <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
                       <thead>
-                        <tr>
-                          <th>Kurum / Personel</th>
-                          <th>Maaş</th>
-                          <th>Avans</th>
-                          <th>İzinler</th>
-                          <th>Net Ödeme</th>
-                          <th>Durum</th>
-                          <th>İşlemler</th>
+                        <tr style="background: #f1f5f9; color: #475569;">
+                          <th>Adı Soyadı</th>
+                          <th>Pozisyon</th>
+                          <th>Maaş/Yevmiye</th>
+                          <th>Telefon</th>
+                          <th>IBAN</th>
+                          <th>İşe Giriş Tarihi</th>
+                          <th>Toplam Gün</th>
+                          <th style="text-align: center;">İşlemler</th>
                         </tr>
                       </thead>
-                      <tbody id="operasyon-tbody">
-                        <tr class="loading-row">
-                          <td colspan="8"><div class="spinner"></div></td>
-                        </tr>
+                      <tbody id="personel-tbody">
+                        <tr><td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;">Yükleniyor...</td></tr>
                       </tbody>
                     </table>
                   </div>
@@ -1795,209 +1757,51 @@
               </div>
             </div>
 
-            <div id="operasyon-edit-view" style="display: none;">
-              <!-- Spreadsheet wrapper instead of card container -->
-              <div class="spreadsheet-container">
-                <table class="spreadsheet-table">
-                  <thead>
-                    <tr>
-                      <th class="sticky-col-1">Personel</th>
-                      <th style="min-width: 60px;">Çalışılan Gün</th>
-                      <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
-                      <th style="min-width: 155px;">Ödemeler & Kesintiler</th>
-                      <th style="min-width: 110px;">Ödenecek Net (₺)</th>
-                      <th style="min-width: 120px;">Kurum Hakediş (₺)</th>
-                      <th style="min-width: 70px; text-align: center;">KDV %20</th>
-                      <th style="min-width: 75px; text-align: center;">Tevkifat %2</th>
-                      <th style="min-width: 120px;">Kurum Toplam (₺)</th>
-                      <th style="min-width: 65px;">İzin (Gün)</th>
-                      <th style="min-width: 140px;">Yerine Gelen (Cover)</th>
-                      <th style="min-width: 140px;">Mesai Bilgileri</th>
-                      <th style="min-width: 160px;">Not / Açıklama</th>
-                      <th style="min-width: 60px; text-align: center;">İşlemler</th>
-                    </tr>
-                  </thead>
-                  <tbody id="spreadsheet-tbody">
-                    <!-- Spreadsheet rows will be generated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-              
-              <!-- Save and Cancel actions -->
-              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <button class="btn btn-secondary" onclick="toggleOpEditMode(false)">İptal</button>
-                <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
+            <!-- SUBTAB 2: Görüşülenler Content -->
+            <div id="subtab-gorusulenler-content" style="display: none;">
+              <div class="toolbar" style="margin-bottom: 14px; display: flex; gap: 10px; align-items: center; background: #eff6ff; padding: 12px; border-radius: 10px; border: 1px solid #dbeafe;">
+                <button class="btn btn-primary" onclick="openCandidateModal()" style="font-weight: 700; background: #2563eb;">
+                  + Yeni Görüşülen Ekle
+                </button>
+                <input
+                  id="candidate-search-input"
+                  class="form-input"
+                  style="flex: 1; font-size: 13px; padding: 8px 12px; border-color: #2563eb; background: #ffffff;"
+                  placeholder="🔍 Görüşülen kişi, pozisyon veya yazılan notlar arasında kelime ara..."
+                  oninput="filterCandidatesList(this.value)"
+                />
               </div>
 
-              <!-- COVER PERSONNEL MODAL (Yerine Gelen Atama - Ortalanmış) -->
-              <div id="cover-management-modal" class="centered-modal-overlay">
-                <div class="centered-modal-box">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
-                    <h3 id="cover-modal-title" style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">Yerine Gelen Personel Atama</h3>
-                    <button type="button" onclick="closeCoverModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
-                  </div>
-                  
-                  <div id="cover-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
-                    <!-- Parent info loaded dynamically -->
-                  </div>
-
-                  <div id="cover-modal-rows-container" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
-                    <!-- Dynamic rows go here -->
-                  </div>
-
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="addCoverModalRow()" style="font-size: 11px; padding: 8px 12px; width: 100%; font-weight: 700; margin-bottom: 16px;">➕ Yerine Gelen Personel Ekle</button>
-
-                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeCoverModal()">İptal</button>
-                    <button type="button" class="btn btn-primary" onclick="saveCoverModalChanges()" style="font-weight: 700;">Kaydet</button>
-                  </div>
+              <div class="card">
+                <div class="card-head" style="background: #f8fafc; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                  <span class="card-title" style="font-weight: 800; color: #1e293b;">Görüşülen Adaylar ve Mülakat Notları Listesi</span>
+                  <span style="font-size: 11px; color: #64748b;">(Not metinleri içerisinde arama yapabilirsiniz)</span>
                 </div>
-              </div>
-
-              <!-- EXTRAS MANAGEMENT MODAL (Ödemeler & Kesintiler Detayı - Ortalanmış) -->
-              <div id="extras-management-modal" class="centered-modal-overlay">
-                <div class="centered-modal-box">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
-                    <h3 style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">Ödeme & Kesinti Detayları</h3>
-                    <button type="button" onclick="closeExtrasModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
-                  </div>
-                  
-                  <div id="extras-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
-                    <!-- Parent info loaded dynamically -->
-                  </div>
-
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-                    <div class="form-group">
-                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Avans Tutarı (₺)</label>
-                      <input class="form-input" id="m-extras-avans" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Temel Prim Tutarı (₺)</label>
-                      <input class="form-input" id="m-extras-prim" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
-                    </div>
-                  </div>
-
-                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 10px;">
-                    Ekstra Ödeme ve Kesintiler
-                  </div>
-
-                  <div id="extras-modal-rows-container" style="max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
-                    <!-- Dynamic extras rows -->
-                  </div>
-
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="addExtrasModalRow()" style="font-size: 11px; padding: 8px 12px; width: 100%; font-weight: 700; margin-bottom: 16px;">➕ Ekstra Ödeme/Kesinti Ekle</button>
-
-                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeExtrasModal()">İptal</button>
-                    <button type="button" class="btn btn-primary" onclick="saveExtrasModalChanges()" style="font-weight: 700;">Kaydet</button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- OVERTIME MANAGEMENT MODAL (Mesai Bilgileri - Ortalanmış) -->
-              <div id="overtime-management-modal" class="centered-modal-overlay">
-                <div class="centered-modal-box" style="max-width: 480px;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
-                    <h3 style="font-size: 14px; font-weight: 800; color: #1e3b5e; margin: 0;">⏰ Mesai Bilgileri</h3>
-                    <button type="button" onclick="closeOvertimeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
-                  </div>
-                  
-                  <div id="overtime-modal-parent-info" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px 14px; font-size: 11px; color: #0369a1; margin-bottom: 16px; font-weight: 600;">
-                    <!-- Parent info loaded dynamically -->
-                  </div>
-
-                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px;">
-                    Personel Mesai Bilgileri
-                  </div>
-
-                  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-                    <div class="form-group">
-                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Saatlik Mesai (Saat)</label>
-                      <input class="form-input" id="m-overtime-hours" type="text" inputmode="decimal" oninput="onlyNum(this); onModalOvertimeParamsChange();" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Günlük Mesai (Gün)</label>
-                      <input class="form-input" id="m-overtime-days" type="text" inputmode="decimal" oninput="onlyNum(this); onModalOvertimeParamsChange();" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Mesai Ücreti (₺)</label>
-                      <input class="form-input" id="m-overtime-wage" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="0" style="font-size: 12px; padding: 6px 8px;" />
-                    </div>
-                  </div>
-
-                  <div style="font-weight: 700; font-size: 11px; color: #1e3b5e; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 12px;">
-                    Kurum Mesai Hakedişi
-                  </div>
-
-                  <div class="form-group" style="margin-bottom: 12px;">
-                    <label class="form-label" style="font-size: 10px; font-weight: 700; color: #475569; margin-bottom: 4px;">Kurumdan Alınacak Tutar (Matrah) (₺)</label>
-                    <input class="form-input" id="m-overtime-company-wage" type="text" inputmode="decimal" oninput="onlyNum(this);" placeholder="Örn: 1500" style="font-size: 12px; padding: 6px 8px;" />
-                  </div>
-
-                  <div style="display: flex; gap: 16px; margin-bottom: 16px; background: #f8fafc; padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 8px;">
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; cursor: pointer; user-select: none;">
-                      <input type="checkbox" id="m-overtime-company-kdv" style="width: 15px; height: 15px;" /> +%20 KDV
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; cursor: pointer; user-select: none;">
-                      <input type="checkbox" id="m-overtime-company-tef" style="width: 15px; height: 15px;" /> +%2 Tevkifat
-                    </label>
-                  </div>
-
-                  <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-                    <button type="button" class="btn btn-secondary" onclick="closeOvertimeModal()">İptal</button>
-                    <button type="button" class="btn btn-primary" onclick="saveOvertimeModalChanges()" style="font-weight: 700;">Kaydet</button>
+                <div class="card-body" style="padding: 0;">
+                  <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%; font-size: 12px;">
+                      <thead>
+                        <tr style="background: #f1f5f9; color: #475569;">
+                          <th style="padding: 10px;">Adı Soyadı</th>
+                          <th style="padding: 10px;">Pozisyon / Meslek</th>
+                          <th style="padding: 10px;">Telefon</th>
+                          <th style="padding: 10px;">Görüşme Tarihi</th>
+                          <th style="padding: 10px;">Durum</th>
+                          <th style="padding: 10px; width: 40%;">Kişi Hakkında Notlar & Görüşme Detayı</th>
+                          <th style="padding: 10px; text-align: center;">İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody id="candidate-tbody">
+                        <tr><td colspan="7" style="text-align: center; padding: 20px; color: #94a3b8;">Görüşülen kaydı bulunamadı.</td></tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- PERSONELLER -->
-          <div class="page" id="page-personeller">
-            <div class="toolbar">
-              <button class="btn btn-primary" onclick="openPersonelModal()">
-                + Ekle
-              </button>
-              <input
-                class="form-input"
-                style="flex: 1; min-width: 140px"
-                placeholder="İsim ara..."
-                oninput="filterTable('personel-tbody', this.value)"
-              />
-            </div>
-            <div class="card">
-              <div class="card-head">
-                <span class="card-title">Personel Listesi</span
-                ><span
-                  id="p-count"
-                  style="font-size: 10px; color: #94a3b8"
-                ></span>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Ad Soyad</th>
-                      <th>Pozisyon</th>
-                      <th>Aylık</th>
-                      <th>Telefon</th>
-                      <th>IBAN</th>
-                      <th>İşe Başlama</th>
-                      <th>Top.Gün</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="personel-tbody">
-                    <tr class="loading-row">
-                      <td colspan="8"><div class="spinner"></div></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
 
-          <!-- KURUMLAR -->
           <div class="page" id="page-kurumlar">
             <div class="toolbar">
               <button class="btn btn-primary" onclick="openKurumModal()">
@@ -3829,6 +3633,357 @@ async function delOpRecord(rowId) {
   } catch (e) {
     toast("Hata: " + e.message, "err");
   }
+}
+
+
+// ============================================================
+// 5. REMINDERS & NOTES PAGE MANAGEMENT (Hatırlatıcı Sayfası)
+// ============================================================
+let pageRemindersFilter = 'all';
+
+function populatePaymentSelectForReminders() {
+  const select = document.getElementById("page-rem-payment-select");
+  if (!select) return;
+
+  select.innerHTML = '<option value="">İlişkili Ödeme Seçiniz (İsteğe Bağlı)...</option>';
+  
+  const pendingRecords = work_records.filter(r => !r.archived && r.personnel_payment_status === 'bekliyor');
+  pendingRecords.slice(0, 50).forEach(r => {
+    const p = personnel.find(x => x.id == r.personnel_id);
+    const c = companies.find(x => x.id == r.company_id);
+    const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Personel";
+    const cNameStr = c ? c.company_name : "Kurum";
+    const amount = parseFloat(r.total_personnel_payment || 0);
+
+    const opt = document.createElement("option");
+    opt.value = `rec_${r.id}`;
+    opt.text = `💳 ${cNameStr} • ${pNameStr} (₺${fmt(amount)})`;
+    select.appendChild(opt);
+  });
+}
+
+function renderHatirlatici() {
+  populatePaymentSelectForReminders();
+  renderPageRemindersTable();
+}
+
+function filterPageReminders(filterType) {
+  pageRemindersFilter = filterType;
+  const btnAll = document.getElementById("btn-rem-filter-all");
+  const btnActive = document.getElementById("btn-rem-filter-active");
+  const btnComp = document.getElementById("btn-rem-filter-completed");
+
+  if (btnAll) btnAll.style.background = filterType === 'all' ? "#1e3a5f" : "#f1f5f9", btnAll.style.color = filterType === 'all' ? "#fff" : "#475569";
+  if (btnActive) btnActive.style.background = filterType === 'active' ? "#1e3a5f" : "#f1f5f9", btnActive.style.color = filterType === 'active' ? "#fff" : "#475569";
+  if (btnComp) btnComp.style.background = filterType === 'completed' ? "#1e3a5f" : "#f1f5f9", btnComp.style.color = filterType === 'completed' ? "#fff" : "#475569";
+
+  renderPageRemindersTable();
+}
+
+function renderPageRemindersTable() {
+  const tbody = document.getElementById("page-reminders-tbody");
+  if (!tbody) return;
+
+  const now = new Date();
+  let list = [...userReminders];
+
+  if (pageRemindersFilter === 'active') {
+    list = list.filter(r => !r.is_completed);
+  } else if (pageRemindersFilter === 'completed') {
+    list = list.filter(r => r.is_completed);
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">Kayıtlı hatırlatıcı / not bulunamadı.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => {
+    const remDate = r.reminder_date ? new Date(r.reminder_date) : null;
+    const isExpired = remDate && remDate <= now && !r.is_completed;
+    const dateStr = remDate ? remDate.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Tarih Yok";
+
+    const statusBadge = r.is_completed
+      ? '<span class="badge badge-green">✓ Tamamlandı</span>'
+      : (isExpired ? '<span class="badge badge-red">⏰ Süresi Doldu!</span>' : '<span class="badge badge-blue">⏳ Bekliyor</span>');
+
+    const paymentInfo = r.linked_payment_info || "—";
+
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9; background: ${r.is_completed ? "#f8fafc" : (isExpired ? "#fef2f2" : "#ffffff")};">
+        <td style="padding: 10px; font-weight: 600; color: #1e293b; text-decoration: ${r.is_completed ? "line-through" : "none"};">
+          ${r.note}
+        </td>
+        <td style="padding: 10px; font-weight: 700;">📅 ${dateStr}</td>
+        <td style="padding: 10px; color: #2563eb; font-size: 11px;">${paymentInfo}</td>
+        <td style="padding: 10px;">${statusBadge}</td>
+        <td style="padding: 10px; text-align: center;">
+          <button class="btn btn-sm ${r.is_completed ? "btn-secondary" : "btn-green"}" onclick="toggleUserReminderComplete('${r.id}')" style="padding: 2px 8px; font-size: 11px;">
+            ${r.is_completed ? "Geri Al" : "✓ Tamamla"}
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteUserReminder('${r.id}')" style="padding: 2px 8px; font-size: 11px; margin-left: 4px;">
+            🗑️ Sil
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function addPageReminder() {
+  const noteInput = document.getElementById("page-rem-note");
+  const dateInput = document.getElementById("page-rem-date");
+  const paySelect = document.getElementById("page-rem-payment-select");
+
+  const note = noteInput ? noteInput.value.trim() : "";
+  const dateVal = dateInput ? dateInput.value : "";
+  const linkedPayText = (paySelect && paySelect.value && paySelect.options[paySelect.selectedIndex]) ? paySelect.options[paySelect.selectedIndex].text : "";
+
+  if (!note) {
+    toast("Lütfen hatırlatılacak not / konu metnini giriniz!", "err");
+    return;
+  }
+  if (!dateVal) {
+    toast("Lütfen hatırlatma tarih ve saatini seçiniz!", "err");
+    return;
+  }
+
+  const newRem = {
+    id: "loc_" + Date.now(),
+    note: note,
+    reminder_date: new Date(dateVal).toISOString(),
+    linked_payment_info: linkedPayText.includes("İlişkili Ödeme") ? "" : linkedPayText,
+    is_completed: false,
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    const res = await api.post("/user-reminders", {
+      note: note,
+      reminder_date: new Date(dateVal).toISOString(),
+      linked_payment_info: newRem.linked_payment_info
+    });
+    if (res && res.id) newRem.id = res.id;
+  } catch (e) {
+    console.warn("Saved page reminder locally", e);
+  }
+
+  userReminders.unshift(newRem);
+  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+
+  if (noteInput) noteInput.value = "";
+  if (dateInput) dateInput.value = "";
+  if (paySelect) paySelect.value = "";
+
+  renderHatirlatici();
+  renderUserReminders();
+  toast("Hatırlatıcı eklendi ✓");
+}
+
+
+// ============================================================
+// 6. GÖRÜŞÜLENLER (INTERVIEWED CANDIDATES) MANAGEMENT & SEARCH
+// ============================================================
+let candidates = [];
+let editingCandidateId = null;
+
+async function loadCandidates() {
+  try {
+    const res = await api.get("/candidates");
+    if (Array.isArray(res)) {
+      candidates = res;
+      localStorage.setItem("ik_candidates", JSON.stringify(res));
+    }
+  } catch (e) {
+    console.warn("Candidates fetched from local storage", e);
+    const local = localStorage.getItem("ik_candidates");
+    if (local) candidates = JSON.parse(local);
+  }
+  renderCandidates();
+}
+
+function switchPersonnelSubTab(tab) {
+  const contentCal = document.getElementById("subtab-calisanlar-content");
+  const contentGor = document.getElementById("subtab-gorusulenler-content");
+  const btnCal = document.getElementById("btn-subtab-calisanlar");
+  const btnGor = document.getElementById("btn-subtab-gorusulenler");
+
+  if (tab === 'calisanlar') {
+    if (contentCal) contentCal.style.display = "block";
+    if (contentGor) contentGor.style.display = "none";
+    if (btnCal) { btnCal.style.background = "#1e3a5f"; btnCal.style.color = "#fff"; }
+    if (btnGor) { btnGor.style.background = "#f1f5f9"; btnGor.style.color = "#475569"; }
+  } else {
+    if (contentCal) contentCal.style.display = "none";
+    if (contentGor) contentGor.style.display = "block";
+    if (btnCal) { btnCal.style.background = "#f1f5f9"; btnCal.style.color = "#475569"; }
+    if (btnGor) { btnGor.style.background = "#1e3a5f"; btnGor.style.color = "#fff"; }
+    loadCandidates();
+  }
+}
+
+function openCandidateModal(id) {
+  editingCandidateId = id || null;
+  const titleEl = document.getElementById("modal-candidate-title");
+  const nameEl = document.getElementById("candidate-name");
+  const phoneEl = document.getElementById("candidate-phone");
+  const posEl = document.getElementById("candidate-position");
+  const dateEl = document.getElementById("candidate-date");
+  const statusEl = document.getElementById("candidate-status");
+  const notesEl = document.getElementById("candidate-notes");
+
+  if (id) {
+    const c = candidates.find(x => x.id == id);
+    if (!c) return;
+    if (titleEl) titleEl.textContent = "Görüşülen Aday Düzenle";
+    if (nameEl) nameEl.value = c.full_name || "";
+    if (phoneEl) phoneEl.value = c.phone || "";
+    if (posEl) posEl.value = c.position || "";
+    if (dateEl) dateEl.value = c.interview_date ? c.interview_date.split("T")[0] : "";
+    if (statusEl) statusEl.value = c.status || "beklemede";
+    if (notesEl) notesEl.value = c.notes || "";
+  } else {
+    if (titleEl) titleEl.textContent = "Yeni Görüşülen Ekle";
+    if (nameEl) nameEl.value = "";
+    if (phoneEl) phoneEl.value = "";
+    if (posEl) posEl.value = "";
+    if (dateEl) dateEl.value = new Date().toISOString().split("T")[0];
+    if (statusEl) statusEl.value = "gorusuldu";
+    if (notesEl) notesEl.value = "";
+  }
+
+  openM("modal-candidate");
+}
+
+async function saveCandidate() {
+  const name = document.getElementById("candidate-name").value.trim();
+  const phone = document.getElementById("candidate-phone").value.trim();
+  const pos = document.getElementById("candidate-position").value.trim();
+  const dateVal = document.getElementById("candidate-date").value;
+  const statusVal = document.getElementById("candidate-status").value;
+  const notes = document.getElementById("candidate-notes").value.trim();
+
+  if (!name) {
+    toast("Adı Soyadı zorunludur!", "err");
+    return;
+  }
+  if (!notes) {
+    toast("Kişi hakkında bilgi / görüşme notu yazılması zorunludur!", "err");
+    return;
+  }
+
+  const payload = {
+    full_name: name,
+    phone: phone,
+    position: pos,
+    interview_date: dateVal || null,
+    status: statusVal,
+    notes: notes
+  };
+
+  try {
+    if (editingCandidateId) {
+      const res = await api.patch(`/admin/candidates/${editingCandidateId}`, payload);
+      const idx = candidates.findIndex(x => x.id == editingCandidateId);
+      if (idx !== -1) candidates[idx] = res && res.id ? res : { ...candidates[idx], ...payload };
+      toast("Görüşülen bilgisi güncellendi ✓");
+    } else {
+      const res = await api.post("/admin/candidates", payload);
+      const added = res && res.id ? res : { id: "loc_" + Date.now(), ...payload };
+      candidates.unshift(added);
+      toast("Yeni görüşülen eklendi ✓");
+    }
+  } catch (e) {
+    console.warn("Saved candidate locally", e);
+    if (editingCandidateId) {
+      const idx = candidates.findIndex(x => x.id == editingCandidateId);
+      if (idx !== -1) candidates[idx] = { ...candidates[idx], ...payload };
+    } else {
+      candidates.unshift({ id: "loc_" + Date.now(), ...payload });
+    }
+  }
+
+  localStorage.setItem("ik_candidates", JSON.stringify(candidates));
+  closeM("modal-candidate");
+  renderCandidates();
+}
+
+async function deleteCandidate(id) {
+  if (!confirm("Bu görüşülen kişiyi ve notlarını silmek istediğinize emin misiniz?")) return;
+  candidates = candidates.filter(x => x.id != id);
+  try {
+    await api.delete(`/admin/candidates/${id}`);
+  } catch (e) {
+    console.warn(e);
+  }
+  localStorage.setItem("ik_candidates", JSON.stringify(candidates));
+  renderCandidates();
+  toast("Görüşülen kişi silindi ✓");
+}
+
+function renderCandidates(filterQuery = "") {
+  const tbody = document.getElementById("candidate-tbody");
+  const countEl = document.getElementById("candidate-count");
+  if (!tbody) return;
+
+  if (countEl) countEl.textContent = `${candidates.length} kişi`;
+
+  let list = [...candidates];
+  if (filterQuery.trim()) {
+    const q = filterQuery.toLowerCase().trim();
+    list = list.filter(c => {
+      const name = (c.full_name || "").toLowerCase();
+      const pos = (c.position || "").toLowerCase();
+      const phone = (c.phone || "").toLowerCase();
+      const notes = (c.notes || "").toLowerCase();
+      return name.includes(q) || pos.includes(q) || phone.includes(q) || notes.includes(q);
+    });
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 25px; color: #94a3b8;">
+          ${filterQuery ? "Arama kriterine uygun görüşülen kişi veya not bulunamadı." : "Henüz görüşülen kişi eklenmedi. Yukarıdaki '+ Yeni Görüşülen Ekle' butonundan ekleyebilirsiniz."}
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const statusMap = {
+      beklemede: '<span class="badge badge-amber">⏳ Beklemede</span>',
+      gorusuldu: '<span class="badge badge-blue">🗣️ Görüşüldü</span>',
+      olumlu: '<span class="badge badge-green">✅ Olumlu</span>',
+      olumsuz: '<span class="badge badge-red">❌ Olumsuz</span>'
+    };
+    const dateStr = c.interview_date ? fmtDate(c.interview_date) : "—";
+    const notesSnippet = c.notes ? (c.notes.length > 120 ? c.notes.substring(0, 120) + "..." : c.notes) : "—";
+
+    return `
+      <tr style="border-bottom: 1px solid #f1f5f9;">
+        <td style="padding: 10px; font-weight: 800; color: #1e3a5f;">
+          👤 ${c.full_name}
+        </td>
+        <td style="padding: 10px;">${c.position ? `<span class="badge badge-blue">${c.position}</span>` : "—"}</td>
+        <td style="padding: 10px; color: #64748b;">${c.phone || "—"}</td>
+        <td style="padding: 10px; font-weight: 600;">${dateStr}</td>
+        <td style="padding: 10px;">${statusMap[c.status] || statusMap['gorusuldu']}</td>
+        <td style="padding: 10px; font-size: 12px; color: #334155; line-height: 1.4; background: #fafafa; border-radius: 6px;">
+          ${notesSnippet}
+        </td>
+        <td style="padding: 10px; text-align: center; white-space: nowrap;">
+          <button class="btn btn-sm" onclick="openCandidateModal('${c.id}')" style="padding: 3px 8px; font-weight: 700;">Düzenle / Oku</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCandidate('${c.id}')" style="padding: 3px 8px; margin-left: 4px;">Sil</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function filterCandidatesList(query) {
+  renderCandidates(query);
 }
 
 </script>
@@ -9818,6 +9973,55 @@ async function moveCompanyDown(id) {
         <div style="display:flex; justify-content:flex-end;">
           <button class="btn btn-primary" onclick="saveCompanyDetailNotes()" style="font-weight:700;">💾 Kurum Notunu Kaydet</button>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Candidate Modal -->
+<div id="modal-candidate" class="modal-backdrop" style="display:none;">
+  <div class="modal" style="max-width: 650px; width: 95%;">
+    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 id="modal-candidate-title" style="margin:0; font-size:16px;">Yeni Görüşülen Ekle</h3>
+      <button class="modal-close" onclick="closeM('modal-candidate')">✕</button>
+    </div>
+    <div class="modal-body" style="padding: 16px;">
+      <input type="hidden" id="candidate-id" value="" />
+      <div class="form-grid g2" style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+        <div>
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Adı Soyadı:*</label>
+          <input type="text" id="candidate-name" class="form-control" placeholder="Ad Soyad..." />
+        </div>
+        <div>
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Telefon:</label>
+          <input type="text" id="candidate-phone" class="form-control" placeholder="05xx..." />
+        </div>
+        <div>
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Pozisyon / Meslek:</label>
+          <input type="text" id="candidate-position" class="form-control" placeholder="Temizlik Personeli, Şef..." />
+        </div>
+        <div>
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Görüşme Tarihi:</label>
+          <input type="date" id="candidate-date" class="form-control" />
+        </div>
+        <div style="grid-column: span 2;">
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Durum:</label>
+          <select id="candidate-status" class="form-control">
+            <option value="beklemede">⏳ Beklemede</option>
+            <option value="gorusuldu">🗣️ Görüşüldü</option>
+            <option value="olumlu">✅ Olumlu (İşe Alınabilir)</option>
+            <option value="olumsuz">❌ Olumsuz</option>
+          </select>
+        </div>
+        <div style="grid-column: span 2;">
+          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Kişi Hakkında Bilgiler & Görüşme Notları:*</label>
+          <textarea id="candidate-notes" class="form-control" rows="5" placeholder="Görüşülen kişi hakkında detaylı bilgiler, geçmiş tecrübeleri, beklentileri, görüşme notları..." style="font-family:inherit; font-size:13px;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button class="btn btn-secondary" onclick="closeM('modal-candidate')">İptal</button>
+        <button class="btn btn-primary" onclick="saveCandidate()" style="font-weight:700;">💾 Kaydet</button>
       </div>
     </div>
   </div>
