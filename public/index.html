@@ -9770,16 +9770,407 @@ async function moveCompanyDown(id) {
         document.getElementById("app").style.display = "none";
         document.getElementById("login-screen").style.display = "flex";
       }
-    </script>
+    
+      // ============================================================
+      // HATIRLATICI (REMINDERS) & GÖRÜŞÜLENLER (CANDIDATES) LOGIC
+      // ============================================================
+      let userReminders = [];
+      let pageRemindersFilter = 'all';
+      let candidateList = [];
+      let notifiedRemindersSet = new Set();
+
+      // Load user reminders from backend
+      async function loadUserReminders() {
+        try {
+          const res = await api.get("/user-reminders");
+          if (Array.isArray(res)) {
+            userReminders = res;
+            localStorage.setItem("ik_user_reminders", JSON.stringify(res));
+          }
+        } catch (e) {
+          console.warn("User reminders fetched from local storage", e);
+          const local = localStorage.getItem("ik_user_reminders");
+          if (local) userReminders = JSON.parse(local);
+        }
+        renderPageRemindersTable();
+      }
+
+      // Add Page Reminder (Field name in DB is 'note')
+      async function addPageReminder() {
+        const noteEl = document.getElementById("page-rem-note");
+        const dateEl = document.getElementById("page-rem-date");
+        const noteText = noteEl ? noteEl.value.trim() : "";
+        const dateVal = dateEl ? dateEl.value : "";
+
+        if (!noteText) {
+          toast("Lütfen hatırlatılacak not metnini yazınız", "err");
+          return;
+        }
+
+        try {
+          const body = { note: noteText, reminder_date: dateVal || null };
+          const res = await api.post("/user-reminders", body);
+          if (res && res.id) {
+            userReminders.unshift(res);
+          } else {
+            userReminders.unshift({ id: Date.now(), note: noteText, reminder_date: dateVal || null, is_completed: false, created_at: new Date().toISOString() });
+          }
+        } catch (e) {
+          console.warn("API Error when adding reminder, using fallback local storage", e);
+          const newItem = {
+            id: Date.now(),
+            note: noteText,
+            reminder_date: dateVal || null,
+            is_completed: false,
+            created_at: new Date().toISOString()
+          };
+          userReminders.unshift(newItem);
+        }
+
+        localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+
+        // Clear inputs immediately after adding!
+        if (noteEl) noteEl.value = "";
+        if (dateEl) dateEl.value = "";
+
+        toast("Not / Hatırlatıcı başarıyla eklendi ✓");
+        renderPageRemindersTable();
+      }
+
+      function filterPageReminders(filter) {
+        pageRemindersFilter = filter;
+        ['all', 'active', 'completed'].forEach(f => {
+          const btn = document.getElementById(`btn-rem-filter-${f}`);
+          if (btn) {
+            if (f === filter) {
+              btn.style.background = '#1e3a5f';
+              btn.style.color = '#ffffff';
+            } else {
+              btn.style.background = '';
+              btn.style.color = '';
+            }
+          }
+        });
+        renderPageRemindersTable();
+      }
+
+      function renderPageRemindersTable() {
+        const tbody = document.getElementById("page-reminders-tbody");
+        if (!tbody) return;
+
+        let filtered = userReminders.filter(r => {
+          if (pageRemindersFilter === 'active') return !r.is_completed;
+          if (pageRemindersFilter === 'completed') return r.is_completed;
+          return true;
+        });
+
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #94a3b8;">Kayıtlı not / hatırlatıcı bulunamadı.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(r => {
+          const isDone = !!r.is_completed;
+          const noteStr = r.note || r.reminder_text || '—';
+          const dt = r.reminder_date ? new Date(r.reminder_date).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+          const isExpired = !isDone && r.reminder_date && new Date(r.reminder_date) <= new Date();
+
+          return `
+            <tr style="${isDone ? 'opacity: 0.6; background: #f8fafc;' : (isExpired ? 'background: #fef2f2;' : '')}">
+              <td style="padding: 10px 12px; font-weight: 600; ${isDone ? 'text-decoration: line-through;' : ''}">
+                ${noteStr}
+                ${isExpired ? '<span class="badge badge-red" style="margin-left:6px; font-size:10px;">⏰ Zamanı Geldi!</span>' : ''}
+              </td>
+              <td style="padding: 10px 12px; color: #64748b;">${dt}</td>
+              <td style="padding: 10px 12px;">
+                <span class="badge ${isDone ? 'badge-green' : 'badge-yellow'}">${isDone ? '✓ Tamamlandı' : '⏳ Bekliyor'}</span>
+              </td>
+              <td style="padding: 10px 12px; text-align: center;">
+                <button class="btn btn-sm" onclick="toggleUserReminderComplete('${r.id}')" style="font-size: 11px; padding: 4px 8px; font-weight:700; margin-right:4px;">
+                  ${isDone ? '🔄 Geri Al' : '✓ Tamamla'}
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUserReminder('${r.id}')" style="font-size: 11px; padding: 4px 8px;">🗑️ Sil</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      async function toggleUserReminderComplete(id) {
+        let r = userReminders.find(x => x.id == id);
+        if (!r) return;
+
+        const newStatus = !r.is_completed;
+        try {
+          await api.patch(`/user-reminders/${id}`, { is_completed: newStatus });
+          r.is_completed = newStatus;
+        } catch (e) {
+          console.warn("API Error, updating local reminder state", e);
+          r.is_completed = newStatus;
+        }
+        localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+        toast(newStatus ? "Hatırlatıcı tamamlandı olarak işaretlendi ✓" : "Hatırlatıcı bekliyor durumuna getirildi");
+        renderPageRemindersTable();
+      }
+
+      async function deleteUserReminder(id) {
+        if (!confirm("Bu hatırlatıcıyı silmek istediğinize emin misiniz?")) return;
+        try {
+          await api.delete(`/user-reminders/${id}`);
+        } catch (e) {
+          console.warn("API Error deleting reminder", e);
+        }
+        userReminders = userReminders.filter(x => x.id != id);
+        localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+        toast("Hatırlatıcı silindi");
+        renderPageRemindersTable();
+      }
+
+      // Background notification checker (Triggers floating notification popups when scheduled datetime arrives!)
+      function startUserRemindersChecker() {
+        loadUserReminders();
+        setInterval(checkScheduledReminderNotifications, 10000);
+      }
+
+      function checkScheduledReminderNotifications() {
+        const now = new Date();
+        userReminders.forEach(r => {
+          if (!r.is_completed && r.reminder_date) {
+            const remTime = new Date(r.reminder_date);
+            if (remTime <= now && !notifiedRemindersSet.has(r.id)) {
+              notifiedRemindersSet.add(r.id);
+              showReminderPopupNotification(r);
+            }
+          }
+        });
+      }
+
+      function showReminderPopupNotification(r) {
+        const noteStr = r.note || r.reminder_text || "Hatırlatıcı Notu";
+        
+        // Show high-visibility toast
+        toast(`⏰ HATIRLATICI BİLDİRİMİ: ${noteStr}`, "warn");
+
+        // Browser Native Notification if allowed
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("⏰ İK Panel Hatırlatıcı Bildirimi", {
+            body: noteStr,
+            icon: "/favicon.ico"
+          });
+        }
+      }
+
+      // Subtab Personnel
+      function switchPersonnelSubTab(tab) {
+        const btnCalisanlar = document.getElementById("btn-subtab-calisanlar");
+        const btnGorusulenler = document.getElementById("btn-subtab-gorusulenler");
+        const contentCalisanlar = document.getElementById("subtab-calisanlar-content");
+        const contentGorusulenler = document.getElementById("subtab-gorusulenler-content");
+
+        if (tab === 'calisanlar') {
+          if (contentCalisanlar) contentCalisanlar.style.display = 'block';
+          if (contentGorusulenler) contentGorusulenler.style.display = 'none';
+          if (btnCalisanlar) { btnCalisanlar.style.background = '#1e3a5f'; btnCalisanlar.style.color = '#fff'; }
+          if (btnGorusulenler) { btnGorusulenler.style.background = ''; btnGorusulenler.style.color = ''; }
+        } else {
+          if (contentCalisanlar) contentCalisanlar.style.display = 'none';
+          if (contentGorusulenler) contentGorusulenler.style.display = 'block';
+          if (btnCalisanlar) { btnCalisanlar.style.background = ''; btnCalisanlar.style.color = ''; }
+          if (btnGorusulenler) { btnGorusulenler.style.background = '#1e3a5f'; btnGorusulenler.style.color = '#fff'; }
+          loadCandidates();
+        }
+      }
+
+      // Candidates (Görüşülenler) Logic
+      async function loadCandidates() {
+        try {
+          const res = await api.get("/candidates");
+          if (Array.isArray(res)) {
+            candidateList = res;
+            localStorage.setItem("ik_candidates", JSON.stringify(res));
+          }
+        } catch (e) {
+          console.warn("Candidates fetched from localStorage", e);
+          const local = localStorage.getItem("ik_candidates");
+          if (local) candidateList = JSON.parse(local);
+        }
+        renderCandidateList();
+      }
+
+      function openCandidateModal(id = null) {
+        document.getElementById("candidate-id").value = id || "";
+        document.getElementById("modal-candidate-title").textContent = id ? "Görüşülen Kişiyi Düzenle" : "Yeni Görüşülen Ekle";
+
+        if (id) {
+          const c = candidateList.find(x => x.id == id);
+          if (c) {
+            document.getElementById("candidate-name").value = c.full_name || "";
+            document.getElementById("candidate-age").value = c.age || "";
+            document.getElementById("candidate-phone").value = c.phone || "";
+            document.getElementById("candidate-position").value = c.position || "";
+            document.getElementById("candidate-date").value = c.interview_date || "";
+            document.getElementById("candidate-status").value = c.status || "beklemede";
+            document.getElementById("candidate-notes").value = c.notes || "";
+          }
+        } else {
+          document.getElementById("candidate-name").value = "";
+          document.getElementById("candidate-age").value = "";
+          document.getElementById("candidate-phone").value = "";
+          document.getElementById("candidate-position").value = "";
+          document.getElementById("candidate-date").value = new Date().toISOString().split('T')[0];
+          document.getElementById("candidate-status").value = "beklemede";
+          document.getElementById("candidate-notes").value = "";
+        }
+        openM("modal-candidate");
+      }
+
+      function handleCandidateKey(event, nextInputId) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const nextEl = document.getElementById(nextInputId);
+          if (nextEl) nextEl.focus();
+        }
+      }
+
+      async function saveCandidate() {
+        const id = document.getElementById("candidate-id").value;
+        const full_name = document.getElementById("candidate-name").value.trim();
+        const age = document.getElementById("candidate-age").value.trim();
+        const phone = document.getElementById("candidate-phone").value.trim();
+        const position = document.getElementById("candidate-position").value.trim();
+        const interview_date = document.getElementById("candidate-date").value;
+        const status = document.getElementById("candidate-status").value;
+        const notes = document.getElementById("candidate-notes").value.trim();
+
+        if (!full_name) {
+          toast("Lütfen ad ve soyad alanını doldurunuz", "err");
+          return;
+        }
+
+        const payload = { full_name, age, phone, position, interview_date, status, notes };
+
+        try {
+          if (id) {
+            await api.patch(`/candidates/${id}`, payload);
+            const idx = candidateList.findIndex(x => x.id == id);
+            if (idx !== -1) candidateList[idx] = { ...candidateList[idx], ...payload };
+          } else {
+            const res = await api.post("/candidates", payload);
+            if (res && res.id) {
+              candidateList.unshift(res);
+            } else {
+              payload.id = Date.now();
+              candidateList.unshift(payload);
+            }
+          }
+        } catch (e) {
+          console.warn("API Candidate save error, using local fallback", e);
+          if (id) {
+            const idx = candidateList.findIndex(x => x.id == id);
+            if (idx !== -1) candidateList[idx] = { ...candidateList[idx], ...payload };
+          } else {
+            payload.id = Date.now();
+            candidateList.unshift(payload);
+          }
+        }
+
+        localStorage.setItem("ik_candidates", JSON.stringify(candidateList));
+        closeM("modal-candidate");
+        toast("Görüşülen kişi bilgileri kaydedildi ✓");
+        renderCandidateList();
+      }
+
+      async function deleteCandidate(id) {
+        if (!confirm("Bu görüşülen kişiyi silmek istediğinize emin misiniz?")) return;
+        try {
+          await api.delete(`/candidates/${id}`);
+        } catch (e) {
+          console.warn("Delete candidate API error", e);
+        }
+        candidateList = candidateList.filter(x => x.id != id);
+        localStorage.setItem("ik_candidates", JSON.stringify(candidateList));
+        toast("Görüşülen kişi silindi");
+        renderCandidateList();
+      }
+
+      function filterCandidatesList(query) {
+        renderCandidateList(query);
+      }
+
+      function renderCandidateList(query = "") {
+        const tbody = document.getElementById("candidate-tbody");
+        const countEl = document.getElementById("candidate-count");
+        if (!tbody) return;
+
+        let filtered = candidateList;
+        if (query && query.trim()) {
+          const q = query.trim().toLowerCase();
+          filtered = candidateList.filter(c => 
+            (c.full_name || "").toLowerCase().includes(q) ||
+            (c.age || "").toLowerCase().includes(q) ||
+            (c.phone || "").toLowerCase().includes(q) ||
+            (c.position || "").toLowerCase().includes(q) ||
+            (c.notes || "").toLowerCase().includes(q)
+          );
+        }
+
+        if (countEl) countEl.textContent = `${filtered.length} kişi`;
+
+        if (!filtered.length) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;">Görüşülen kişi bulunamadı.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(c => {
+          let statusBadge = '<span class="badge badge-yellow">⏳ Beklemede</span>';
+          if (c.status === 'gorusuldu') statusBadge = '<span class="badge badge-blue">🗣️ Görüşüldü</span>';
+          if (c.status === 'olumlu') statusBadge = '<span class="badge badge-green">✅ Olumlu</span>';
+          if (c.status === 'olumsuz') statusBadge = '<span class="badge badge-red">❌ Olumsuz</span>';
+
+          const formattedNotes = (c.notes || '—').replace(/\n/g, '<br/>');
+
+          return `
+            <tr>
+              <td style="padding: 10px; font-weight: 700; color: #1e3a5f;">${c.full_name || '—'}</td>
+              <td style="padding: 10px; font-weight: 600;">${c.age || '—'}</td>
+              <td style="padding: 10px; color: #475569;">${c.position || '—'}</td>
+              <td style="padding: 10px; color: #64748b;">${c.phone || '—'}</td>
+              <td style="padding: 10px; color: #64748b;">${fmtDate(c.interview_date)}</td>
+              <td style="padding: 10px;">${statusBadge}</td>
+              <td style="padding: 10px; font-size: 12px; color: #334155; max-width: 320px; line-height: 1.4;">
+                <div style="max-height: 90px; overflow-y: auto; background: #f8fafc; padding: 6px 8px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                  ${formattedNotes}
+                </div>
+              </td>
+              <td style="padding: 10px; text-align: center; white-space: nowrap;">
+                <button class="btn btn-sm btn-secondary" onclick="openCandidateModal('${c.id}')" style="font-weight:700; margin-right:4px;">✏️ Düzenle</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteCandidate('${c.id}')">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Explicitly attach functions to window object
+      window.loadUserReminders = loadUserReminders;
+      window.addPageReminder = addPageReminder;
+      window.filterPageReminders = filterPageReminders;
+      window.renderPageRemindersTable = renderPageRemindersTable;
+      window.toggleUserReminderComplete = toggleUserReminderComplete;
+      window.deleteUserReminder = deleteUserReminder;
+      window.startUserRemindersChecker = startUserRemindersChecker;
+      window.switchPersonnelSubTab = switchPersonnelSubTab;
+      window.loadCandidates = loadCandidates;
+      window.openCandidateModal = openCandidateModal;
+      window.handleCandidateKey = handleCandidateKey;
+      window.saveCandidate = saveCandidate;
+      window.deleteCandidate = deleteCandidate;
+      window.filterCandidatesList = filterCandidatesList;
+      window.renderCandidateList = renderCandidateList;
+
+</script>
   
-<!-- Floating Reminder Widget (Visible on All Pages) -->
-<div id="floating-reminder-box" class="floating-reminder-box" style="display: none;">
-  <div class="floating-reminder-header">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span>⏰ Hatırlatıcılar ve Notlar</span>
-    </div>
-    <button class="floating-reminder-close" onclick="toggleFloatingReminderWidget()" title="Kapat">✕</button>
-  </div>
+</div>
   <div class="floating-reminder-body">
     <!-- Add Form -->
     <div style="background: #f1f5f9; padding: 10px; border-radius: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
@@ -9795,12 +10186,6 @@ async function moveCompanyDown(id) {
     </div>
   </div>
 </div>
-
-<button id="floating-reminder-btn" class="floating-reminder-trigger" onclick="toggleFloatingReminderWidget()">
-  <span>⏰ Hatırlatıcılar</span>
-  <span id="floating-rem-badge" class="badge badge-red" style="display:none; padding: 2px 6px; font-size: 10px;">0</span>
-</button>
-
 
 <!-- Personnel Detail & Notes Modal -->
 <div id="modal-per-detail" class="modal-backdrop" style="display:none;">
@@ -9915,14 +10300,7 @@ async function moveCompanyDown(id) {
 </div>
 
 
-<!-- Floating Reminder Widget (Visible on All Pages) -->
-<div id="floating-reminder-box" class="floating-reminder-box" style="display: none;">
-  <div class="floating-reminder-header">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <span>⏰ Hatırlatıcılar ve Notlar</span>
-    </div>
-    <button class="floating-reminder-close" onclick="toggleFloatingReminderWidget()" title="Kapat">✕</button>
-  </div>
+</div>
   <div class="floating-reminder-body">
     <div style="background: #f1f5f9; padding: 10px; border-radius: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
       <input type="text" id="floating-rem-note" class="form-control" placeholder="Not / Hatırlatma giriniz..." style="font-size: 12px; padding: 6px 10px;" />
@@ -9936,11 +10314,6 @@ async function moveCompanyDown(id) {
     </div>
   </div>
 </div>
-
-<button id="floating-reminder-btn" class="floating-reminder-trigger" onclick="toggleFloatingReminderWidget()">
-  <span>⏰ Hatırlatıcılar</span>
-  <span id="floating-rem-badge" class="badge badge-red" style="display:none; padding: 2px 6px; font-size: 10px;">0</span>
-</button>
 
 <!-- Personnel Detail & Notes Modal -->
 <div id="modal-per-detail" class="modal-backdrop" style="display:none;">
