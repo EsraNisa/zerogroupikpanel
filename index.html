@@ -3430,499 +3430,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-// ============================================================
-// 1. FLOATING REMINDER WIDGET (Tüm Sayfalarda Görünen Hatırlatıcı)
-// ============================================================
-let userReminders = [];
-let userRemindersTimer = null;
-
-async function loadUserReminders() {
-  try {
-    const res = await api.get("/user-reminders");
-    if (Array.isArray(res)) {
-      userReminders = res;
-      localStorage.setItem("ik_user_reminders", JSON.stringify(res));
-    }
-  } catch (e) {
-    console.warn("User reminders fetched from local storage", e);
-    const local = localStorage.getItem("ik_user_reminders");
-    if (local) userReminders = JSON.parse(local);
-  }
-  renderUserReminders();
-}
-
-function renderUserReminders() {
-  const container = document.getElementById("floating-rem-list");
-  const badge = document.getElementById("floating-rem-badge");
-  if (!container) return;
-
-  const active = userReminders.filter(r => !r.is_completed);
-  if (badge) {
-    if (active.length > 0) {
-      badge.textContent = active.length;
-      badge.style.display = "inline-block";
-    } else {
-      badge.style.display = "none";
-    }
-  }
-
-  if (userReminders.length === 0) {
-    container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 11px; padding: 12px;">Henüz hatırlatıcı eklenmedi.</div>';
-    return;
-  }
-
-  const now = new Date();
-
-  container.innerHTML = userReminders.map(r => {
-    const remDate = r.reminder_date ? new Date(r.reminder_date) : null;
-    const isExpired = remDate && remDate <= now && !r.is_completed;
-    const dateStr = remDate ? remDate.toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Tarih yok";
-
-    const itemClass = r.is_completed ? "floating-reminder-item" : (isExpired ? "floating-reminder-item expired" : "floating-reminder-item");
-    const statusBadge = r.is_completed 
-      ? '<span class="badge badge-green" style="font-size:9px; padding:1px 4px;">✓ Tamamlandı</span>'
-      : (isExpired ? '<span class="badge badge-red" style="font-size:9px; padding:1px 4px;">⏰ Süresi Doldu!</span>' : '<span class="badge badge-blue" style="font-size:9px; padding:1px 4px;">⏳ Aktif</span>');
-
-    return `
-      <div class="${itemClass}">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
-          <div style="display:flex; align-items:flex-start; gap:6px; flex:1;">
-            <input type="checkbox" ${r.is_completed ? "checked" : ""} onchange="toggleUserReminderComplete('${r.id}')" style="margin-top:2px; cursor:pointer;" />
-            <div style="font-size:12px; font-weight:600; color:#1e293b; text-decoration:${r.is_completed ? "line-through" : "none"}; word-break:break-word;">
-              ${r.note}
-            </div>
-          </div>
-          <button onclick="deleteUserReminder('${r.id}')" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:12px; padding:0 2px;" title="Sil">🗑️</button>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:10px; color:#64748b;">
-          <span>📅 ${dateStr}</span>
-          ${statusBadge}
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-function toggleFloatingReminderWidget() {
-  const box = document.getElementById("floating-reminder-box");
-  if (!box) return;
-  if (box.style.display === "none" || !box.style.display) {
-    box.style.display = "flex";
-    loadUserReminders();
-  } else {
-    box.style.display = "none";
-  }
-}
-
-async function addFloatingReminder() {
-  const noteInput = document.getElementById("floating-rem-note");
-  const dateInput = document.getElementById("floating-rem-date");
-  const note = noteInput ? noteInput.value.trim() : "";
-  const dateVal = dateInput ? dateInput.value : "";
-
-  if (!note) {
-    toast("Lütfen bir not giriniz!", "err");
-    return;
-  }
-
-  const newRem = {
-    id: "loc_" + Date.now(),
-    note: note,
-    reminder_date: dateVal ? new Date(dateVal).toISOString() : null,
-    is_completed: false,
-    created_at: new Date().toISOString()
-  };
-
-  try {
-    const res = await api.post("/user-reminders", {
-      note: note,
-      reminder_date: dateVal ? new Date(dateVal).toISOString() : null
-    });
-    if (res && res.id) {
-      newRem.id = res.id;
-    }
-  } catch (e) {
-    console.warn("Saved user reminder locally", e);
-  }
-
-  userReminders.unshift(newRem);
-  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
-  
-  if (noteInput) noteInput.value = "";
-  if (dateInput) dateInput.value = "";
-
-  renderUserReminders();
-  toast("Hatırlatıcı eklendi ✓");
-}
-
-async function toggleUserReminderComplete(id) {
-  const r = userReminders.find(x => x.id == id);
-  if (!r) return;
-  r.is_completed = !r.is_completed;
-  
-  try {
-    await api.patch(`/user-reminders/${id}`, { is_completed: r.is_completed });
-  } catch (e) {
-    console.warn(e);
-  }
-  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
-  renderUserReminders();
-}
-
-async function deleteUserReminder(id) {
-  userReminders = userReminders.filter(x => x.id != id);
-  try {
-    await api.delete(`/user-reminders/${id}`);
-  } catch (e) {
-    console.warn(e);
-  }
-  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
-  renderUserReminders();
-  toast("Hatırlatıcı silindi ✓");
-}
-
-window.startUserRemindersChecker = function startUserRemindersChecker() {
-  if (userRemindersTimer) clearInterval(userRemindersTimer);
-  loadUserReminders();
-  userRemindersTimer = setInterval(() => {
-    const now = new Date();
-    userReminders.forEach(r => {
-      if (!r.is_completed && r.reminder_date) {
-        const remDate = new Date(r.reminder_date);
-        const diff = now - remDate;
-        if (diff >= 0 && diff < 35000 && !r._alerted) {
-          r._alerted = true;
-          toast(`⏰ Hatırlatıcı: ${r.note}`, "info");
-          if (Notification.permission === "granted") {
-            new Notification("Zero İK Hatırlatıcı", { body: r.note });
-          }
-        }
-      }
-    });
-  }, 30000);
-}
-
-
-// ============================================================
-// 2. PERSONNEL DETAIL & NOTES MODAL JS
-// ============================================================
-let currentActivePerId = null;
-
-function viewPersonnelDetail(id) {
-  currentActivePerId = id;
-  const p = personnel.find(x => x.id == id);
-  if (!p) return;
-
-  const nameEl = document.getElementById("modal-per-detail-name");
-  const subEl = document.getElementById("modal-per-detail-sub");
-  const avatarEl = document.getElementById("modal-per-avatar");
-  const notesInput = document.getElementById("per-detail-notes-input");
-
-  if (nameEl) nameEl.textContent = `${p.first_name} ${p.last_name}`;
-  if (subEl) subEl.textContent = `${p.position || "Pozisyon yok"} • Tel: ${p.phone || "—"} • İşe Giriş: ${fmtDate(p.hire_date)}`;
-  if (avatarEl) {
-    avatarEl.textContent = initials(`${p.first_name} ${p.last_name}`);
-  }
-  if (notesInput) notesInput.value = p.notes || "";
-
-  // Render History Tab
-  const tbody = document.getElementById("per-detail-history-tbody");
-  if (tbody) {
-    const records = work_records.filter(r => r.personnel_id == id);
-    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
-
-    if (records.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:#94a3b8;">Bu personele ait çalışma kaydı bulunamadı.</td></tr>';
-    } else {
-      tbody.innerHTML = records.map(r => {
-        const start = r.start_day ? new Date(r.start_day) : null;
-        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
-        const c = companies.find(x => x.id == r.company_id);
-        const cName = c ? c.company_name : "Bilinmeyen Kurum";
-        const days = r.work_days || 0;
-        const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
-        const advance = parseFloat(r.advance_amount || 0);
-        const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
-        const statusText = r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
-        const statusBadge = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
-
-        return `
-          <tr>
-            <td style="font-weight:600;">${periodText}</td>
-            <td>🏢 ${cName}</td>
-            <td style="text-align:center; font-weight:700;">${days} gün</td>
-            <td style="font-weight:600;">${fmt(monthlyWage)}</td>
-            <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
-            <td style="font-weight:700; color:#16a34a;">${fmt(netPer)}</td>
-            <td><span class="badge ${statusBadge}">${statusText}</span></td>
-          </tr>
-        `;
-      }).join("");
-    }
-  }
-
-  switchPerDetailTab('history');
-  openM("modal-per-detail");
-}
-
-function switchPerDetailTab(tab) {
-  const tabHist = document.getElementById("per-detail-tab-history");
-  const tabNotes = document.getElementById("per-detail-tab-notes");
-  const btnHist = document.getElementById("tab-btn-per-history");
-  const btnNotes = document.getElementById("tab-btn-per-notes");
-
-  if (tab === 'history') {
-    if (tabHist) tabHist.style.display = "block";
-    if (tabNotes) tabNotes.style.display = "none";
-    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
-    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
-  } else {
-    if (tabHist) tabHist.style.display = "none";
-    if (tabNotes) tabNotes.style.display = "block";
-    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
-    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
-  }
-}
-
-async function savePersonnelDetailNotes() {
-  if (!currentActivePerId) return;
-  const notesInput = document.getElementById("per-detail-notes-input");
-  const noteText = notesInput ? notesInput.value.trim() : "";
-
-  try {
-    await api.patch(`/admin/personnel/${currentActivePerId}`, { notes: noteText });
-    const p = personnel.find(x => x.id == currentActivePerId);
-    if (p) p.notes = noteText;
-    toast("Personel notu kaydedildi ✓");
-  } catch (e) {
-    toast("Hata: " + e.message, "err");
-  }
-}
-
-
-// ============================================================
-// 3. COMPANY DETAIL & NOTES MODAL JS
-// ============================================================
-let currentActiveComId = null;
-
-function viewCompanyDetail(id) {
-  currentActiveComId = id;
-  const c = companies.find(x => x.id == id);
-  if (!c) return;
-
-  const nameEl = document.getElementById("modal-com-detail-name");
-  const subEl = document.getElementById("modal-com-detail-sub");
-  const notesInput = document.getElementById("com-detail-notes-input");
-
-  if (nameEl) nameEl.textContent = c.company_name;
-  if (subEl) subEl.textContent = `Yetkili: ${c.contact_person || "—"} • Tel: ${c.phone || "—"} • Adres: ${c.address || "—"}`;
-  if (notesInput) notesInput.value = c.notes || "";
-
-  // Render Personnel History Tab
-  const tbody = document.getElementById("com-detail-history-tbody");
-  if (tbody) {
-    const records = work_records.filter(r => r.company_id == id);
-    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
-
-    if (records.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px; color:#94a3b8;">Bu kuruma ait çalışma kaydı bulunamadı.</td></tr>';
-    } else {
-      tbody.innerHTML = records.map(r => {
-        const start = r.start_day ? new Date(r.start_day) : null;
-        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
-        const p = personnel.find(x => x.id == r.personnel_id);
-        const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
-        const pPos = p ? p.position : "—";
-        const days = r.work_days || 0;
-        const comPay = parseFloat(r.total_company_payment || 0);
-        const statusText = r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
-        const statusBadge = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
-
-        return `
-          <tr>
-            <td style="font-weight:600;">${periodText}</td>
-            <td style="font-weight:700; color:#2563eb;">👤 ${pNameStr}</td>
-            <td>${pPos}</td>
-            <td style="text-align:center; font-weight:700;">${days} gün</td>
-            <td style="font-weight:700; color:#15803d;">${fmt(comPay)}</td>
-            <td><span class="badge ${statusBadge}">${statusText}</span></td>
-          </tr>
-        `;
-      }).join("");
-    }
-  }
-
-  switchComDetailTab('history');
-  openM("modal-com-detail");
-}
-
-function switchComDetailTab(tab) {
-  const tabHist = document.getElementById("com-detail-tab-history");
-  const tabNotes = document.getElementById("com-detail-tab-notes");
-  const btnHist = document.getElementById("tab-btn-com-history");
-  const btnNotes = document.getElementById("tab-btn-com-notes");
-
-  if (tab === 'history') {
-    if (tabHist) tabHist.style.display = "block";
-    if (tabNotes) tabNotes.style.display = "none";
-    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
-    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
-  } else {
-    if (tabHist) tabHist.style.display = "none";
-    if (tabNotes) tabNotes.style.display = "block";
-    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
-    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
-  }
-}
-
-async function saveCompanyDetailNotes() {
-  if (!currentActiveComId) return;
-  const notesInput = document.getElementById("com-detail-notes-input");
-  const noteText = notesInput ? notesInput.value.trim() : "";
-
-  try {
-    await api.patch(`/admin/companies/${currentActiveComId}`, { notes: noteText });
-    const c = companies.find(x => x.id == currentActiveComId);
-    if (c) c.notes = noteText;
-    toast("Kurum notu kaydedildi ✓");
-  } catch (e) {
-    toast("Hata: " + e.message, "err");
-  }
-}
-
-
-// ============================================================
-// 4. EXCEL-LIKE SPREADSHEET AUTO-SAVE & QUICK ADD & INSTANT DELETE
-// ============================================================
-const autoSaveTimers = {};
-
-function autoSaveOpRecord(rowId, field, val) {
-  const r = work_records.find(x => x.id == rowId);
-  if (!r) return;
-
-  r[field] = val;
-
-  // Auto calculation logic
-  if (field === 'personnel_monthly_wage' || field === 'work_days') {
-    const wage = parseFloat(r.personnel_monthly_wage || 0);
-    const days = parseFloat(r.work_days || 0);
-    if (r.wage_mode !== 'custom') {
-      r.total_personnel_payment = Math.round((wage / 30) * days * 100) / 100;
-      const perPayInput = document.getElementById(`c-per-pay-${rowId}`);
-      if (perPayInput) perPayInput.value = r.total_personnel_payment;
-    }
-  }
-
-  // Update institution totals instantly on screen
-  updateCompanyGroupTotalsUI(r.company_id);
-
-  // Debounced auto-save patch request to backend
-  if (autoSaveTimers[rowId]) clearTimeout(autoSaveTimers[rowId]);
-  autoSaveTimers[rowId] = setTimeout(async () => {
-    try {
-      const payload = {
-        work_days: parseFloat(r.work_days) || 0,
-        personnel_monthly_wage: parseFloat(r.personnel_monthly_wage) || 0,
-        total_personnel_payment: parseFloat(r.total_personnel_payment) || 0,
-        total_company_payment: parseFloat(r.total_company_payment) || 0,
-        advance_amount: parseFloat(r.advance_amount) || 0,
-        note: r.note || ''
-      };
-      await api.patch(`/admin/work_records/${rowId}`, payload);
-      toast("Otomatik kaydedildi ✓");
-    } catch (e) {
-      console.error("Auto save failed", e);
-    }
-  }, 500);
-}
-
-function updateCompanyGroupTotalsUI(companyId) {
-  const selYear = parseInt(document.getElementById("op-yil").value);
-  const selMonth = parseInt(document.getElementById("op-ay").value);
-
-  const cRows = work_records.filter(r => {
-    if (r.company_id != companyId || r.archived || !r.start_day) return false;
-    const ym = getYearMonth(r.start_day);
-    return ym.month === selMonth && ym.year === selYear;
-  });
-
-  const totCom = cRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
-  const totPer = cRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
-  const totAdv = cRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
-  const netProfit = totCom - totPer;
-
-  const comTotEl = document.getElementById(`com-tot-com-${companyId}`);
-  const perTotEl = document.getElementById(`com-tot-per-${companyId}`);
-  const advTotEl = document.getElementById(`com-tot-adv-${companyId}`);
-  const netTotEl = document.getElementById(`com-tot-net-${companyId}`);
-
-  if (comTotEl) comTotEl.textContent = `₺${fmt(totCom)}`;
-  if (perTotEl) perTotEl.textContent = `₺${fmt(totPer)}`;
-  if (advTotEl) advTotEl.textContent = `₺${fmt(totAdv)}`;
-  if (netTotEl) {
-    netTotEl.textContent = `Net Bakiye: ₺${fmt(netProfit)}`;
-    netTotEl.style.background = netProfit >= 0 ? "#dcfce7" : "#fee2e2";
-    netTotEl.style.color = netProfit >= 0 ? "#15803d" : "#991b1b";
-  }
-}
-
-async function quickAddPersonnelToCompany(companyId, personnelId) {
-  if (!personnelId) return;
-  const selYear = parseInt(document.getElementById("op-yil").value);
-  const selMonth = parseInt(document.getElementById("op-ay").value);
-  const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
-  const monthStr = String(selMonth + 1).padStart(2, '0');
-  const targetStartStr = `${selYear}-${monthStr}-01`;
-  const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
-
-  const p = personnel.find(x => x.id == personnelId);
-  const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
-
-  const newRecord = {
-    personnel_id: parseInt(personnelId),
-    company_id: parseInt(companyId),
-    start_day: targetStartStr,
-    end_date: targetEndStr,
-    work_days: lastDay,
-    personnel_monthly_wage: monthlyWage,
-    personnel_daily_wage: monthlyWage / 30,
-    total_personnel_payment: monthlyWage,
-    total_company_payment: 0,
-    advance_amount: 0,
-    is_recurring: true,
-    needs_review: false,
-    wage_mode: "calculated",
-    note: ""
-  };
-
-  try {
-    const res = await api.post("/admin/work_records", [newRecord]);
-    if (res && res.length > 0) {
-      work_records.unshift(res[0]);
-    } else {
-      await loadAll();
-    }
-    toast("Personel eklendi ✓");
-    renderOperasyonCockpit();
-  } catch (e) {
-    toast("Hata: " + e.message, "err");
-  }
-}
-
-async function delOpRecord(rowId) {
-  if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
-  try {
-    await api.delete(`/admin/work_records/${rowId}`);
-    work_records = work_records.filter(x => x.id != rowId);
-    toast("Kayıt anında silindi ✓");
-    renderOperasyonCockpit();
-  } catch (e) {
-    toast("Hata: " + e.message, "err");
-  }
-}
-
-</script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
@@ -9762,15 +9270,326 @@ async function moveCompanyDown(id) {
       }
 
       // ============================================================
-      // START
-      // ============================================================
-      if (AUTO_LOGIN_ENABLED) {
-        tryAutoLogin();
-      } else {
-        document.getElementById("app").style.display = "none";
-        document.getElementById("login-screen").style.display = "flex";
-      }
-    
+      
+// 2. PERSONNEL DETAIL & NOTES MODAL JS
+// ============================================================
+let currentActivePerId = null;
+
+function viewPersonnelDetail(id) {
+  currentActivePerId = id;
+  const p = personnel.find(x => x.id == id);
+  if (!p) return;
+
+  const nameEl = document.getElementById("modal-per-detail-name");
+  const subEl = document.getElementById("modal-per-detail-sub");
+  const avatarEl = document.getElementById("modal-per-avatar");
+  const notesInput = document.getElementById("per-detail-notes-input");
+
+  if (nameEl) nameEl.textContent = `${p.first_name} ${p.last_name}`;
+  if (subEl) subEl.textContent = `${p.position || "Pozisyon yok"} • Tel: ${p.phone || "—"} • İşe Giriş: ${fmtDate(p.hire_date)}`;
+  if (avatarEl) {
+    avatarEl.textContent = initials(`${p.first_name} ${p.last_name}`);
+  }
+  if (notesInput) notesInput.value = p.notes || "";
+
+  // Render History Tab
+  const tbody = document.getElementById("per-detail-history-tbody");
+  if (tbody) {
+    const records = work_records.filter(r => r.personnel_id == id);
+    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
+
+    if (records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:15px; color:#94a3b8;">Bu personele ait çalışma kaydı bulunamadı.</td></tr>';
+    } else {
+      tbody.innerHTML = records.map(r => {
+        const start = r.start_day ? new Date(r.start_day) : null;
+        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+        const c = companies.find(x => x.id == r.company_id);
+        const cName = c ? c.company_name : "Bilinmeyen Kurum";
+        const days = r.work_days || 0;
+        const monthlyWage = parseFloat(r.personnel_monthly_wage || 0);
+        const advance = parseFloat(r.advance_amount || 0);
+        const netPer = parseFloat(r.total_personnel_payment || 0) - advance;
+        const statusText = r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
+        const statusBadge = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${periodText}</td>
+            <td>🏢 ${cName}</td>
+            <td style="text-align:center; font-weight:700;">${days} gün</td>
+            <td style="font-weight:600;">${fmt(monthlyWage)}</td>
+            <td style="color:#dc2626;">${advance > 0 ? fmt(advance) : "—"}</td>
+            <td style="font-weight:700; color:#16a34a;">${fmt(netPer)}</td>
+            <td><span class="badge ${statusBadge}">${statusText}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  switchPerDetailTab('history');
+  openM("modal-per-detail");
+}
+
+function switchPerDetailTab(tab) {
+  const tabHist = document.getElementById("per-detail-tab-history");
+  const tabNotes = document.getElementById("per-detail-tab-notes");
+  const btnHist = document.getElementById("tab-btn-per-history");
+  const btnNotes = document.getElementById("tab-btn-per-notes");
+
+  if (tab === 'history') {
+    if (tabHist) tabHist.style.display = "block";
+    if (tabNotes) tabNotes.style.display = "none";
+    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
+    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
+  } else {
+    if (tabHist) tabHist.style.display = "none";
+    if (tabNotes) tabNotes.style.display = "block";
+    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
+    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
+  }
+}
+
+async function savePersonnelDetailNotes() {
+  if (!currentActivePerId) return;
+  const notesInput = document.getElementById("per-detail-notes-input");
+  const noteText = notesInput ? notesInput.value.trim() : "";
+
+  try {
+    await api.patch(`/admin/personnel/${currentActivePerId}`, { notes: noteText });
+    const p = personnel.find(x => x.id == currentActivePerId);
+    if (p) p.notes = noteText;
+    toast("Personel notu kaydedildi ✓");
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+
+// ============================================================
+// 3. COMPANY DETAIL & NOTES MODAL JS
+// ============================================================
+let currentActiveComId = null;
+
+function viewCompanyDetail(id) {
+  currentActiveComId = id;
+  const c = companies.find(x => x.id == id);
+  if (!c) return;
+
+  const nameEl = document.getElementById("modal-com-detail-name");
+  const subEl = document.getElementById("modal-com-detail-sub");
+  const notesInput = document.getElementById("com-detail-notes-input");
+
+  if (nameEl) nameEl.textContent = c.company_name;
+  if (subEl) subEl.textContent = `Yetkili: ${c.contact_person || "—"} • Tel: ${c.phone || "—"} • Adres: ${c.address || "—"}`;
+  if (notesInput) notesInput.value = c.notes || "";
+
+  // Render Personnel History Tab
+  const tbody = document.getElementById("com-detail-history-tbody");
+  if (tbody) {
+    const records = work_records.filter(r => r.company_id == id);
+    records.sort((a, b) => new Date(b.start_day || 0) - new Date(a.start_day || 0));
+
+    if (records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:15px; color:#94a3b8;">Bu kuruma ait çalışma kaydı bulunamadı.</td></tr>';
+    } else {
+      tbody.innerHTML = records.map(r => {
+        const start = r.start_day ? new Date(r.start_day) : null;
+        const periodText = start ? start.toLocaleDateString("tr-TR", { month: "long", year: "numeric" }) : "—";
+        const p = personnel.find(x => x.id == r.personnel_id);
+        const pNameStr = p ? `${p.first_name} ${p.last_name}` : "Bilinmeyen Personel";
+        const pPos = p ? p.position : "—";
+        const days = r.work_days || 0;
+        const comPay = parseFloat(r.total_company_payment || 0);
+        const statusText = r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor";
+        const statusBadge = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${periodText}</td>
+            <td style="font-weight:700; color:#2563eb;">👤 ${pNameStr}</td>
+            <td>${pPos}</td>
+            <td style="text-align:center; font-weight:700;">${days} gün</td>
+            <td style="font-weight:700; color:#15803d;">${fmt(comPay)}</td>
+            <td><span class="badge ${statusBadge}">${statusText}</span></td>
+          </tr>
+        `;
+      }).join("");
+    }
+  }
+
+  switchComDetailTab('history');
+  openM("modal-com-detail");
+}
+
+function switchComDetailTab(tab) {
+  const tabHist = document.getElementById("com-detail-tab-history");
+  const tabNotes = document.getElementById("com-detail-tab-notes");
+  const btnHist = document.getElementById("tab-btn-com-history");
+  const btnNotes = document.getElementById("tab-btn-com-notes");
+
+  if (tab === 'history') {
+    if (tabHist) tabHist.style.display = "block";
+    if (tabNotes) tabNotes.style.display = "none";
+    if (btnHist) { btnHist.style.background = "#1e3a5f"; btnHist.style.color = "#fff"; }
+    if (btnNotes) { btnNotes.style.background = "#f1f5f9"; btnNotes.style.color = "#475569"; }
+  } else {
+    if (tabHist) tabHist.style.display = "none";
+    if (tabNotes) tabNotes.style.display = "block";
+    if (btnHist) { btnHist.style.background = "#f1f5f9"; btnHist.style.color = "#475569"; }
+    if (btnNotes) { btnNotes.style.background = "#1e3a5f"; btnNotes.style.color = "#fff"; }
+  }
+}
+
+async function saveCompanyDetailNotes() {
+  if (!currentActiveComId) return;
+  const notesInput = document.getElementById("com-detail-notes-input");
+  const noteText = notesInput ? notesInput.value.trim() : "";
+
+  try {
+    await api.patch(`/admin/companies/${currentActiveComId}`, { notes: noteText });
+    const c = companies.find(x => x.id == currentActiveComId);
+    if (c) c.notes = noteText;
+    toast("Kurum notu kaydedildi ✓");
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+
+// ============================================================
+// 4. EXCEL-LIKE SPREADSHEET AUTO-SAVE & QUICK ADD & INSTANT DELETE
+// ============================================================
+const autoSaveTimers = {};
+
+function autoSaveOpRecord(rowId, field, val) {
+  const r = work_records.find(x => x.id == rowId);
+  if (!r) return;
+
+  r[field] = val;
+
+  // Auto calculation logic
+  if (field === 'personnel_monthly_wage' || field === 'work_days') {
+    const wage = parseFloat(r.personnel_monthly_wage || 0);
+    const days = parseFloat(r.work_days || 0);
+    if (r.wage_mode !== 'custom') {
+      r.total_personnel_payment = Math.round((wage / 30) * days * 100) / 100;
+      const perPayInput = document.getElementById(`c-per-pay-${rowId}`);
+      if (perPayInput) perPayInput.value = r.total_personnel_payment;
+    }
+  }
+
+  // Update institution totals instantly on screen
+  updateCompanyGroupTotalsUI(r.company_id);
+
+  // Debounced auto-save patch request to backend
+  if (autoSaveTimers[rowId]) clearTimeout(autoSaveTimers[rowId]);
+  autoSaveTimers[rowId] = setTimeout(async () => {
+    try {
+      const payload = {
+        work_days: parseFloat(r.work_days) || 0,
+        personnel_monthly_wage: parseFloat(r.personnel_monthly_wage) || 0,
+        total_personnel_payment: parseFloat(r.total_personnel_payment) || 0,
+        total_company_payment: parseFloat(r.total_company_payment) || 0,
+        advance_amount: parseFloat(r.advance_amount) || 0,
+        note: r.note || ''
+      };
+      await api.patch(`/admin/work_records/${rowId}`, payload);
+      toast("Otomatik kaydedildi ✓");
+    } catch (e) {
+      console.error("Auto save failed", e);
+    }
+  }, 500);
+}
+
+function updateCompanyGroupTotalsUI(companyId) {
+  const selYear = parseInt(document.getElementById("op-yil").value);
+  const selMonth = parseInt(document.getElementById("op-ay").value);
+
+  const cRows = work_records.filter(r => {
+    if (r.company_id != companyId || r.archived || !r.start_day) return false;
+    const ym = getYearMonth(r.start_day);
+    return ym.month === selMonth && ym.year === selYear;
+  });
+
+  const totCom = cRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
+  const totPer = cRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
+  const totAdv = cRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
+  const netProfit = totCom - totPer;
+
+  const comTotEl = document.getElementById(`com-tot-com-${companyId}`);
+  const perTotEl = document.getElementById(`com-tot-per-${companyId}`);
+  const advTotEl = document.getElementById(`com-tot-adv-${companyId}`);
+  const netTotEl = document.getElementById(`com-tot-net-${companyId}`);
+
+  if (comTotEl) comTotEl.textContent = `₺${fmt(totCom)}`;
+  if (perTotEl) perTotEl.textContent = `₺${fmt(totPer)}`;
+  if (advTotEl) advTotEl.textContent = `₺${fmt(totAdv)}`;
+  if (netTotEl) {
+    netTotEl.textContent = `Net Bakiye: ₺${fmt(netProfit)}`;
+    netTotEl.style.background = netProfit >= 0 ? "#dcfce7" : "#fee2e2";
+    netTotEl.style.color = netProfit >= 0 ? "#15803d" : "#991b1b";
+  }
+}
+
+async function quickAddPersonnelToCompany(companyId, personnelId) {
+  if (!personnelId) return;
+  const selYear = parseInt(document.getElementById("op-yil").value);
+  const selMonth = parseInt(document.getElementById("op-ay").value);
+  const lastDay = new Date(selYear, selMonth + 1, 0).getDate();
+  const monthStr = String(selMonth + 1).padStart(2, '0');
+  const targetStartStr = `${selYear}-${monthStr}-01`;
+  const targetEndStr = `${selYear}-${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+  const p = personnel.find(x => x.id == personnelId);
+  const monthlyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
+
+  const newRecord = {
+    personnel_id: parseInt(personnelId),
+    company_id: parseInt(companyId),
+    start_day: targetStartStr,
+    end_date: targetEndStr,
+    work_days: lastDay,
+    personnel_monthly_wage: monthlyWage,
+    personnel_daily_wage: monthlyWage / 30,
+    total_personnel_payment: monthlyWage,
+    total_company_payment: 0,
+    advance_amount: 0,
+    is_recurring: true,
+    needs_review: false,
+    wage_mode: "calculated",
+    note: ""
+  };
+
+  try {
+    const res = await api.post("/admin/work_records", [newRecord]);
+    if (res && res.length > 0) {
+      work_records.unshift(res[0]);
+    } else {
+      await loadAll();
+    }
+    toast("Personel eklendi ✓");
+    renderOperasyonCockpit();
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+async function delOpRecord(rowId) {
+  if (!confirm("Bu kaydı silmek istediğinize emin misiniz?")) return;
+  try {
+    await api.delete(`/admin/work_records/${rowId}`);
+    work_records = work_records.filter(x => x.id != rowId);
+    toast("Kayıt anında silindi ✓");
+    renderOperasyonCockpit();
+  } catch (e) {
+    toast("Hata: " + e.message, "err");
+  }
+}
+
+
+
       // ============================================================
       // HATIRLATICI (REMINDERS) & GÖRÜŞÜLENLER (CANDIDATES) LOGIC
       // ============================================================
@@ -9779,7 +9598,6 @@ async function moveCompanyDown(id) {
       let candidateList = [];
       let notifiedRemindersSet = new Set();
 
-      // Load user reminders from backend
       async function loadUserReminders() {
         try {
           const res = await api.get("/user-reminders");
@@ -9795,7 +9613,6 @@ async function moveCompanyDown(id) {
         renderPageRemindersTable();
       }
 
-      // Add Page Reminder (Field name in DB is 'note')
       async function addPageReminder() {
         const noteEl = document.getElementById("page-rem-note");
         const dateEl = document.getElementById("page-rem-date");
@@ -9829,11 +9646,10 @@ async function moveCompanyDown(id) {
 
         localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
 
-        // Clear inputs immediately after adding!
         if (noteEl) noteEl.value = "";
         if (dateEl) dateEl.value = "";
 
-        toast("Not / Hatırlatıcı başarıyla eklendi ✓");
+        toast("Not / Hatırlatıcı eklendi ✓");
         renderPageRemindersTable();
       }
 
@@ -9926,7 +9742,6 @@ async function moveCompanyDown(id) {
         renderPageRemindersTable();
       }
 
-      // Background notification checker (Triggers floating notification popups when scheduled datetime arrives!)
       function startUserRemindersChecker() {
         loadUserReminders();
         setInterval(checkScheduledReminderNotifications, 10000);
@@ -9947,11 +9762,8 @@ async function moveCompanyDown(id) {
 
       function showReminderPopupNotification(r) {
         const noteStr = r.note || r.reminder_text || "Hatırlatıcı Notu";
-        
-        // Show high-visibility toast
         toast(`⏰ HATIRLATICI BİLDİRİMİ: ${noteStr}`, "warn");
 
-        // Browser Native Notification if allowed
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("⏰ İK Panel Hatırlatıcı Bildirimi", {
             body: noteStr,
@@ -9960,7 +9772,6 @@ async function moveCompanyDown(id) {
         }
       }
 
-      // Subtab Personnel
       function switchPersonnelSubTab(tab) {
         const btnCalisanlar = document.getElementById("btn-subtab-calisanlar");
         const btnGorusulenler = document.getElementById("btn-subtab-gorusulenler");
@@ -9981,7 +9792,6 @@ async function moveCompanyDown(id) {
         }
       }
 
-      // Candidates (Görüşülenler) Logic
       async function loadCandidates() {
         try {
           const res = await api.get("/candidates");
@@ -10151,7 +9961,13 @@ async function moveCompanyDown(id) {
         }).join('');
       }
 
-      // Explicitly attach functions to window object
+      // Attach to window
+      window.viewPersonnelDetail = viewPersonnelDetail;
+      window.switchPerDetailTab = switchPerDetailTab;
+      window.savePersonnelDetailNotes = savePersonnelDetailNotes;
+      window.viewCompanyDetail = viewCompanyDetail;
+      window.switchComDetailTab = switchComDetailTab;
+      window.saveCompanyDetailNotes = saveCompanyDetailNotes;
       window.loadUserReminders = loadUserReminders;
       window.addPageReminder = addPageReminder;
       window.filterPageReminders = filterPageReminders;
@@ -10167,25 +9983,23 @@ async function moveCompanyDown(id) {
       window.deleteCandidate = deleteCandidate;
       window.filterCandidatesList = filterCandidatesList;
       window.renderCandidateList = renderCandidateList;
+      window.autoSaveOpRecord = typeof autoSaveOpRecord !== 'undefined' ? autoSaveOpRecord : null;
+      window.updateCompanyGroupTotalsUI = typeof updateCompanyGroupTotalsUI !== 'undefined' ? updateCompanyGroupTotalsUI : null;
+      window.quickAddPersonnelToCompany = typeof quickAddPersonnelToCompany !== 'undefined' ? quickAddPersonnelToCompany : null;
+      window.delOpRecord = typeof delOpRecord !== 'undefined' ? delOpRecord : null;
 
-</script>
+      // START
+      // ============================================================
+      if (AUTO_LOGIN_ENABLED) {
+        tryAutoLogin();
+      } else {
+        document.getElementById("app").style.display = "none";
+        document.getElementById("login-screen").style.display = "flex";
+      }
+    </script>
   
-</div>
-  <div class="floating-reminder-body">
-    <!-- Add Form -->
-    <div style="background: #f1f5f9; padding: 10px; border-radius: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
-      <input type="text" id="floating-rem-note" class="form-control" placeholder="Not / Hatırlatma giriniz..." style="font-size: 12px; padding: 6px 10px;" />
-      <div style="display: flex; gap: 6px;">
-        <input type="datetime-local" id="floating-rem-date" class="form-control" style="font-size: 11px; padding: 4px 6px;" />
-        <button class="btn btn-sm btn-primary" onclick="addFloatingReminder()" style="white-space: nowrap; font-size: 11px; font-weight: 700;">+ Ekle</button>
-      </div>
-    </div>
-    <!-- List Container -->
-    <div id="floating-rem-list" style="display: flex; flex-direction: column; gap: 6px;">
-      <div style="text-align: center; color: #94a3b8; font-size: 11px; padding: 10px;">Yükleniyor...</div>
-    </div>
-  </div>
-</div>
+
+
 
 <!-- Personnel Detail & Notes Modal -->
 <div id="modal-per-detail" class="modal-backdrop" style="display:none;">
@@ -10299,74 +10113,6 @@ async function moveCompanyDown(id) {
   </div>
 </div>
 
-
-</div>
-  <div class="floating-reminder-body">
-    <div style="background: #f1f5f9; padding: 10px; border-radius: 10px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
-      <input type="text" id="floating-rem-note" class="form-control" placeholder="Not / Hatırlatma giriniz..." style="font-size: 12px; padding: 6px 10px;" />
-      <div style="display: flex; gap: 6px;">
-        <input type="datetime-local" id="floating-rem-date" class="form-control" style="font-size: 11px; padding: 4px 6px;" />
-        <button class="btn btn-sm btn-primary" onclick="addFloatingReminder()" style="white-space: nowrap; font-size: 11px; font-weight: 700;">+ Ekle</button>
-      </div>
-    </div>
-    <div id="floating-rem-list" style="display: flex; flex-direction: column; gap: 6px;">
-      <div style="text-align: center; color: #94a3b8; font-size: 11px; padding: 10px;">Yükleniyor...</div>
-    </div>
-  </div>
-</div>
-
-<!-- Personnel Detail & Notes Modal -->
-<div id="modal-per-detail" class="modal-backdrop" style="display:none;">
-  <div class="modal" style="max-width: 800px; width: 95%;">
-    <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div id="modal-per-avatar" class="avatar av-1" style="width:40px; height:40px; font-size:16px;">P</div>
-        <div>
-          <h3 id="modal-per-detail-name" style="margin:0; font-size:16px;">Personel Detayı</h3>
-          <div id="modal-per-detail-sub" style="font-size:12px; color:#64748b;">—</div>
-        </div>
-      </div>
-      <button class="modal-close" onclick="closeM('modal-per-detail')">✕</button>
-    </div>
-    <div class="modal-body" style="padding: 16px;">
-      <div style="display:flex; gap:8px; border-bottom:2px solid #e2e8f0; margin-bottom:14px;">
-        <button id="tab-btn-per-history" class="btn btn-sm" onclick="switchPerDetailTab('history')" style="border-radius:6px 6px 0 0; background:#1e3a5f; color:#fff; font-weight:700;">🏢 Daha Önce Çalıştığı Yerler</button>
-        <button id="tab-btn-per-notes" class="btn btn-sm btn-secondary" onclick="switchPerDetailTab('notes')" style="border-radius:6px 6px 0 0; font-weight:700;">📝 Kişi Hakkında Notlar</button>
-      </div>
-
-      <div id="per-detail-tab-history">
-        <div style="max-height:350px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px;">
-          <table class="data-table" style="width:100%; font-size:12px;">
-            <thead>
-              <tr style="background:#f8fafc;">
-                <th>Dönem</th>
-                <th>Çalıştığı Kurum</th>
-                <th>Çalıştığı Gün</th>
-                <th>Aylık/Yevmiye</th>
-                <th>Avans/Masraf</th>
-                <th>Net Hakediş</th>
-                <th>Ödeme Durumu</th>
-              </tr>
-            </thead>
-            <tbody id="per-detail-history-tbody">
-              <tr><td colspan="7" style="text-align:center; padding:15px; color:#94a3b8;">Kayıt bulunamadı</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="per-detail-tab-notes" style="display:none;">
-        <div style="margin-bottom:10px;">
-          <label style="font-weight:700; font-size:12px; display:block; margin-bottom:4px;">Personel Özel Notları (İç Bilgi / Geçmiş Notları):</label>
-          <textarea id="per-detail-notes-input" class="form-control" rows="6" placeholder="Bu personel hakkında özel notlar ekleyebilirsiniz (örn. tecrübe, sertifikalar, performans notları...)" style="font-size:13px; font-family:inherit;"></textarea>
-        </div>
-        <div style="display:flex; justify-content:flex-end;">
-          <button class="btn btn-primary" onclick="savePersonnelDetailNotes()" style="font-weight:700;">💾 Personel Notunu Kaydet</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- Candidate Modal -->
 <div id="modal-candidate" class="modal-backdrop" style="display:none;">
