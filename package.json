@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "serve public -p 3001",
-    "dev": "serve public -p 3001"
+    "dev": "serve public -p 3001",
+    "build": "echo build ok"
   },
   "dependencies": {
     "serve": "^14.2.4"
