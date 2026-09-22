@@ -3491,7 +3491,7 @@ async function deleteUserReminder(id) {
   toast("Hatırlatıcı silindi ✓");
 }
 
-function startUserRemindersChecker() {
+window.startUserRemindersChecker = function startUserRemindersChecker() {
   if (userRemindersTimer) clearInterval(userRemindersTimer);
   loadUserReminders();
   userRemindersTimer = setInterval(() => {
@@ -4774,7 +4774,7 @@ async function delOpRecord(rowId) {
           renderOperasyonCockpit();
           updateSidebarBadge();
           requestNotificationPermission();
-          startRemindersCheck(); startUserRemindersChecker();
+          if (typeof startRemindersCheck === "function") startRemindersCheck(); if (typeof startUserRemindersChecker === "function") startUserRemindersChecker();
 
           const activePage = localStorage.getItem("active_page") || "dashboard";
           goPage(activePage);
