@@ -3968,6 +3968,91 @@ function filterCandidatesList(query) {
   renderCandidates(query);
 }
 
+
+// ============================================================
+// EXPOSE GLOBAL ONCLICK HANDLER FUNCTIONS TO WINDOW
+// ============================================================
+window.toggleFloatingReminderWidget = function toggleFloatingReminderWidget() {
+  const box = document.getElementById("floating-reminder-box");
+  if (!box) return;
+  if (box.style.display === "none" || !box.style.display) {
+    box.style.display = "flex";
+    if (typeof loadUserReminders === "function") loadUserReminders();
+  } else {
+    box.style.display = "none";
+  }
+};
+
+window.addFloatingReminder = function addFloatingReminder() {
+  const noteInput = document.getElementById("floating-rem-note");
+  const dateInput = document.getElementById("floating-rem-date");
+  const note = noteInput ? noteInput.value.trim() : "";
+  const dateVal = dateInput ? dateInput.value : "";
+
+  if (!note) {
+    if (typeof toast === "function") toast("Lütfen bir not giriniz!", "err");
+    return;
+  }
+
+  const newRem = {
+    id: "loc_" + Date.now(),
+    note: note,
+    reminder_date: dateVal ? new Date(dateVal).toISOString() : new Date().toISOString(),
+    is_completed: false,
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    if (typeof api !== "undefined" && api.post) {
+      api.post("/user-reminders", {
+        note: note,
+        reminder_date: newRem.reminder_date
+      }).then(res => { if (res && res.id) newRem.id = res.id; }).catch(e => console.warn(e));
+    }
+  } catch (e) {
+    console.warn("Saved user reminder locally", e);
+  }
+
+  if (typeof userReminders !== "undefined" && Array.isArray(userReminders)) {
+    userReminders.unshift(newRem);
+    localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+  }
+  
+  if (noteInput) noteInput.value = "";
+  if (dateInput) dateInput.value = "";
+
+  if (typeof renderUserReminders === "function") renderUserReminders();
+  if (typeof toast === "function") toast("Hatırlatıcı eklendi ✓");
+};
+
+window.toggleUserReminderComplete = function toggleUserReminderComplete(id) {
+  if (typeof userReminders === "undefined" || !Array.isArray(userReminders)) return;
+  const r = userReminders.find(x => x.id == id);
+  if (!r) return;
+  r.is_completed = !r.is_completed;
+  
+  try {
+    if (typeof api !== "undefined" && api.patch) api.patch(`/user-reminders/${id}`, { is_completed: r.is_completed }).catch(e => console.warn(e));
+  } catch (e) { console.warn(e); }
+
+  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+  if (typeof renderUserReminders === "function") renderUserReminders();
+  if (typeof renderPageRemindersTable === "function") renderPageRemindersTable();
+};
+
+window.deleteUserReminder = function deleteUserReminder(id) {
+  if (typeof userReminders === "undefined" || !Array.isArray(userReminders)) return;
+  userReminders = userReminders.filter(x => x.id != id);
+  try {
+    if (typeof api !== "undefined" && api.delete) api.delete(`/user-reminders/${id}`).catch(e => console.warn(e));
+  } catch (e) { console.warn(e); }
+
+  localStorage.setItem("ik_user_reminders", JSON.stringify(userReminders));
+  if (typeof renderUserReminders === "function") renderUserReminders();
+  if (typeof renderPageRemindersTable === "function") renderPageRemindersTable();
+  if (typeof toast === "function") toast("Hatırlatıcı silindi ✓");
+};
+
 </script>
   
 <!-- Floating Reminder Widget (Visible on All Pages) -->
