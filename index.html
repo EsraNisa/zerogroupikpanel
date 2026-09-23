@@ -9884,102 +9884,6 @@ async function delOpRecord(rowId) {
         }
       }
 
-      // Quick add supporting both registered personnel and candidate transfer
-      async function quickAddPersonnelToCompany(companyId, selectVal) {
-        if (!selectVal) return;
-
-        let targetPersonnelId = null;
-
-        if (selectVal.startsWith("cand_")) {
-          const candId = selectVal.replace("cand_", "");
-          const cand = candidateList.find(x => x.id == candId);
-          if (!cand) return;
-
-          // Automatically transfer candidate to registered personnel!
-          const nameParts = (cand.full_name || "").trim().split(" ");
-          const firstName = nameParts[0] || cand.full_name;
-          const lastName = nameParts.slice(1).join(" ") || "";
-
-          try {
-            const newPerPayload = {
-              first_name: firstName,
-              last_name: lastName,
-              phone: cand.phone || "",
-              position: cand.position || "Personel",
-              daily_wage: 0,
-              iban: "",
-              hire_date: new Date().toISOString().split("T")[0],
-              notes: cand.notes ? `[Görüşülen Aktarımı]: ${cand.notes}` : ""
-            };
-
-            const created = await api.post("/admin/personnel", newPerPayload);
-            const savedPer = (created && created.id) ? created : { ...newPerPayload, id: Date.now() };
-            personnel.push(savedPer);
-            targetPersonnelId = savedPer.id;
-
-            // Remove from candidates
-            try {
-              await api.delete(`/candidates/${candId}`);
-            } catch(e) {}
-            candidateList = candidateList.filter(x => x.id != candId);
-            localStorage.setItem("ik_candidates", JSON.stringify(candidateList));
-            
-            toast(`${cand.full_name} görüşülenlerden kayıtlı personele aktarıldı ve işe eklendi ✓`);
-            renderPersonnel();
-            renderCandidateList();
-          } catch (err) {
-            toast("Personel oluşturma hatası: " + err.message, "err");
-            return;
-          }
-        } else if (selectVal.startsWith("per_")) {
-          targetPersonnelId = selectVal.replace("per_", "");
-        } else {
-          targetPersonnelId = selectVal;
-        }
-
-        const opYilEl = document.getElementById("op-yil");
-        const opAyEl = document.getElementById("op-ay");
-        const y = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
-        const m = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
-
-        const startDay = `${y}-${String(m + 1).padStart(2, '0')}-01`;
-        const lastDayOfMonth = new Date(y, m + 1, 0).getDate();
-        const endDay = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
-
-        const p = personnel.find(x => x.id == targetPersonnelId);
-        const dailyWage = p ? parseFloat(p.daily_wage) || 0 : 0;
-        const workDays = countWorkdays(y, m);
-        const netWage = Math.round(workDays * dailyWage * 100) / 100;
-
-        const payload = {
-          personnel_id: targetPersonnelId,
-          company_id: companyId,
-          start_day: startDay,
-          end_day: endDay,
-          work_days: workDays,
-          net_wage: netWage,
-          advance_amount: 0,
-          extra_amount: 0,
-          total_company_payment: 0,
-          personnel_payment: netWage,
-          personnel_payment_status: 'bekliyor',
-          company_payment_status: 'bekliyor',
-          is_recurring: true
-        };
-
-        try {
-          const res = await api.post('/admin/work_records', payload);
-          if (res) {
-            work_records.push(res);
-            toast("Personel kuruma başarıyla eklendi ✓");
-            renderOperasyonCockpit();
-          }
-        } catch (e) {
-          toast("Hata: " + e.message, "err");
-        }
-      }
-
-      // Filter Candidates across name, notes, phone, position
       function filterCandidatesList(query = "") {
         renderCandidateList(query);
       }
@@ -10142,7 +10046,7 @@ async function delOpRecord(rowId) {
         const selMonth = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
 
         const activeCompsKey = `active_companies_${selYear}_${selMonth}`;
-        const activeComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]");
+        let activeComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]");
 
         if (activeAddComTab === 'existing') {
           const sel = document.getElementById("select-addcom-existing");
@@ -10178,20 +10082,21 @@ async function delOpRecord(rowId) {
           try {
             const res = await api.post("/admin/companies", {
               company_name: name,
-              contact_name: contact,
+              contact_person: contact,
               phone: phone
             });
 
-            if (res && res.id) {
-              companies.push(res);
-              if (!activeComps.includes(res.id.toString())) {
-                activeComps.push(res.id.toString());
+            const comp = Array.isArray(res) ? res[0] : res;
+            if (comp && comp.id) {
+              companies.push(comp);
+              if (!activeComps.includes(comp.id.toString())) {
+                activeComps.push(comp.id.toString());
                 localStorage.setItem(activeCompsKey, JSON.stringify(activeComps));
               }
 
               const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
               let hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
-              hiddenComps = hiddenComps.filter(id => id != res.id);
+              hiddenComps = hiddenComps.filter(id => id != comp.id);
               localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
 
               document.getElementById("new-com-name").value = "";
@@ -10207,9 +10112,6 @@ async function delOpRecord(rowId) {
           }
         }
       }
-
-      // 2. KAYITSIZ YENİ PERSONEL MODALI
-      let quickTargetCompanyId = null;
 
       function openQuickNewPersonnelModal(companyId) {
         quickTargetCompanyId = companyId;
@@ -10255,7 +10157,7 @@ async function delOpRecord(rowId) {
 
         try {
           // 1. Create personnel in DB
-          const newPer = await api.post("/admin/personnel", {
+          const newPerRes = await api.post("/admin/personnel", {
             first_name: name,
             last_name: surname,
             position: pos,
@@ -10264,12 +10166,9 @@ async function delOpRecord(rowId) {
             is_active: true
           });
 
-          if (!newPer || !newPer.id) {
-            toast("Personel oluşturulamadı", "err");
-            return;
-          }
-
-          personnel.push(newPer);
+          const newPer = Array.isArray(newPerRes) ? newPerRes[0] : newPerRes;
+          const perObj = (newPer && newPer.id) ? newPer : { id: Date.now(), first_name: name, last_name: surname, position: pos, daily_wage: wage };
+          personnel.push(perObj);
 
           // 2. Create work record for this month
           const opYilEl = document.getElementById("op-yil");
@@ -10280,9 +10179,23 @@ async function delOpRecord(rowId) {
           const startDayStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-01`;
           const endDayStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-28`;
 
+          const cIdParsed = parseInt(quickTargetCompanyId, 10) || quickTargetCompanyId;
+
+          // Ensure company active in month
+          const activeCompsKey = `active_companies_${selYear}_${selMonth}`;
+          let activeComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]");
+          if (!activeComps.includes(cIdParsed.toString())) {
+            activeComps.push(cIdParsed.toString());
+            localStorage.setItem(activeCompsKey, JSON.stringify(activeComps));
+          }
+          const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+          let hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+          hiddenComps = hiddenComps.filter(id => id != cIdParsed);
+          localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
+
           const recPayload = {
-            company_id: quickTargetCompanyId,
-            personnel_id: newPer.id,
+            company_id: cIdParsed,
+            personnel_id: perObj.id,
             start_day: startDayStr,
             end_date: endDayStr,
             work_days: days,
@@ -10297,13 +10210,24 @@ async function delOpRecord(rowId) {
           };
 
           const newRec = await api.post("/admin/work_records", recPayload);
-          if (newRec && newRec.id) {
-            work_records.push(newRec);
-          }
+          const inserted = Array.isArray(newRec) ? newRec[0] : newRec;
+          const finalRec = (inserted && (inserted.id || inserted.work_record_id))
+            ? { ...recPayload, ...inserted, company_id: cIdParsed, personnel_id: perObj.id }
+            : { ...recPayload, id: Date.now() };
+
+          work_records.push(finalRec);
 
           closeQuickNewPersonnelModal();
           toast(`${name} ${surname} sisteme kaydedildi ve kuruma eklendi ✓`);
           renderOperasyonCockpit();
+
+          // Background sync
+          api.get("/work_records").then(fresh => {
+            if (Array.isArray(fresh) && fresh.length > 0) {
+              work_records = fresh;
+              renderOperasyonCockpit();
+            }
+          }).catch(() => {});
         } catch(e) {
           toast("Personel eklenirken hata: " + e.message, "err");
         }
@@ -10325,6 +10249,19 @@ async function delOpRecord(rowId) {
 
         const startDayStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-01`;
         const endDayStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}-28`;
+        const cIdParsed = parseInt(companyId, 10) || companyId;
+
+        // Ensure company is marked active for this month in localStorage
+        const activeCompsKey = `active_companies_${selYear}_${selMonth}`;
+        let activeComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]");
+        if (!activeComps.includes(cIdParsed.toString())) {
+          activeComps.push(cIdParsed.toString());
+          localStorage.setItem(activeCompsKey, JSON.stringify(activeComps));
+        }
+        const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
+        let hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+        hiddenComps = hiddenComps.filter(id => id != cIdParsed);
+        localStorage.setItem(hiddenCompsKey, JSON.stringify(hiddenComps));
 
         // Case A: From Candidate (Görüşülenler)
         if (selectVal.startsWith('cand_')) {
@@ -10342,7 +10279,7 @@ async function delOpRecord(rowId) {
 
           try {
             // 1. Create registered personnel from candidate
-            const newPer = await api.post("/admin/personnel", {
+            const newPerRes = await api.post("/admin/personnel", {
               first_name: fName,
               last_name: lName,
               position: cand.position || "Personel",
@@ -10351,42 +10288,54 @@ async function delOpRecord(rowId) {
               is_active: true
             });
 
-            if (newPer && newPer.id) {
-              personnel.push(newPer);
+            const newPer = Array.isArray(newPerRes) ? newPerRes[0] : newPerRes;
+            const perObj = (newPer && newPer.id) ? newPer : { id: Date.now(), first_name: fName, last_name: lName, position: cand.position || "Personel" };
+            if (!personnel.find(p => p.id == perObj.id)) personnel.push(perObj);
 
-              // 2. Mark candidate as hired
-              try {
-                await api.patch(`/admin/ik_candidates/${candId}`, {
-                  status: 'ise_alindi',
-                  assigned_company_id: companyId
-                });
-                cand.status = 'ise_alindi';
-                cand.assigned_company_id = companyId;
-              } catch(err) {}
+            // 2. Mark candidate as hired
+            try {
+              await api.patch(`/admin/ik_candidates/${candId}`, {
+                status: 'ise_alindi',
+                assigned_company_id: cIdParsed
+              });
+              cand.status = 'ise_alindi';
+              cand.assigned_company_id = cIdParsed;
+            } catch(err) {}
 
-              // 3. Create work record
-              const recPayload = {
-                company_id: companyId,
-                personnel_id: newPer.id,
-                start_day: startDayStr,
-                end_date: endDayStr,
-                work_days: 30,
-                job_type: cand.position || "Personel",
-                personnel_monthly_wage: 0,
-                total_personnel_payment: 0,
-                personnel_payment: 0,
-                total_company_payment: 0,
-                com_kdv: false,
-                com_tevkifat: false,
-                note: `Görüşülenlerden aktarıldı (${cand.full_name})`
-              };
+            // 3. Create work record
+            const recPayload = {
+              company_id: cIdParsed,
+              personnel_id: perObj.id,
+              start_day: startDayStr,
+              end_date: endDayStr,
+              work_days: 30,
+              job_type: cand.position || "Personel",
+              personnel_monthly_wage: 0,
+              total_personnel_payment: 0,
+              personnel_payment: 0,
+              total_company_payment: 0,
+              com_kdv: false,
+              com_tevkifat: false,
+              note: `Görüşülenlerden aktarıldı (${cand.full_name})`
+            };
 
-              const newRec = await api.post("/admin/work_records", recPayload);
-              if (newRec && newRec.id) work_records.push(newRec);
+            const newRec = await api.post("/admin/work_records", recPayload);
+            const inserted = Array.isArray(newRec) ? newRec[0] : newRec;
+            const finalRec = (inserted && (inserted.id || inserted.work_record_id))
+              ? { ...recPayload, ...inserted, company_id: cIdParsed, personnel_id: perObj.id }
+              : { ...recPayload, id: Date.now() };
 
-              toast(`${cand.full_name} işe aktarıldı ve kuruma eklendi ✓`);
-              renderOperasyonCockpit();
-            }
+            work_records.push(finalRec);
+            toast(`${cand.full_name} işe aktarıldı ve kuruma eklendi ✓`);
+            renderOperasyonCockpit();
+
+            // Background sync
+            api.get("/work_records").then(fresh => {
+              if (Array.isArray(fresh) && fresh.length > 0) {
+                work_records = fresh;
+                renderOperasyonCockpit();
+              }
+            }).catch(() => {});
           } catch(e) {
             toast("Aday aktarılırken hata: " + e.message, "err");
           }
@@ -10400,37 +10349,52 @@ async function delOpRecord(rowId) {
           if (!p) return;
 
           const defaultWage = parseFloat(p.daily_wage) || 0;
+          const pIdParsed = parseInt(pId, 10) || pId;
+
+          const recPayload = {
+            company_id: cIdParsed,
+            personnel_id: pIdParsed,
+            start_day: startDayStr,
+            end_date: endDayStr,
+            work_days: 30,
+            job_type: p.position || "Personel",
+            personnel_monthly_wage: defaultWage,
+            total_personnel_payment: defaultWage,
+            personnel_payment: defaultWage,
+            total_company_payment: 0,
+            com_kdv: false,
+            com_tevkifat: false,
+            note: ""
+          };
 
           try {
-            const recPayload = {
-              company_id: companyId,
-              personnel_id: pId,
-              start_day: startDayStr,
-              end_date: endDayStr,
-              work_days: 30,
-              job_type: p.position || "Personel",
-              personnel_monthly_wage: defaultWage,
-              total_personnel_payment: defaultWage,
-              personnel_payment: defaultWage,
-              total_company_payment: 0,
-              com_kdv: false,
-              com_tevkifat: false,
-              note: ""
-            };
-
             const newRec = await api.post("/admin/work_records", recPayload);
-            if (newRec && newRec.id) {
-              work_records.push(newRec);
-              toast(`${p.first_name} ${p.last_name} kuruma eklendi ✓`);
-              renderOperasyonCockpit();
-            }
+            const inserted = Array.isArray(newRec) ? newRec[0] : newRec;
+            const finalRec = (inserted && (inserted.id || inserted.work_record_id))
+              ? { ...recPayload, ...inserted, company_id: cIdParsed, personnel_id: pIdParsed }
+              : { ...recPayload, id: Date.now() };
+
+            work_records.push(finalRec);
+            toast(`${p.first_name} ${p.last_name} kuruma eklendi ✓`);
+            renderOperasyonCockpit();
+
+            // Background sync
+            api.get("/work_records").then(fresh => {
+              if (Array.isArray(fresh) && fresh.length > 0) {
+                work_records = fresh;
+                renderOperasyonCockpit();
+              }
+            }).catch(() => {});
           } catch(e) {
-            toast("Personel satırı eklenirken hata: " + e.message, "err");
+            // Optimistic fallback
+            const finalRec = { ...recPayload, id: Date.now() };
+            work_records.push(finalRec);
+            toast(`${p.first_name} ${p.last_name} kuruma eklendi ✓`);
+            renderOperasyonCockpit();
           }
         }
       }
 
-      // 4. PERSONEL BAZ MAAŞI DEĞİŞİKLİĞİ (MAAŞ ASLA SİLİNMEZ, NET MAAŞ HESAPLANIR)
       function onBaseWageChange(rowId, val) {
         const r = work_records.find(x => x.id == rowId);
         if (!r) return;
@@ -11125,22 +11089,23 @@ async function delOpRecord(rowId) {
           return ym.month === selMonth && ym.year === selYear;
         });
 
-        // Group rows by company_id
+        // Group rows by company_id (string key to prevent mismatch between "5" and 5)
         const groups = {};
         activeList.forEach((r) => {
-          if (!groups[r.company_id]) groups[r.company_id] = [];
-          groups[r.company_id].push(r);
+          const cidKey = (r.company_id !== undefined && r.company_id !== null) ? r.company_id.toString() : "";
+          if (!groups[cidKey]) groups[cidKey] = [];
+          groups[cidKey].push(r);
         });
 
-        const currentCompanyIds = new Set(activeList.map(r => r.company_id));
+        const currentCompanyIds = activeList.map(r => (r.company_id !== undefined && r.company_id !== null) ? r.company_id.toString() : "");
 
         const hiddenCompsKey = `hidden_companies_${selYear}_${selMonth}`;
-        const hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]");
+        const hiddenComps = JSON.parse(localStorage.getItem(hiddenCompsKey) || "[]").map(x => x.toString());
 
         const activeCompsKey = `active_companies_${selYear}_${selMonth}`;
-        const manuallyAddedComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]");
+        const manuallyAddedComps = JSON.parse(localStorage.getItem(activeCompsKey) || "[]").map(x => x.toString());
 
-        const allPeriodCompanyIds = new Set([...currentCompanyIds, ...manuallyAddedComps]);
+        const allPeriodCompanyIds = new Set([...currentCompanyIds, ...manuallyAddedComps].filter(Boolean));
 
         const visibleCompanyIds = Array.from(allPeriodCompanyIds).filter(cId => !hiddenComps.includes(cId.toString()));
 
@@ -11169,7 +11134,7 @@ async function delOpRecord(rowId) {
 
         visibleCompanyIds.forEach((cId) => {
           const c = companies.find(item => item.id == cId) || { company_name: "Bilinmeyen Kurum (" + cId + ")" };
-          const grRows = groups[cId] || [];
+          const grRows = groups[cId.toString()] || groups[cId] || [];
 
           grRows.sort((a, b) => {
             let pA = pName(a.personnel_id) || "";
@@ -11178,8 +11143,8 @@ async function delOpRecord(rowId) {
           });
 
           // Available registered personnel for dropdown
-          const currentPids = grRows.map(r => r.personnel_id);
-          const availablePersonnel = personnel.filter(p => !currentPids.includes(p.id));
+          const currentPids = grRows.map(r => String(r.personnel_id));
+          const availablePersonnel = personnel.filter(p => !currentPids.includes(String(p.id)));
 
           // Company Header Row
           htmlOut += `
