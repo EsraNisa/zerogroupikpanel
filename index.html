@@ -3383,6 +3383,7 @@
         editRecId = null;
       let cMode = "manuel",
         weekendIncluded = true;
+      let isSavingOp = false;
       let lastReport = { type: null, data: null };
       let previewData = null;
       let arsivMode = false;
@@ -9849,12 +9850,46 @@ async function delOpRecord(rowId) {
       // ============================================================
       // ============================================================
       // ============================================================
+      // ============================================================
       // AYLIK OPERASYON İLERİ YÖNETİM & ANLIK GÜNCELLEME SİSTEMİ
       // ============================================================
       let activeCoverModalRowId = null;
       let activeOvertimeModalRowId = null;
       let activeExtrasModalRowId = null;
       let activeAddComTab = 'existing';
+
+      function parseOvertimeCompany(noteStr) {
+        if (!noteStr) return { cleanNote: "", overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+        const match = noteStr.match(/__OVERTIME_COMPANY:({.*?})__/);
+        if (match) {
+          try {
+            const overtimeCompany = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__OVERTIME_COMPANY:({.*?})__/, '').trim();
+            return { cleanNote, overtimeCompany };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, overtimeCompany: { wage: 0, kdv: false, tevkifat: false } };
+      }
+
+      function parseExtrasNote(noteStr) {
+        if (!noteStr) return { cleanNote: "", extras: [] };
+        const match = noteStr.match(/__EXTRAS:({.*?})__/);
+        if (match) {
+          try {
+            const parsed = JSON.parse(match[1]);
+            const cleanNote = noteStr.replace(/__EXTRAS:({.*?})__/, '').trim();
+            return { cleanNote, extras: parsed.extras || [] };
+          } catch(e) {
+            console.error(e);
+          }
+        }
+        return { cleanNote: noteStr, extras: [] };
+      }
+
+      window.parseOvertimeCompany = parseOvertimeCompany;
+      window.parseExtrasNote = parseExtrasNote;
 
       // 1. KURUM EKLEME MODALI
       function openAddCompanyToMonthModal() {
