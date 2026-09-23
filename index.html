@@ -1585,87 +1585,50 @@
               </div>
               <div class="table-wrap">
                 <table>
-                  <tbody id="operasyon-tbody">
-                        <tr class="loading-row">
-                          <td colspan="8"><div class="spinner"></div></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  <thead>
+                    <tr>
+                      <th>Kurum / Personel</th>
+                      <th>Giriş</th>
+                      <th>Çıkış</th>
+                      <th>Gün</th>
+                      <th>Pers.Öd.</th>
+                      <th>Avans</th>
+                      <th>Net Pers.</th>
+                      <th>Kar</th>
+                      <th>İşlemler</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dash-records">
+                    <tr class="loading-row">
+                      <td colspan="9"><div class="spinner"></div></td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
-
-            <div id="operasyon-edit-view" style="display: none;">
-              <!-- Spreadsheet wrapper instead of card container -->
-              <div class="spreadsheet-container">
-                <table class="spreadsheet-table">
+            <div class="card">
+              <div class="card-head">
+                <span class="card-title">Bekleyen Ödemeler</span>
+              </div>
+              <div class="table-wrap">
+                <table>
                   <thead>
                     <tr>
-                      <th class="sticky-col-1">Personel</th>
-                      <th style="min-width: 60px;">Çalışılan Gün</th>
-                      <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
-                      <th style="min-width: 155px;">Ödemeler & Kesintiler</th>
-                      <th style="min-width: 110px;">Ödenecek Net (₺)</th>
-                      <th style="min-width: 120px;">Kurum Hakediş (₺)</th>
-                      <th style="min-width: 70px; text-align: center;">KDV %20</th>
-                      <th style="min-width: 75px; text-align: center;">Tevkifat %2</th>
-                      <th style="min-width: 120px;">Kurum Toplam (₺)</th>
-                      <th style="min-width: 65px;">İzin (Gün)</th>
-                      <th style="min-width: 140px;">Yerine Gelen (Cover)</th>
-                      <th style="min-width: 140px;">Mesai Bilgileri</th>
-                      <th style="min-width: 160px;">Not / Açıklama</th>
-                      <th style="min-width: 60px; text-align: center;">İşlemler</th>
+                      <th>Kurum</th>
+                      <th>Dönem</th>
+                      <th>Tutar</th>
+                      <th>Durum</th>
+                      <th>İşlem</th>
                     </tr>
                   </thead>
-                  <tbody id="spreadsheet-tbody">
-                    <!-- Spreadsheet rows will be generated dynamically -->
+                  <tbody id="dash-unpaid-com">
+                    <tr class="loading-row">
+                      <td colspan="5"><div class="spinner"></div></td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
-              
-              <!-- Save and Cancel actions -->
-              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <button class="btn btn-secondary" onclick="toggleOpEditMode(false)">İptal</button>
-                <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
-              </div>
-
-              id="operasyon-edit-view" style="display: none;">
-              <!-- Spreadsheet wrapper instead of card container -->
-              <div class="spreadsheet-container">
-                <table class="spreadsheet-table">
-                  <thead>
-                    <tr>
-                      <th class="sticky-col-1">Personel</th>
-                      <th style="min-width: 60px;">Çalışılan Gün</th>
-                      <th style="min-width: 100px;">Maaş / Ücret (₺)</th>
-                      <th style="min-width: 155px;">Ödemeler & Kesintiler</th>
-                      <th style="min-width: 110px;">Ödenecek Net (₺)</th>
-                      <th style="min-width: 120px;">Kurum Hakediş (₺)</th>
-                      <th style="min-width: 70px; text-align: center;">KDV %20</th>
-                      <th style="min-width: 75px; text-align: center;">Tevkifat %2</th>
-                      <th style="min-width: 120px;">Kurum Toplam (₺)</th>
-                      <th style="min-width: 65px;">İzin (Gün)</th>
-                      <th style="min-width: 140px;">Yerine Gelen (Cover)</th>
-                      <th style="min-width: 140px;">Mesai Bilgileri</th>
-                      <th style="min-width: 160px;">Not / Açıklama</th>
-                      <th style="min-width: 60px; text-align: center;">İşlemler</th>
-                    </tr>
-                  </thead>
-                  <tbody id="spreadsheet-tbody">
-                    <!-- Spreadsheet rows will be generated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-              
-              <!-- Save and Cancel actions -->
-              <div style="background: #fff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin-top: 16px; display: flex; justify-content: flex-end; gap: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
-                <button class="btn btn-secondary" onclick="toggleOpEditMode(false)">İptal</button>
-                <button class="btn btn-green" id="btn-save-all-op" onclick="saveAllOpChanges()" style="font-weight: 700;">✓ Tümünü Kaydet</button>
-              </div>
-
-              <!-- (Old modals moved) -->
-              </div>
+            </div>
           </div>
 
           <!-- PERSONELLER -->
@@ -2098,6 +2061,53 @@
                 </div>
                 <div class="card-foot" id="cal-extras-foot" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 14px; font-weight: 700; font-size: 12px; display: flex; justify-content: flex-end; gap: 16px;">
                   <!-- Toplam summary -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AYLIK OPERASYON -->
+          <div class="page" id="page-operasyon">
+            <div class="toolbar" style="background: #fff; padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569;">Dönem Seç:</span>
+              <select id="op-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()"></select>
+              <select id="op-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderOperasyonCockpit()">
+                <option value="0">Ocak</option>
+                <option value="1">Şubat</option>
+                <option value="2">Mart</option>
+                <option value="3">Nisan</option>
+                <option value="4">Mayıs</option>
+                <option value="5">Haziran</option>
+                <option value="6">Temmuz</option>
+                <option value="7">Ağustos</option>
+                <option value="8">Eylül</option>
+                <option value="9">Ekim</option>
+                <option value="10">Kasım</option>
+                <option value="11">Aralık</option>
+              </select>
+              <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openAddCompanyToMonthModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Döneme Kurum Ekle</button>
+              <button class="btn" id="btn-op-approve" onclick="togglePeriodApproval()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"></button>
+            </div>
+            
+            <div id="op-approval-banner" class="alert alert-info" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; align-items: center; gap: 8px;">
+              <span>🟢</span>
+              <span>Bu döneme ait kayıtlar onaylanmıştır. Dönem üzerinde düzenleme yapılamaz.</span>
+            </div>
+            
+            <div id="operasyon-cockpit-view">
+              <div class="card">
+                <div class="card-head" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
+                  <span class="card-title">🔄 Aylık Operasyon ve Hakediş Tablosu</span>
+                  <div style="font-size: 11px; color: #64748b;">Kurumlar ve çalışan personeller için anlık çalışma tablosu</div>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <tbody id="operasyon-tbody">
+                      <tr class="loading-row">
+                        <td colspan="12"><div class="spinner"></div></td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -10915,8 +10925,10 @@ async function delOpRecord(rowId) {
         const tbody = document.getElementById("operasyon-tbody");
         if (!tbody) return;
 
-        const selYear = parseInt(document.getElementById("op-yil").value);
-        const selMonth = parseInt(document.getElementById("op-ay").value);
+        const opYilEl = document.getElementById("op-yil");
+        const opAyEl = document.getElementById("op-ay");
+        const selYear = (opYilEl && opYilEl.value) ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+        const selMonth = (opAyEl && opAyEl.value) ? parseInt(opAyEl.value, 10) : new Date().getMonth();
         const periodStr = `${selYear}-${String(selMonth + 1).padStart(2, '0')}`;
         const isApproved = approvedPeriods.includes(periodStr);
 
