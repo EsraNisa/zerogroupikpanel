@@ -1919,6 +1919,7 @@
                 <button class="btn btn-primary" onclick="openCalismaModal()">
                   + Yeni Kayıt
                 </button>
+                <button class="btn btn-green" onclick="exportCalismalarExcel()" style="margin-left: 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 6px 12px; font-weight: 700;">⬇ Excel İndir</button>
                 <span style="font-weight: 700; font-size: 11px; text-transform: uppercase; color: #475569; margin-left: 8px;">Dönem Seç:</span>
                 <select id="cal-yil" class="form-input" style="width: 85px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()"></select>
                 <select id="cal-ay" class="form-input" style="width: 105px; padding: 5px 10px; font-size: 12px;" onchange="renderRecords()">
@@ -2110,21 +2111,21 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Kurum / Personel</th>
-                      <th>Giriş</th>
-                      <th>Çıkış</th>
-                      <th>İzin</th>
-                      <th>Gün</th>
-                      <th>Pers.Öd.</th>
-                      <th>Avans</th>
-                      <th>Net Pers.</th>
-                      <th>Kur.Fat.</th>
-                      <th>Kar</th>
-                      <th>P.Öd.D.</th>
-                      <th>K.Öd.D.</th>
-                      <th>Tekrarlı</th>
-                      <th>Not</th>
-                      <th></th>
+                      <th style="padding: 10px;">Personel Adı</th>
+                      <th style="text-align: center; width: 85px;">Giriş</th>
+                      <th style="text-align: center; width: 85px;">Çıkış</th>
+                      <th style="text-align: center; width: 55px;">İzin</th>
+                      <th style="text-align: center; width: 55px;">Gün</th>
+                      <th style="text-align: right; width: 95px; color: #0f172a;">Baz Maaş (₺)</th>
+                      <th style="text-align: center; width: 120px;">+/- Prim & Kesinti</th>
+                      <th style="text-align: right; width: 105px; color: #1e40af;">Net Pers. Öd. (₺)</th>
+                      <th style="text-align: right; width: 100px; color: #15803d;">Kurum Baz (₺)</th>
+                      <th style="text-align: right; width: 115px; color: #047857; font-weight: 800;">Kurum Faturası (₺)</th>
+                      <th style="text-align: right; width: 95px;">Kâr (₺)</th>
+                      <th style="text-align: center; width: 75px;">P.Öd.D.</th>
+                      <th style="text-align: center; width: 75px;">K.Öd.D.</th>
+                      <th style="min-width: 170px;">Not / Yerine Giden</th>
+                      <th style="text-align: center; width: 85px;">İşlem</th>
                     </tr>
                   </thead>
                   <tbody id="calisma-tbody">
@@ -2212,6 +2213,7 @@
               </select>
               <button class="btn btn-sm btn-primary" id="btn-op-new-com" onclick="openAddCompanyToMonthModal()" style="font-size: 12px; padding: 5px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">🏢 Döneme Kurum Ekle</button>
               <button class="btn" id="btn-op-approve" onclick="togglePeriodApproval()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"></button>
+              <button class="btn btn-green" id="btn-op-export-excel" onclick="exportOperasyonExcel()" style="font-size: 12px; padding: 5px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">⬇ Excel İndir</button>
             </div>
             
             <div id="op-approval-banner" class="alert alert-info" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-weight: 600; align-items: center; gap: 8px;">
@@ -2827,13 +2829,7 @@
               </div>
             </div>
 
-            <div class="form-grid g1" style="margin-top: 10px; margin-bottom: 10px;">
-              <div class="form-group">
-                <div style="display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; cursor: pointer; user-select: none;">
-                  <input type="checkbox" id="c-is-recurring" style="width: 16px; height: 16px; cursor: pointer;" />
-                  <label for="c-is-recurring" style="font-weight: 700; font-size: 12px; color: #1e3a5f; cursor: pointer; margin-bottom: 0;">Aylık Operasyona Dahil Et (Tekrarlayan İş)</label>
-                </div>
-              </div>
+            <div class="form-grid g1" style="display: none;"><input type="checkbox" id="c-is-recurring" style="display: none;" /></div>          </div>
             </div>
 
             <div class="form-grid g1">
@@ -6835,6 +6831,180 @@ async function moveCompanyDown(id) {
         }
       }
 
+      // Comprehensive Record Details Extractor
+      function extractRecordDetails(r) {
+        let p = (typeof personnel !== 'undefined' && Array.isArray(personnel)) ? personnel.find(x => x.id == r.personnel_id) : null;
+        let pNameStr = p ? `${p.first_name} ${p.last_name}` : `Personel #${r.personnel_id}`;
+        let pPosStr = p ? (p.position || "Personel") : (r.job_type || "—");
+
+        let baseWage = parseFloat(r.personnel_monthly_wage || (p ? p.daily_wage : 0)) || 0;
+        let workDays = parseFloat(r.work_days) || 0;
+        let leaveDays = parseFloat(r.leave_days) || 0;
+
+        // 1. Extras (Prim, Ekstra, Avans, Kesinti)
+        let primAmount = 0;
+        let primNotes = [];
+        let extraAmount = 0;
+        let extraNotes = [];
+        let advanceAmount = parseFloat(r.advance_amount) || 0;
+        let advanceNotes = [];
+        let deductionAmount = parseFloat(r.deductions) || 0;
+        let deductionNotes = [];
+
+        if (r.note && r.note.includes('__EXTRAS:')) {
+          const match = r.note.match(/__EXTRAS:({.*?})__/);
+          if (match) {
+            try {
+              const parsed = JSON.parse(match[1]);
+              (parsed.extras || []).forEach(ex => {
+                const amt = parseFloat(ex.amount) || 0;
+                if (ex.type === 'prim') {
+                  primAmount += amt;
+                  if (ex.note) primNotes.push(ex.note);
+                } else if (ex.type === 'ekstra' || ex.type === 'plus') {
+                  extraAmount += amt;
+                  if (ex.note) extraNotes.push(ex.note);
+                } else if (ex.type === 'avans') {
+                  advanceAmount += amt;
+                  if (ex.note) advanceNotes.push(ex.note);
+                } else if (ex.type === 'kesinti') {
+                  deductionAmount += amt;
+                  if (ex.note) deductionNotes.push(ex.note);
+                }
+              });
+            } catch(e) {}
+          }
+        } else {
+          primAmount += parseFloat(r.premium) || 0;
+          extraAmount += parseFloat(r.additional_payment) || 0;
+        }
+
+        let totalDeductions = advanceAmount + deductionAmount;
+        let netPersonnelPayment = parseFloat(r.total_personnel_payment) || 0;
+        if (netPersonnelPayment === 0 && (baseWage > 0 || primAmount > 0 || extraAmount > 0)) {
+          netPersonnelPayment = Math.max(0, baseWage + primAmount + extraAmount - totalDeductions);
+        }
+
+        // 2. Company Payment, KDV, Tevkifat, Overtime
+        let hasKdv = !!r.com_kdv;
+        let hasTef = !!r.com_tevkifat;
+        let otComWage = 0;
+        let otComKdv = false;
+        let otComTef = false;
+
+        if (r.note && r.note.includes('__OVERTIME_COMPANY:')) {
+          const match = r.note.match(/__OVERTIME_COMPANY:({.*?})__/);
+          if (match) {
+            try {
+              const otObj = JSON.parse(match[1]);
+              otComWage = parseFloat(otObj.wage) || 0;
+              otComKdv = !!otObj.kdv;
+              otComTef = !!otObj.tevkifat;
+            } catch(e) {}
+          }
+        }
+
+        let otComTotal = 0;
+        if (otComWage > 0) {
+          let otFactor = 1.0;
+          if (otComKdv) otFactor += 0.20;
+          if (otComTef) otFactor += 0.02;
+          otComTotal = Math.round((otComWage * otFactor) * 100) / 100;
+        }
+
+        let totalComStored = parseFloat(r.total_company_payment) || 0;
+        let factor = 1.0;
+        if (hasKdv) factor += 0.20;
+        if (hasTef) factor += 0.02;
+
+        let baseCom = 0;
+        if (totalComStored > 0) {
+          let baseWithoutOt = Math.max(0, totalComStored - otComTotal);
+          baseCom = factor > 0 ? Math.round(baseWithoutOt / factor) : baseWithoutOt;
+        }
+        let totalCompanyInvoice = totalComStored > 0 ? totalComStored : (Math.round((baseCom * factor) + otComTotal));
+        let netProfit = totalCompanyInvoice - netPersonnelPayment;
+
+        // 3. Leave reason
+        let leaveReason = "";
+        if (r.note && r.note.includes('__LEAVE_REASON:')) {
+          const match = r.note.match(/__LEAVE_REASON:(.*?)__/);
+          if (match && match[1]) leaveReason = match[1].trim();
+        }
+
+        // 4. Substitutes (Cover / Joker)
+        let subCovers = [];
+        if (r.note && r.note.includes('__SUB_COVERS:')) {
+          const match = r.note.match(/__SUB_COVERS:(\[.*?\])__/);
+          if (match) {
+            try {
+              subCovers = JSON.parse(match[1]);
+            } catch(e) {}
+          }
+        }
+
+        let coverNames = [];
+        let coverDaysTotal = 0;
+        let coverWagesTotal = 0;
+        subCovers.forEach(cov => {
+          let cName = cov.newPerName;
+          if (!cName && cov.coverPid) {
+            const cp = (typeof personnel !== 'undefined' && Array.isArray(personnel)) ? personnel.find(x => x.id == cov.coverPid) : null;
+            cName = cp ? `${cp.first_name} ${cp.last_name}` : `Personel #${cov.coverPid}`;
+          }
+          cName = cName || "Personel";
+          const cDays = parseFloat(cov.coverDays) || 0;
+          const cWage = parseFloat(cov.coverWage) || 0;
+          coverDaysTotal += cDays;
+          coverWagesTotal += cWage;
+          coverNames.push(`${cName} (${cDays} Gün, ₺${fmt(cWage)})`);
+        });
+
+        // 5. Clean note (stripping all tags)
+        let cleanNote = (r.note || "")
+          .replace(/__LEAVE_REASON:.*?__/g, '')
+          .replace(/__SUB_COVERS:.*?__/g, '')
+          .replace(/__SUB_FOR_PID:.*?__/g, '')
+          .replace(/__OVERTIME_COMPANY:.*?__/g, '')
+          .replace(/__EXTRAS:.*?__/g, '')
+          .trim();
+
+        return {
+          personnelName: pNameStr,
+          position: pPosStr,
+          startDate: r.start_day,
+          endDate: r.end_date,
+          workDays,
+          leaveDays,
+          leaveReason,
+          baseWage,
+          primAmount,
+          primNotes: primNotes.join(", "),
+          extraAmount,
+          extraNotes: extraNotes.join(", "),
+          advanceAmount,
+          advanceNotes: advanceNotes.join(", "),
+          deductionAmount,
+          deductionNotes: deductionNotes.join(", "),
+          totalDeductions,
+          netPersonnelPayment,
+          baseCom,
+          hasKdv,
+          hasTef,
+          otComWage,
+          otComTotal,
+          totalCompanyInvoice,
+          netProfit,
+          subCovers,
+          coverNamesStr: coverNames.join("; "),
+          coverDaysTotal,
+          coverWagesTotal,
+          cleanNote,
+          personnelPaymentStatus: r.personnel_payment_status || "bekliyor",
+          companyPaymentStatus: r.company_payment_status || "bekliyor"
+        };
+      }
+
       function renderRecords(data) {
         let rows;
         if (data !== undefined) {
@@ -6854,6 +7024,7 @@ async function moveCompanyDown(id) {
             return isMonthMatch && isRecordVisibleInHistory(r);
           });
         }
+
         rows = [...rows].sort((a, b) => {
           const compA = companies.find(c => c.id == a.company_id);
           const compB = companies.find(c => c.id == b.company_id);
@@ -6875,8 +7046,8 @@ async function moveCompanyDown(id) {
           let pB = pName(b.personnel_id) || "";
           return pA.localeCompare(pB, 'tr');
         });
-        document.getElementById("rec-count").textContent =
-          rows.length + " kayıt";
+
+        document.getElementById("rec-count").textContent = rows.length + " kayıt";
         let tbody = document.getElementById("calisma-tbody");
         if (!rows.length) {
           let msg = arsivMode ? "Arşivlenmiş kayıt yok" : "Henüz kayıt yok";
@@ -6887,82 +7058,128 @@ async function moveCompanyDown(id) {
         // Group rows by company_id
         let groups = {}, groupOrder = [];
         rows.forEach((r) => {
-          if (!groups[r.company_id]) {
-            groups[r.company_id] = [];
-            groupOrder.push(r.company_id);
+          const cidKey = (r.company_id !== undefined && r.company_id !== null) ? r.company_id.toString() : "";
+          if (!groups[cidKey]) {
+            groups[cidKey] = [];
+            groupOrder.push(cidKey);
           }
-          groups[r.company_id].push(r);
+          groups[cidKey].push(r);
         });
 
         let html = '';
         groupOrder.forEach((cId) => {
           let grRows = groups[cId];
-          let grTG = grRows.reduce((s, r) => s + (parseFloat(r.work_days) || 0), 0);
-          let grTP = grRows.reduce((s, r) => s + (parseFloat(r.total_personnel_payment) || 0), 0);
-          let grTC = grRows.reduce((s, r) => s + (parseFloat(r.total_company_payment) || 0), 0);
-          let grTA = grRows.reduce((s, r) => s + (parseFloat(r.advance_amount) || 0), 0);
-          let grNet = grTP - grTA;
-          let grKar = grTC - grNet;
+          let grTC = 0;
+          let grTPNet = 0;
+          grRows.forEach(rw => {
+            const d = extractRecordDetails(rw);
+            grTC += d.totalCompanyInvoice;
+            grTPNet += d.netPersonnelPayment;
+          });
+          let grKar = grTC - grTPNet;
 
-          // Header row for the company (Institution)
+          // Header row for the company (NO work days sum per user specification)
           html += `
-            <tr style="background: #e8f0fe;">
-              <td colspan="15" style="font-weight: 800; font-size: 12px; padding: 10px 12px; color: #1e40af;">
-                🏢 ${cName(cId)} — ${grRows.length} kayıt | ${grTG} gün | 
-                Fatura: <span style="color:#0f172a">${fmt(grTC)}</span> | 
-                Pers. Öd (Brüt): <span style="color:#0f172a">${fmt(grTP)}</span> | 
-                Avans: <span style="color:#dc2626">${fmt(grTA)}</span> | 
-                Net Öd: <span style="color:#16a34a">${fmt(grNet)}</span> | 
-                Kar: <span style="color:${grKar >= 0 ? '#16a34a' : '#dc2626'}">${fmt(grKar)}</span>
+            <tr style="background: #1e3a5f; color: #ffffff;">
+              <td colspan="15" style="font-weight: 800; font-size: 13px; padding: 10px 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">🏢</span>
+                    <span style="color: #ffffff; font-size: 14px; font-weight: 800;">${cName(cId)}</span>
+                    <span class="badge" style="background: rgba(255,255,255,0.25); color: #fff; font-size: 11px; font-weight: 700;">${grRows.length} Personel</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 16px; font-size: 12px;">
+                    <span>Toplam Fatura: <strong style="color: #4ade80; font-size: 13px;">₺${fmt(grTC)}</strong></span>
+                    <span>Personel Ödemesi: <strong style="color: #93c5fd; font-size: 13px;">₺${fmt(grTPNet)}</strong></span>
+                    <span>Net Kâr: <strong style="color: ${grKar >= 0 ? '#4ade80' : '#f87171'}; font-size: 13px;">₺${fmt(grKar)}</strong></span>
+                  </div>
+                </div>
               </td>
             </tr>
           `;
 
           // Individual personnel rows under the company
-          grRows.forEach((r, i) => {
-            let netPer = (parseFloat(r.total_personnel_payment) || 0) - (parseFloat(r.advance_amount) || 0);
-            let profit = (parseFloat(r.total_company_payment) || 0) - netPer;
-            let pB = r.personnel_payment_status === "odendi" ? "badge-green" : "badge-amber";
-            let cB = r.company_payment_status === "odendi" ? "badge-green" : "badge-amber";
+          grRows.forEach((r) => {
+            const d = extractRecordDetails(r);
+            let pB = d.personnelPaymentStatus === "odendi" ? "badge-green" : "badge-amber";
+            let cB = d.companyPaymentStatus === "odendi" ? "badge-green" : "badge-amber";
             let rowStyle = r.archived ? "opacity:0.7;background:#fafafa;" : "";
-            
-            let isToplu = isTopluRecord(r, rows);
-            let comPaymentDisp = isToplu ? "—" : ((parseFloat(r.total_company_payment) || 0) > 0 ? fmt(r.total_company_payment) : "—");
-            let profitDisp = isToplu ? "—" : fmt(profit);
-            let profitColor = isToplu ? "#64748b" : (profit >= 0 ? "#16a34a" : "#dc2626");
 
             let arsivBtn = r.archived
               ? `<button class="btn btn-sm" onclick="setArchive('${r.id}',false)" title="Geri al" style="color:#16a34a;border-color:#bbf7d0">↩ Geri Al</button>`
               : `<button class="btn btn-sm" onclick="openEditRecModal('${r.id}')" style="margin-right:3px">Düzenle</button>
                  <button class="btn btn-sm" onclick="setArchive('${r.id}',true)" title="Arşivle" style="color:#94a3b8">📦</button>
                  <button class="btn btn-sm btn-danger" onclick="delRec('${r.id}')" style="margin-left:3px">Sil</button>`;
-            
+
             let reviewBadge = r.needs_review 
               ? `<span class="badge badge-amber" style="margin-left: 6px; font-size: 8px; padding: 1px 4px;">⚠️ Kontrol Edin</span>` 
               : "";
 
+            // Extras & adjustments breakdown
+            let extrasParts = [];
+            if (d.primAmount > 0) extrasParts.push(`<span class="badge badge-green" style="font-size:10px;" title="${d.primNotes}">+₺${fmt(d.primAmount)} Prim</span>`);
+            if (d.extraAmount > 0) extrasParts.push(`<span class="badge badge-green" style="font-size:10px;" title="${d.extraNotes}">+₺${fmt(d.extraAmount)} Ek</span>`);
+            if (d.advanceAmount > 0) extrasParts.push(`<span class="badge badge-red" style="font-size:10px;" title="${d.advanceNotes}">-₺${fmt(d.advanceAmount)} Avans</span>`);
+            if (d.deductionAmount > 0) extrasParts.push(`<span class="badge badge-red" style="font-size:10px;" title="${d.deductionNotes}">-₺${fmt(d.deductionAmount)} Kesinti</span>`);
+            let extrasSummaryHtml = extrasParts.length > 0 
+              ? `<div style="display:flex; flex-direction:column; gap:2px; align-items:center;">${extrasParts.join('')}</div>`
+              : `<span style="color:#94a3b8;">—</span>`;
+
+            // Notes and Substitute / Joker section
+            let notesParts = [];
+            if (d.leaveReason) {
+              notesParts.push(`<div>🌴 <strong>İzin Nedeni:</strong> ${d.leaveReason}</div>`);
+            }
+            if (d.cleanNote) {
+              notesParts.push(`<div>${d.cleanNote}</div>`);
+            }
+            if (d.subCovers && d.subCovers.length > 0) {
+              let coverItems = d.subCovers.map(cov => {
+                let cpName = cov.newPerName;
+                if (!cpName && cov.coverPid) {
+                  const cp = (typeof personnel !== 'undefined' && Array.isArray(personnel)) ? personnel.find(x => x.id == cov.coverPid) : null;
+                  cpName = cp ? `${cp.first_name} ${cp.last_name}` : `Personel #${cov.coverPid}`;
+                }
+                cpName = cpName || "Personel";
+                const cDays = parseFloat(cov.coverDays) || 0;
+                const cWage = parseFloat(cov.coverWage) || 0;
+                return `<div>🔄 <strong>Yerine Giden Personel:</strong> ${cpName}, ${cDays} gün, Ücret: ₺${fmt(cWage)}</div>`;
+              }).join('');
+
+              notesParts.push(`
+                <div style="margin-top: 4px; margin-left: 14px; padding: 4px 8px; background: #f0fdf4; border-left: 3px solid #16a34a; border-radius: 4px; font-size: 11px; color: #166534; line-height: 1.4;">
+                  ${coverItems}
+                </div>
+              `);
+            }
+            let notesHtml = notesParts.length > 0 ? notesParts.join('') : '<span style="color:#94a3b8;">—</span>';
+
             html += `
               <tr style="${rowStyle}">
-                <td style="padding-left: 20px;">
-                  <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="font-weight: 600; color: #475569; white-space: nowrap;">${pName(r.personnel_id)}</span>
+                <td style="padding-left: 16px;">
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <div class="avatar av-1" style="width: 24px; height: 24px; font-size: 10px; font-weight: 700; flex-shrink: 0;">${initials(d.personnelName)}</div>
+                    <div>
+                      <div style="font-weight: 700; color: #1e40af; cursor: pointer;" onclick="viewPersonnelDetail('${r.personnel_id}')">${d.personnelName}</div>
+                      <div style="font-size: 10px; color: #64748b;">${d.position}</div>
+                    </div>
                     ${reviewBadge}
                   </div>
                 </td>
-                <td style="color:#64748b">${fmtDate(r.start_day)}</td>
-                <td style="color:#64748b">${fmtDate(r.end_date)}</td>
-                <td style="text-align:center;color:#64748b">${r.leave_days || 0}</td>
-                <td style="font-weight:700;text-align:center">${r.work_days || 0}</td>
-                <td>${fmt(r.total_personnel_payment)}</td>
-                <td style="color:#dc2626">${(r.advance_amount || 0) > 0 ? fmt(r.advance_amount) : "—"}</td>
-                <td style="color:#16a34a;font-weight:700">${fmt(netPer)}</td>
-                <td>${comPaymentDisp}</td>
-                <td style="font-weight:700;color:${profitColor}">${profitDisp}</td>
-                <td><span class="badge ${pB}">${r.personnel_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
-                <td><span class="badge ${cB}">${r.company_payment_status === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
-                <td style="text-align:center;">${r.is_recurring ? `<span class="badge badge-blue">Evet</span>` : `<span style="color:#94a3b8">—</span>`}</td>
-                <td style="color:#64748b;font-size:11px;">${formatNoteForDisplay(r.note) || "—"}</td>
-                <td style="white-space:nowrap">${arsivBtn}</td>
+                <td style="color:#64748b; text-align:center;">${fmtDate(d.startDate)}</td>
+                <td style="color:#64748b; text-align:center;">${fmtDate(d.endDate)}</td>
+                <td style="text-align:center; color:#64748b;">${d.leaveDays > 0 ? d.leaveDays + 'G' : '—'}</td>
+                <td style="font-weight:700; text-align:center;">${d.workDays}</td>
+                <td style="text-align:right; font-weight:700; color:#0f172a;">₺${fmt(d.baseWage)}</td>
+                <td style="text-align:center; font-size:11px;">${extrasSummaryHtml}</td>
+                <td style="text-align:right; font-weight:800; color:#1e40af; background:#eff6ff;">₺${fmt(d.netPersonnelPayment)}</td>
+                <td style="text-align:right; font-weight:700; color:#15803d;">${d.baseCom > 0 ? '₺' + fmt(d.baseCom) : '—'}</td>
+                <td style="text-align:right; font-weight:800; color:#047857; background:#ecfdf5;">${d.totalCompanyInvoice > 0 ? '₺' + fmt(d.totalCompanyInvoice) : '—'}</td>
+                <td style="text-align:right; font-weight:700; color:${d.netProfit >= 0 ? '#16a34a' : '#dc2626'};">₺${fmt(d.netProfit)}</td>
+                <td style="text-align:center;"><span class="badge ${pB}">${d.personnelPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
+                <td style="text-align:center;"><span class="badge ${cB}">${d.companyPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor"}</span></td>
+                <td style="font-size:11px; color:#475569;">${notesHtml}</td>
+                <td style="white-space:nowrap; text-align:center;">${arsivBtn}</td>
               </tr>
             `;
           });
@@ -6970,6 +7187,7 @@ async function moveCompanyDown(id) {
 
         tbody.innerHTML = html;
       }
+
       async function setArchive(id, archived) {
         try {
           await api.patch(`/admin/work_records/${id}`, { archived });
@@ -7832,6 +8050,49 @@ async function moveCompanyDown(id) {
           return (a.start_day || "").localeCompare(b.start_day || "");
         });
 
+        const excelCols = [
+          "Kurum Adı", "Personel Adı Soyadı", "Pozisyon", "Giriş Tarihi", "Çıkış Tarihi",
+          "Çalışılan Gün", "Baz Maaş (₺)", "Prim Tutarı (₺)", "Prim Açıklaması",
+          "Ek Ödeme (₺)", "Avans (₺)", "Kesinti (₺)", "Net Ödenecek Maaş (₺)",
+          "Kurum Anlaşılan Baz Ücret (₺)", "KDV (%20)", "Tevkifat (%2)", "Kurum Ek Mesai (₺)",
+          "Toplam Kurum Faturası (₺)", "Net Kâr (₺)", "İzin Günü", "İzin Nedeni",
+          "Yerine Giden (Joker) Personel", "Yerine Giden Gün", "Yerine Giden Ücret (₺)",
+          "Pers. Ödeme Durumu", "Kurum Ödeme Durumu", "Notlar"
+        ];
+
+        function mapExcelRow(rw) {
+          const d = extractRecordDetails(rw);
+          return [
+            cName(rw.company_id),
+            d.personnelName,
+            d.position,
+            fmtDate(d.startDate),
+            fmtDate(d.endDate),
+            d.workDays,
+            d.baseWage,
+            d.primAmount,
+            d.primNotes,
+            d.extraAmount,
+            d.advanceAmount,
+            d.deductionAmount,
+            d.netPersonnelPayment,
+            d.baseCom,
+            d.hasKdv ? "Evet (%20)" : "Hayır",
+            d.hasTef ? "Evet (%2)" : "Hayır",
+            d.otComWage,
+            d.totalCompanyInvoice,
+            d.netProfit,
+            d.leaveDays,
+            d.leaveReason,
+            d.subCovers.length > 0 ? d.coverNamesStr : "",
+            d.coverDaysTotal > 0 ? d.coverDaysTotal : "",
+            d.coverWagesTotal > 0 ? d.coverWagesTotal : "",
+            d.personnelPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+            d.companyPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+            d.cleanNote
+          ];
+        }
+
         function buildGroupedSheet(rows, cols, rowFn) {
           let sd = [cols];
           let lastCId = null;
@@ -7839,36 +8100,35 @@ async function moveCompanyDown(id) {
           function flushGroup() {
             if (!grRows.length) return;
             let cn = cName(lastCId);
-            let tG = grRows.reduce((s, rw) => s + (parseFloat(rw.work_days) || 0), 0);
-            let tP = grRows.reduce((s, rw) => s + (parseFloat(rw.total_personnel_payment) || 0), 0);
-            let tC = grRows.reduce((s, rw) => s + (parseFloat(rw.total_company_payment) || 0), 0);
-            let tA = grRows.reduce((s, rw) => s + (parseFloat(rw.advance_amount) || 0), 0);
-            let tK = tC - (tP - tA);
+            let tBaseWage = grRows.reduce((s, rw) => s + extractRecordDetails(rw).baseWage, 0);
+            let tPrim = grRows.reduce((s, rw) => s + extractRecordDetails(rw).primAmount, 0);
+            let tNetP = grRows.reduce((s, rw) => s + extractRecordDetails(rw).netPersonnelPayment, 0);
+            let tC = grRows.reduce((s, rw) => s + extractRecordDetails(rw).totalCompanyInvoice, 0);
+            let tK = tC - tNetP;
+
             let header = new Array(cols.length).fill("");
-            header[0] = "◆ " + cn;
-            
-            const idxG = cols.findIndex(c => c.startsWith("Çalışılan Gün") || c === "Gün");
-            const idxP = cols.findIndex(c => c.startsWith("Brüt Hak Ediş") || c.startsWith("Pers.Öd."));
-            const idxC = cols.findIndex(c => c.startsWith("Kur.Fat.") || c.startsWith("Kurum Gelir") || c.startsWith("Kur.Geliri"));
-            const idxK = cols.findIndex(c => c.startsWith("Kar"));
-            
-            if (idxG !== -1) header[idxG] = tG + " gün";
-            if (idxP !== -1) header[idxP] = "Pers: " + fmt(tP);
-            if (idxC !== -1) header[idxC] = "Kur: " + fmt(tC);
-            if (idxK !== -1) header[idxK] = "Kar: " + fmt(tK);
-            
+            header[0] = "🏢 " + cn + " (" + grRows.length + " Personel)";
+            header[6] = "Maaş: " + fmt(tBaseWage);
+            header[7] = "Prim: " + fmt(tPrim);
+            header[12] = "Net Pers: " + fmt(tNetP);
+            header[17] = "Fatura: " + fmt(tC);
+            header[18] = "Kâr: " + fmt(tK);
             sd.push(header);
+
             grRows.forEach((rw) => sd.push(rowFn(rw)));
+
             let sub = new Array(cols.length).fill("");
-            sub[0] = "  Toplam: " + cn;
-            if (idxG !== -1) sub[idxG] = tG;
-            if (idxP !== -1) sub[idxP] = tP;
-            if (idxC !== -1) sub[idxC] = tC;
-            if (idxK !== -1) sub[idxK] = tK;
+            sub[0] = "  [TOPLAM " + cn + "]";
+            sub[6] = tBaseWage;
+            sub[7] = tPrim;
+            sub[12] = tNetP;
+            sub[17] = tC;
+            sub[18] = tK;
             sd.push(sub);
             sd.push([]);
             grRows = [];
           }
+
           rows.forEach((rw) => {
             if (rw.company_id !== lastCId) {
               flushGroup();
@@ -7880,312 +8140,242 @@ async function moveCompanyDown(id) {
           return sd;
         }
 
-        let cols = [
-          "Kurum", "Personel", "Hes. Günlük(₺)", "Giriş", "Çıkış",
-          "Yıllık İzin(Gün)", "Rapor(Gün)", "Eksik Gün(Gün)", "Resmi Tatil(Gün)", "Toplam İzin Günü", "Çalışılan Gün",
-          "Mesai Saati", "Mesai Ücreti(₺)", "Aylık Maaş(₺)", "Ek Ödeme(₺)", "Prim(₺)", "Kesinti(₺)",
-          "Brüt Hak Ediş(₺)", "Avans(₺)", "Net Pers.(₺)", "Kur.Fat.(₺)", 
-          "Kar(₺)", "P.Öd.D.", "K.Öd.D.", "Tekrarlanan", "Hatırlatıcı Notu", "Genel Not"
-        ];
-
-        function mapRow(row) {
-          let net = (parseFloat(row.total_personnel_payment) || 0) - (parseFloat(row.advance_amount) || 0);
-          let kar = (parseFloat(row.total_company_payment) || 0) - net;
-          let leaveSum = (parseFloat(row.annual_leave) || 0) + (parseFloat(row.sick_leave) || 0) + (parseFloat(row.missing_days) || 0) + (parseFloat(row.official_holiday) || 0);
-          
-          let isToplu = isTopluRecord(row, sortedRows);
-          let comPaymentVal = isToplu ? "" : (parseFloat(row.total_company_payment) || 0);
-          let profitVal = isToplu ? "" : kar;
-
-          return [
-            cName(row.company_id),
-            pName(row.personnel_id),
-            parseFloat(row.personnel_daily_wage) || 0,
-            fmtDate(row.start_day),
-            fmtDate(row.end_date),
-            parseFloat(row.annual_leave) || 0,
-            parseFloat(row.sick_leave) || 0,
-            parseFloat(row.missing_days) || 0,
-            parseFloat(row.official_holiday) || 0,
-            leaveSum,
-            parseFloat(row.work_days) || 0,
-            parseFloat(row.overtime_hours) || 0,
-            parseFloat(row.overtime_wage) || 0,
-            parseFloat(row.personnel_monthly_wage) || 0,
-            parseFloat(row.additional_payment) || 0,
-            parseFloat(row.premium) || 0,
-            parseFloat(row.deductions) || 0,
-            parseFloat(row.total_personnel_payment) || 0,
-            parseFloat(row.advance_amount) || 0,
-            net,
-            comPaymentVal,
-            profitVal,
-            row.personnel_payment_status,
-            row.company_payment_status,
-            row.is_recurring ? "Evet" : "Hayır",
-            row.reminder_note || "",
-            row.note || "",
-          ];
-        }
-
         if (type === "aylik") {
-          let sd = [];
-          
-          // Header row
-          sd.push([
-            "KURUM", 
-            "", 
-            "PERSONEL", 
-            "ÇALIŞILAN GÜN", 
-            "İZİN / YERİNE GELEN", 
-            "KURUM ÖDEMESİ", 
-            "MAAŞ HESAP / NET ÖDEME", 
-            "MAAŞ / HAK EDİŞ"
-          ]);
-          sd.push([]); // Spacing row
-
-          // Helper for cover personnel detection
-          function getSubstituteParentId(row) {
-            if (!row.note) return null;
-            const match = row.note.match(/__SUB_FOR_PID:(\d+):/);
-            return match ? parseInt(match[1], 10) : null;
-          }
-
-          // Group sortedRows by company
-          let companyGroups = {};
-          let companyIds = [];
-          sortedRows.forEach(row => {
-            if (!companyGroups[row.company_id]) {
-              companyGroups[row.company_id] = [];
-              companyIds.push(row.company_id);
-            }
-            companyGroups[row.company_id].push(row);
-          });
-          
-          // Sort companyIds by company name
-          companyIds.sort((a, b) => cName(a).localeCompare(cName(b), "tr"));
-          
-          companyIds.forEach(cId => {
-            let companyRecords = companyGroups[cId];
-            
-            // Separate main and sub records
-            let mainRecords = [];
-            let subRecords = [];
-            companyRecords.forEach(row => {
-              if (getSubstituteParentId(row)) {
-                subRecords.push(row);
-              } else {
-                mainRecords.push(row);
-              }
-            });
-            
-            // Sort main records by personnel name
-            mainRecords.sort((a, b) => pName(a.personnel_id).localeCompare(pName(b.personnel_id), "tr"));
-            
-            // 1. Company Header Row
-            sd.push([cName(cId), "", "", "", "", "", "", ""]);
-            
-            // 2. Personnel rows
-            mainRecords.forEach(row => {
-              // Check if it's collective or individual payment
-              let isToplu = isTopluRecord(row, sortedRows);
-              
-              // Column F: Kurum Ödemesi
-              let comPaymentVal = "";
-              if (!isToplu) {
-                let factor = 1.0;
-                if (row.com_kdv) factor += 0.20;
-                if (row.com_tevkifat) factor += 0.02;
-                let baseVal = factor > 0 ? (row.total_company_payment / factor) : row.total_company_payment;
-                baseVal = Math.round(baseVal);
-                
-                if (row.com_kdv && row.com_tevkifat) {
-                  comPaymentVal = `${Math.round(row.total_company_payment)} TL (+20% KDV, +2% Tef)`;
-                } else if (row.com_kdv) {
-                  comPaymentVal = `${baseVal} TL (+20% KDV = ${Math.round(row.total_company_payment)} TL)`;
-                } else if (row.com_tevkifat) {
-                  comPaymentVal = `${baseVal} TL (+2% Tevkifat = ${Math.round(row.total_company_payment)} TL)`;
-                } else {
-                  comPaymentVal = row.total_company_payment > 0 ? `${Math.round(row.total_company_payment)} TL` : "—";
-                }
-              }
-              
-              // Column G: Maaş Hesap
-              let salaryCalcVal = "";
-              if (row.advance_amount > 0) {
-                salaryCalcVal = `${Math.round(row.total_personnel_payment)} - ${Math.round(row.advance_amount)} AVANS = ${Math.round(row.total_personnel_payment - row.advance_amount)}`;
-              }
-              
-              // Column H: Maaş / Hakediş
-              let salaryHakedisVal = "";
-              if (row.advance_amount <= 0) {
-                salaryHakedisVal = Math.round(row.total_personnel_payment).toString();
-              }
-              
-              // Column E: İzin / Yerine Gelen
-              let leaveNoteVal = "";
-              if (row.annual_leave > 0) {
-                leaveNoteVal = `${row.annual_leave} Gün İzin`;
-                if (row.note && !row.note.startsWith("__SUB_FOR_PID")) {
-                  leaveNoteVal += ` (${row.note})`;
-                }
-              } else if (row.note && !row.note.startsWith("__SUB_FOR_PID")) {
-                leaveNoteVal = row.note;
-              }
-              
-              sd.push([
-                "", 
-                "", 
-                pName(row.personnel_id), 
-                (row.work_days || 0) + " GÜN", 
-                leaveNoteVal, 
-                comPaymentVal, 
-                salaryCalcVal, 
-                salaryHakedisVal
-              ]);
-              
-              // Find and push cover personnel rows directly under
-              let subs = subRecords.filter(s => getSubstituteParentId(s) == row.personnel_id);
-              subs.forEach(sub => {
-                sd.push([
-                  "", 
-                  "", 
-                  "", 
-                  "", 
-                  pName(sub.personnel_id) + " (Yerine)", 
-                  (sub.work_days || 0) + " GÜN", 
-                  Math.round(sub.total_personnel_payment) + " TL", 
-                  ""
-                ]);
-              });
-            });
-            
-            // 3. Company Total Row
-            // Company payment total
-            let totalComText = "";
-            let positiveComRecords = companyRecords.filter(rx => (parseFloat(rx.total_company_payment) || 0) > 0);
-            let totalComSum = companyRecords.reduce((sum, rx) => sum + (parseFloat(rx.total_company_payment) || 0), 0);
-            
-            // If it is collective payment, check KDV/Tevkifat on the record that has positive payment
-            let isTopluGroup = isTopluRecord(companyRecords[0], sortedRows);
-            if (isTopluGroup && positiveComRecords.length === 1) {
-              let topluRec = positiveComRecords[0];
-              let factor = 1.0;
-              if (topluRec.com_kdv) factor += 0.20;
-              if (topluRec.com_tevkifat) factor += 0.02;
-              let baseVal = factor > 0 ? (topluRec.total_company_payment / factor) : topluRec.total_company_payment;
-              baseVal = Math.round(baseVal);
-              
-              if (topluRec.com_kdv && topluRec.com_tevkifat) {
-                totalComText = `TOPLAM = ${baseVal} TL (+20% KDV, +2% Tef = ${Math.round(topluRec.total_company_payment)} TL)`;
-              } else if (topluRec.com_kdv) {
-                totalComText = `TOPLAM = ${baseVal} TL KDV=${Math.round(topluRec.total_company_payment)}`;
-              } else if (topluRec.com_tevkifat) {
-                totalComText = `TOPLAM = ${baseVal} TL TEVKİFAT=${Math.round(topluRec.total_company_payment)}`;
-              } else {
-                totalComText = `TOPLAM = ${Math.round(topluRec.total_company_payment)} TL`;
-              }
-            } else {
-              totalComText = `TOPLAM = ${Math.round(totalComSum)} TL`;
-            }
-            
-            // Personnel net payment total
-            let totalPerNetSum = companyRecords.reduce((sum, rx) => {
-              let net = (parseFloat(rx.total_personnel_payment) || 0) - (parseFloat(rx.advance_amount) || 0);
-              return sum + net;
-            }, 0);
-            let totalPerText = `TOPLAM = ${Math.round(totalPerNetSum)}`;
-            
-            sd.push([
-              "", 
-              "", 
-              "", 
-              "", 
-              "", 
-              totalComText, 
-              totalPerText, 
-              ""
-            ]);
-            
-            // Spacer row
-            sd.push([]);
-          });
-          
+          let sd = buildGroupedSheet(sortedRows, excelCols, mapExcelRow);
           let ws = XLSX.utils.aoa_to_sheet(sd);
-          
-          // Apply row height (26pt)
-          ws['!rows'] = sd.map(() => ({ hpt: 26 }));
-          
-          // Apply column widths
-          ws['!cols'] = [
-            { wch: 22 }, // Column A: Kurum
-            { wch: 4 },  // Column B: spacing
-            { wch: 25 }, // Column C: Personel
-            { wch: 15 }, // Column D: Gün
-            { wch: 30 }, // Column E: İzin / Yerine
-            { wch: 35 }, // Column F: Kurum Ödemesi
-            { wch: 35 }, // Column G: Maaş Hesap
-            { wch: 18 }  // Column H: Net Maaş
-          ];
-          
-          XLSX.utils.book_append_sheet(wb, ws, aylar[r.ay] + " " + r.yil);
-          XLSX.writeFile(wb, `Aylik_${aylar[r.ay]}_${r.yil}.xlsx`);
+          XLSX.utils.book_append_sheet(wb, ws, (aylar[r.ay] || "Ay") + " " + (r.yil || ""));
+          XLSX.writeFile(wb, `Aylik_Rapor_${aylar[r.ay]}_${r.yil}.xlsx`);
         } else if (type === "personel") {
           let title = r.p ? r.p.first_name + "_" + r.p.last_name : "Tum_Personel";
-          let sd = buildGroupedSheet(sortedRows, cols, mapRow);
-          
-          let sumAnnualLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.annual_leave) || 0), 0);
-          let sumSickLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.sick_leave) || 0), 0);
-          let sumMissingDays = sortedRows.reduce((s, r) => s + (parseFloat(r.missing_days) || 0), 0);
-          let sumOfficialHoliday = sortedRows.reduce((s, r) => s + (parseFloat(r.official_holiday) || 0), 0);
-          let sumLeaveSum = sumAnnualLeave + sumSickLeave + sumMissingDays + sumOfficialHoliday;
-          
-          let sumOvertimeHours = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_hours) || 0), 0);
-          let sumOvertimeWage = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_wage) || 0), 0);
-          let sumMonthlyWage = sortedRows.reduce((s, r) => s + (parseFloat(r.personnel_monthly_wage) || 0), 0);
-          let sumAdditionalPayment = sortedRows.reduce((s, r) => s + (parseFloat(r.additional_payment) || 0), 0);
-          let sumPremium = sortedRows.reduce((s, r) => s + (parseFloat(r.premium) || 0), 0);
-          let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
-
-          sd.push([
-            "GENEL TOPLAM", "", "", "", "", 
-            sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
-            sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
-            r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), "",
-            "", "", "", "", "", ""
-          ]);
-          
+          let sd = buildGroupedSheet(sortedRows, excelCols, mapExcelRow);
           XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), title.substring(0, 31));
           XLSX.writeFile(wb, `Personel_${title}.xlsx`);
         } else if (type === "kurum") {
           let title = r.c ? r.c.company_name : "Tum_Kurumlar";
-          let sd = buildGroupedSheet(sortedRows, cols, mapRow);
-          
-          let sumAnnualLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.annual_leave) || 0), 0);
-          let sumSickLeave = sortedRows.reduce((s, r) => s + (parseFloat(r.sick_leave) || 0), 0);
-          let sumMissingDays = sortedRows.reduce((s, r) => s + (parseFloat(r.missing_days) || 0), 0);
-          let sumOfficialHoliday = sortedRows.reduce((s, r) => s + (parseFloat(r.official_holiday) || 0), 0);
-          let sumLeaveSum = sumAnnualLeave + sumSickLeave + sumMissingDays + sumOfficialHoliday;
-          
-          let sumOvertimeHours = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_hours) || 0), 0);
-          let sumOvertimeWage = sortedRows.reduce((s, r) => s + (parseFloat(r.overtime_wage) || 0), 0);
-          let sumMonthlyWage = sortedRows.reduce((s, r) => s + (parseFloat(r.personnel_monthly_wage) || 0), 0);
-          let sumAdditionalPayment = sortedRows.reduce((s, r) => s + (parseFloat(r.additional_payment) || 0), 0);
-          let sumPremium = sortedRows.reduce((s, r) => s + (parseFloat(r.premium) || 0), 0);
-          let sumDeductions = sortedRows.reduce((s, r) => s + (parseFloat(r.deductions) || 0), 0);
-
-          sd.push([
-            "GENEL TOPLAM", "", "", "", "", 
-            sumAnnualLeave, sumSickLeave, sumMissingDays, sumOfficialHoliday, sumLeaveSum, r.tG,
-            sumOvertimeHours, sumOvertimeWage, sumMonthlyWage, sumAdditionalPayment, sumPremium, sumDeductions,
-            r.tP, r.tA || 0, (r.tP || 0) - (r.tA || 0), r.tC,
-            r.tK, "", "", "", "", ""
-          ]);
-          
+          let sd = buildGroupedSheet(sortedRows, excelCols, mapExcelRow);
           XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sd), title.substring(0, 31));
           XLSX.writeFile(wb, `Kurum_${title.replace(/\s/g, "_")}.xlsx`);
         }
       }
+
+      function exportCalismalarExcel() {
+        if (!window.XLSX) { toast('Excel kütüphanesi yükleniyor, lütfen bekleyin', 'err'); return; }
+        const calYilEl = document.getElementById("cal-yil");
+        const calAyEl = document.getElementById("cal-ay");
+        const selectedYear = calYilEl ? parseInt(calYilEl.value, 10) : new Date().getFullYear();
+        const selectedMonth = calAyEl ? parseInt(calAyEl.value, 10) : new Date().getMonth();
+        const aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+        const activeRows = work_records.filter((r) => {
+          const arch = arsivMode ? r.archived === true : !r.archived;
+          if (!arch || !r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.year === selectedYear && ym.month === selectedMonth && isRecordVisibleInHistory(r);
+        });
+
+        if (activeRows.length === 0) {
+          toast("Dışa aktarılacak kayıt bulunamadı", "err");
+          return;
+        }
+
+        const excelCols = [
+          "Kurum Adı", "Personel Adı Soyadı", "Pozisyon", "Giriş Tarihi", "Çıkış Tarihi",
+          "Çalışılan Gün", "Baz Maaş (₺)", "Prim Tutarı (₺)", "Prim Açıklaması",
+          "Ek Ödeme (₺)", "Avans (₺)", "Kesinti (₺)", "Net Ödenecek Maaş (₺)",
+          "Kurum Anlaşılan Baz Ücret (₺)", "KDV (%20)", "Tevkifat (%2)", "Kurum Ek Mesai (₺)",
+          "Toplam Kurum Faturası (₺)", "Net Kâr (₺)", "İzin Günü", "İzin Nedeni",
+          "Yerine Giden (Joker) Personel", "Yerine Giden Gün", "Yerine Giden Ücret (₺)",
+          "Pers. Ödeme Durumu", "Kurum Ödeme Durumu", "Notlar"
+        ];
+
+        let wb = XLSX.utils.book_new();
+        let sd = [excelCols];
+
+        let groups = {}, groupOrder = [];
+        activeRows.forEach((r) => {
+          const cidKey = (r.company_id !== undefined && r.company_id !== null) ? r.company_id.toString() : "";
+          if (!groups[cidKey]) { groups[cidKey] = []; groupOrder.push(cidKey); }
+          groups[cidKey].push(r);
+        });
+
+        groupOrder.forEach((cId) => {
+          let grRows = groups[cId];
+          let cn = cName(cId);
+          let tBaseWage = grRows.reduce((s, rw) => s + extractRecordDetails(rw).baseWage, 0);
+          let tPrim = grRows.reduce((s, rw) => s + extractRecordDetails(rw).primAmount, 0);
+          let tNetP = grRows.reduce((s, rw) => s + extractRecordDetails(rw).netPersonnelPayment, 0);
+          let tC = grRows.reduce((s, rw) => s + extractRecordDetails(rw).totalCompanyInvoice, 0);
+          let tK = tC - tNetP;
+
+          let header = new Array(excelCols.length).fill("");
+          header[0] = "🏢 " + cn + " (" + grRows.length + " Personel)";
+          header[6] = "Maaş: " + fmt(tBaseWage);
+          header[7] = "Prim: " + fmt(tPrim);
+          header[12] = "Net Pers: " + fmt(tNetP);
+          header[17] = "Fatura: " + fmt(tC);
+          header[18] = "Kâr: " + fmt(tK);
+          sd.push(header);
+
+          grRows.forEach(rw => {
+            const d = extractRecordDetails(rw);
+            sd.push([
+              cName(rw.company_id),
+              d.personnelName,
+              d.position,
+              fmtDate(d.startDate),
+              fmtDate(d.endDate),
+              d.workDays,
+              d.baseWage,
+              d.primAmount,
+              d.primNotes,
+              d.extraAmount,
+              d.advanceAmount,
+              d.deductionAmount,
+              d.netPersonnelPayment,
+              d.baseCom,
+              d.hasKdv ? "Evet (%20)" : "Hayır",
+              d.hasTef ? "Evet (%2)" : "Hayır",
+              d.otComWage,
+              d.totalCompanyInvoice,
+              d.netProfit,
+              d.leaveDays,
+              d.leaveReason,
+              d.subCovers.length > 0 ? d.coverNamesStr : "",
+              d.coverDaysTotal > 0 ? d.coverDaysTotal : "",
+              d.coverWagesTotal > 0 ? d.coverWagesTotal : "",
+              d.personnelPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+              d.companyPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+              d.cleanNote
+            ]);
+          });
+
+          let sub = new Array(excelCols.length).fill("");
+          sub[0] = "  [TOPLAM " + cn + "]";
+          sub[6] = tBaseWage;
+          sub[7] = tPrim;
+          sub[12] = tNetP;
+          sub[17] = tC;
+          sub[18] = tK;
+          sd.push(sub);
+          sd.push([]);
+        });
+
+        let ws = XLSX.utils.aoa_to_sheet(sd);
+        XLSX.utils.book_append_sheet(wb, ws, `${aylar[selectedMonth]} ${selectedYear}`);
+        XLSX.writeFile(wb, `Calismalar_${aylar[selectedMonth]}_${selectedYear}.xlsx`);
+        toast("Excel dosyası başarıyla indirildi ✓");
+      }
+
+      function exportOperasyonExcel() {
+        if (!window.XLSX) { toast('Excel kütüphanesi yükleniyor, lütfen bekleyin', 'err'); return; }
+        const opYilEl = document.getElementById("op-yil");
+        const opAyEl = document.getElementById("op-ay");
+        const selYear = opYilEl ? parseInt(opYilEl.value, 10) : new Date().getFullYear();
+        const selMonth = opAyEl ? parseInt(opAyEl.value, 10) : new Date().getMonth();
+        const aylar = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+        const activeRows = work_records.filter(r => {
+          if (r.archived || !r.start_day) return false;
+          const ym = getYearMonth(r.start_day);
+          return ym.month === selMonth && ym.year === selYear;
+        });
+
+        if (activeRows.length === 0) {
+          toast("Dışa aktarılacak operasyon kaydı bulunamadı", "err");
+          return;
+        }
+
+        const excelCols = [
+          "Kurum Adı", "Personel Adı Soyadı", "Pozisyon", "Giriş Tarihi", "Çıkış Tarihi",
+          "Çalışılan Gün", "Baz Maaş (₺)", "Prim Tutarı (₺)", "Prim Açıklaması",
+          "Ek Ödeme (₺)", "Avans (₺)", "Kesinti (₺)", "Net Ödenecek Maaş (₺)",
+          "Kurum Anlaşılan Baz Ücret (₺)", "KDV (%20)", "Tevkifat (%2)", "Kurum Ek Mesai (₺)",
+          "Toplam Kurum Faturası (₺)", "Net Kâr (₺)", "İzin Günü", "İzin Nedeni",
+          "Yerine Giden (Joker) Personel", "Yerine Giden Gün", "Yerine Giden Ücret (₺)",
+          "Pers. Ödeme Durumu", "Kurum Ödeme Durumu", "Notlar"
+        ];
+
+        let wb = XLSX.utils.book_new();
+        let sd = [excelCols];
+
+        let groups = {}, groupOrder = [];
+        activeRows.forEach((r) => {
+          const cidKey = (r.company_id !== undefined && r.company_id !== null) ? r.company_id.toString() : "";
+          if (!groups[cidKey]) { groups[cidKey] = []; groupOrder.push(cidKey); }
+          groups[cidKey].push(r);
+        });
+
+        groupOrder.forEach((cId) => {
+          let grRows = groups[cId];
+          let cn = cName(cId);
+          let tBaseWage = grRows.reduce((s, rw) => s + extractRecordDetails(rw).baseWage, 0);
+          let tPrim = grRows.reduce((s, rw) => s + extractRecordDetails(rw).primAmount, 0);
+          let tNetP = grRows.reduce((s, rw) => s + extractRecordDetails(rw).netPersonnelPayment, 0);
+          let tC = grRows.reduce((s, rw) => s + extractRecordDetails(rw).totalCompanyInvoice, 0);
+          let tK = tC - tNetP;
+
+          let header = new Array(excelCols.length).fill("");
+          header[0] = "🏢 " + cn + " (" + grRows.length + " Personel)";
+          header[6] = "Maaş: " + fmt(tBaseWage);
+          header[7] = "Prim: " + fmt(tPrim);
+          header[12] = "Net Pers: " + fmt(tNetP);
+          header[17] = "Fatura: " + fmt(tC);
+          header[18] = "Kâr: " + fmt(tK);
+          sd.push(header);
+
+          grRows.forEach(rw => {
+            const d = extractRecordDetails(rw);
+            sd.push([
+              cName(rw.company_id),
+              d.personnelName,
+              d.position,
+              fmtDate(d.startDate),
+              fmtDate(d.endDate),
+              d.workDays,
+              d.baseWage,
+              d.primAmount,
+              d.primNotes,
+              d.extraAmount,
+              d.advanceAmount,
+              d.deductionAmount,
+              d.netPersonnelPayment,
+              d.baseCom,
+              d.hasKdv ? "Evet (%20)" : "Hayır",
+              d.hasTef ? "Evet (%2)" : "Hayır",
+              d.otComWage,
+              d.totalCompanyInvoice,
+              d.netProfit,
+              d.leaveDays,
+              d.leaveReason,
+              d.subCovers.length > 0 ? d.coverNamesStr : "",
+              d.coverDaysTotal > 0 ? d.coverDaysTotal : "",
+              d.coverWagesTotal > 0 ? d.coverWagesTotal : "",
+              d.personnelPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+              d.companyPaymentStatus === "odendi" ? "Ödendi" : "Bekliyor",
+              d.cleanNote
+            ]);
+          });
+
+          let sub = new Array(excelCols.length).fill("");
+          sub[0] = "  [TOPLAM " + cn + "]";
+          sub[6] = tBaseWage;
+          sub[7] = tPrim;
+          sub[12] = tNetP;
+          sub[17] = tC;
+          sub[18] = tK;
+          sd.push(sub);
+          sd.push([]);
+        });
+
+        let ws = XLSX.utils.aoa_to_sheet(sd);
+        XLSX.utils.book_append_sheet(wb, ws, `${aylar[selMonth]} ${selYear}`);
+        XLSX.writeFile(wb, `Aylik_Operasyon_${aylar[selMonth]}_${selYear}.xlsx`);
+        toast("Aylık Operasyon Excel tablosu başarıyla indirildi ✓");
+      }
+
+      window.extractRecordDetails = extractRecordDetails;
+      window.exportCalismalarExcel = exportCalismalarExcel;
+      window.exportOperasyonExcel = exportOperasyonExcel;
 
       // ============================================================
       // YENİ İŞLEMLER VE YARDIMCI FONKSİYONLAR
